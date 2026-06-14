@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.0"
 }
 
 android {
@@ -52,24 +53,15 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // Supabase Kotlin Client
     implementation("io.github.jan-tennert.supabase:supabase-kt:3.1.1")
     implementation("io.github.jan-tennert.supabase:postgrest-kt:3.1.1")
     implementation("io.github.jan-tennert.supabase:storage-kt:3.1.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-
-    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.2")
-
-    // Coil for images
     implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // ViewModel + Compose integration
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-
-    // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.4")
+    implementation("androidx.compose.material:material-icons-extended:1.7.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 }

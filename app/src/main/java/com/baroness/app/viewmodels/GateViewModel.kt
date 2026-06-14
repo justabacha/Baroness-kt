@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.modules.AuthManager
-import com.baroness.app.modules.UserProfile
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -46,7 +45,6 @@ class GateViewModel(private val context: Context) : ViewModel() {
                             val jsonString = Json.encodeToString(profile)
                             storage.saveString("userProfile", jsonString)
                         } catch (e: SerializationException) {
-                            // If serialization fails, just skip storing profile
                             e.printStackTrace()
                         }
                     }

@@ -1,22 +1,14 @@
 package com.baroness.app.modules
 
 import android.content.Context
+import com.baroness.app.models.UserProfile
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
-
-@Serializable
-data class UserProfile(
-    val displayName: String,
-    val avatar: String?,
-    val persona: String,
-    val id: String
-)
 
 class AuthManager(private val context: Context) {
     @Suppress("unused")
@@ -53,7 +45,6 @@ class AuthManager(private val context: Context) {
                 }
 
                 val accessBody = accessResponse.body?.string() ?: "[]"
-                // Manually extract secret_key from JSON array
                 val storedKey = extractSecretKey(accessBody)
 
                 if (storedKey == null || storedKey != inputPass) {
@@ -82,10 +73,8 @@ class AuthManager(private val context: Context) {
     }
 
     private fun extractSecretKey(jsonArray: String): String? {
-        // Expected format: [{"secret_key":"xxx"}] or []
         val trimmed = jsonArray.trim()
         if (trimmed == "[]") return null
-        // Find "secret_key":"..." pattern
         val keyPattern = "\"secret_key\"\\s*:\\s*\"([^\"]+)\"".toRegex()
         return keyPattern.find(trimmed)?.groupValues?.get(1)
     }
@@ -93,7 +82,6 @@ class AuthManager(private val context: Context) {
     private fun extractProfile(jsonArray: String, personaId: String): UserProfile? {
         val trimmed = jsonArray.trim()
         if (trimmed == "[]") return null
-        // Extract fields manually to avoid complex JSON parsing
         val displayName = extractJsonString(trimmed, "display_name") ?: ""
         val avatarUrl = extractJsonString(trimmed, "avatar_url")
         val persona = extractJsonString(trimmed, "persona") ?: ""

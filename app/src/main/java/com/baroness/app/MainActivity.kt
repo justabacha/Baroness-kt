@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
+import com.baroness.app.screens.ProfileSetupScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,10 +42,8 @@ fun AppNavigation() {
             DashboardScreen()
         }
         composable("profile_setup/{personaId}", arguments = listOf(navArgument("personaId") { type = NavType.StringType })) { backStackEntry ->
-            // ProfileSetupScreen will be implemented later
-            @Suppress("unused")
-            val personaId = backStackEntry.arguments?.getString("personaId")
-            DashboardScreen()
+            val personaId = backStackEntry.arguments?.getString("personaId") ?: ""
+            ProfileSetupScreen(navController, personaId)
         }
     }
 }

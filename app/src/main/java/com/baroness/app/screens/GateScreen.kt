@@ -1,11 +1,15 @@
 package com.baroness.app.screens
 
 import android.content.Context
-import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,9 +17,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -26,7 +33,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.navigation.NavController
+import com.baroness.app.R
 import com.baroness.app.viewmodels.GateViewModel
+import kotlinx.coroutines.delay
 
 @Composable
 fun GateScreen(navController: NavController) {
@@ -39,32 +48,37 @@ fun GateScreen(navController: NavController) {
 
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    // Blinking animation for error
-    val infiniteTransition = rememberInfiniteTransition(label = "blink")
-    val blinkAlpha by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(300),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
+    var blinkAlpha by remember { mutableFloatStateOf(1f) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF1a1a2e), Color(0xFF16213e))
-                )
-            )
-    ) {
-        // Blur overlay effect
+    LaunchedEffect(errorMessage) {
+        if (errorMessage != null) {
+            for (i in 1..8) {
+                blinkAlpha = if (i % 2 == 1) 0f else 1f
+                delay(300)
+            }
+            blinkAlpha = 1f
+        } else {
+            blinkAlpha = 1f
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.image_45),
+            contentDescription = "Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.3f))
+                .background(Color.Black.copy(alpha = 0.15f))
+                .graphicsLayer {
+                    if (android.os.Build.VERSION.SDK_INT >= 31) {
+                        renderEffect = BlurEffect(20f, 20f)
+                    }
+                }
         )
 
         Column(
@@ -77,8 +91,8 @@ fun GateScreen(navController: NavController) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(8.dp, RoundedCornerShape(20.dp))
-                    .clip(RoundedCornerShape(20.dp))
+                    .shadow(8.dp, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(Color.White.copy(alpha = 0.1f)),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent)
             ) {
@@ -100,7 +114,6 @@ fun GateScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Password input with eye toggle
                     OutlinedTextField(
                         value = password,
                         onValueChange = { viewModel.updatePassword(it) },
@@ -109,6 +122,7 @@ fun GateScreen(navController: NavController) {
                         singleLine = true,
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        shape = RoundedCornerShape(30.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = if (isPasswordValid) Color(0xFF4caf50) else Color.White,
                             unfocusedBorderColor = Color.White,
@@ -117,9 +131,10 @@ fun GateScreen(navController: NavController) {
                         ),
                         trailingIcon = {
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                Text(
-                                    text = if (isPasswordVisible) "🙈" else "👁️",
-                                    fontSize = 20.sp
+                                Icon(
+                                    imageVector = if (isPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = if (isPasswordVisible) "Hide password" else "Show password",
+                                    tint = Color.White
                                 )
                             }
                         },
@@ -132,7 +147,6 @@ fun GateScreen(navController: NavController) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Phesty Button
                         Button(
                             onClick = {
                                 viewModel.onGateSelected("phesty") { profileId, personaId ->
@@ -150,15 +164,18 @@ fun GateScreen(navController: NavController) {
                                 .weight(1f)
                                 .height(48.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isPasswordValid) Color(0xFF4d94ff).copy(alpha = 0.6f)
-                                else Color.White.copy(alpha = 0.1f)
+                                containerColor = if (isPasswordValid) Color(0xFF4d94ff).copy(alpha = 0.3f)
+                                else Color.White.copy(alpha = 0.2f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isPasswordValid) Color(0xFF4d94ff) else Color(0xFF4caf50)
+                            )
                         ) {
                             Text("Phesty", color = Color.White)
                         }
 
-                        // Baroness Button
                         Button(
                             onClick = {
                                 viewModel.onGateSelected("baroness") { profileId, personaId ->
@@ -176,10 +193,14 @@ fun GateScreen(navController: NavController) {
                                 .weight(1f)
                                 .height(48.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isPasswordValid) Color(0xFFff4d6d).copy(alpha = 0.6f)
-                                else Color.White.copy(alpha = 0.1f)
+                                containerColor = if (isPasswordValid) Color(0xFFff4d6d).copy(alpha = 0.3f)
+                                else Color.White.copy(alpha = 0.2f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isPasswordValid) Color(0xFFff4d6d) else Color(0xFF4caf50)
+                            )
                         ) {
                             Text("Baroness", color = Color.White)
                         }
@@ -205,7 +226,6 @@ fun GateScreen(navController: NavController) {
     }
 }
 
-// Factory for ViewModel with context
 class GateViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         @Suppress("UNCHECKED_CAST")
