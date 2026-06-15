@@ -155,7 +155,9 @@ fun GateScreen(navController: NavController) {
                                             popUpTo("gate") { inclusive = true }
                                         }
                                     } else {
-                                        navController.navigate("profile_setup/$personaId")
+                                        navController.navigate("profile_setup/$personaId"){
+                                            popUpTo("gate") { inclusive = true }
+                                        }
                                     }
                                 }
                             },
@@ -184,7 +186,9 @@ fun GateScreen(navController: NavController) {
                                             popUpTo("gate") { inclusive = true }
                                         }
                                     } else {
-                                        navController.navigate("profile_setup/$personaId")
+                                        navController.navigate("profile_setup/$personaId"){
+                                            popUpTo("gate") { inclusive = true }
+                                        }
                                     }
                                 }
                             },

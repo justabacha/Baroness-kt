@@ -64,4 +64,6 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.8.4")
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("androidx.compose.material:material:1.7.5")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.36.0")
 }
