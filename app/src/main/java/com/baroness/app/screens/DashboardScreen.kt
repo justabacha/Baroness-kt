@@ -12,19 +12,24 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -39,15 +44,19 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.components.QuoteCard
 import com.baroness.app.ui.theme.Colors
+import com.baroness.app.utils.rememberCaptureManager
 import com.baroness.app.viewmodels.DashboardViewModel
-import com.google.accompanist.swiperefresh.SwipeRefresh
-import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import kotlin.math.max
 import kotlin.math.min
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.isGranted
 
 private fun clamp(minVal: Float, value: Float, maxVal: Float): Float = min(maxVal, max(minVal, value))
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun DashboardScreen(navController: NavController) {
     val context = LocalContext.current
@@ -55,9 +64,9 @@ fun DashboardScreen(navController: NavController) {
         factory = DashboardViewModelFactory(context.applicationContext as Application)
     )
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.toFloat()
-    val screenHeight = configuration.screenHeightDp.toFloat()
+    val containerSize = LocalWindowInfo.current.containerSize
+    val screenWidth = with(androidx.compose.ui.platform.LocalDensity.current) { containerSize.width.toDp().value }
+    val screenHeight = with(androidx.compose.ui.platform.LocalDensity.current) { containerSize.height.toDp().value }
 
     val outerPad             = clamp(10f,  screenWidth * 0.03f,  20f).dp
     val headerPad            = clamp(15f,  screenWidth * 0.04f,  20f).dp
@@ -90,6 +99,20 @@ fun DashboardScreen(navController: NavController) {
     val isInitialLoading by viewModel.isInitialLoading.collectAsState()
     val isRefreshing     by viewModel.isRefreshing.collectAsState()
 
+    // Hoisted above LazyColumn — these must be in @Composable scope
+    val captureManager = rememberCaptureManager()
+    val coroutineScope = rememberCoroutineScope()
+    val card1Layer = rememberGraphicsLayer()
+    val card2Layer = rememberGraphicsLayer()
+
+    val fineLocationPermissionState = rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+
+    LaunchedEffect(Unit) {
+        if (!fineLocationPermissionState.status.isGranted) {
+            fineLocationPermissionState.launchPermissionRequest()
+        }
+    }
+
     if (isInitialLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Colors.pinkAccent)
@@ -97,14 +120,17 @@ fun DashboardScreen(navController: NavController) {
         return
     }
 
+    val pullRefreshState = rememberPullToRefreshState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Colors.bg)
     ) {
-        SwipeRefresh(
-            state = rememberSwipeRefreshState(isRefreshing),
-            onRefresh = { viewModel.refresh() }
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            state = pullRefreshState
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -230,27 +256,52 @@ fun DashboardScreen(navController: NavController) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier.wrapContentHeight()
                             ) {
-                                QuoteCard(
-                                    date = todayDate,
-                                    text = vibe!!.part1,
-                                    author = "!!Baroness",
-                                    imageUrl = vibe!!.photo1,
-                                    cardWidth = cardWidth.dp,
-                                    cardHeight = cardHeight.dp,
-                                    tiltDeg = -10f,
-                                    modifier = Modifier.offset(x = -card1RightOffset)
-                                )
+                                // Baroness card (left tilt)
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = -card1RightOffset)
+                                        .drawWithContent {
+                                            card1Layer.record {
+                                                this@drawWithContent.drawContent()
+                                            }
+                                            drawLayer(card1Layer)
+                                        }
+                                ) {
+                                    QuoteCard(
+                                        date = todayDate,
+                                        text = vibe!!.part1,
+                                        author = "!!Baroness",
+                                        imageUrl = vibe!!.photo1,
+                                        cardWidth = cardWidth.dp,
+                                        cardHeight = cardHeight.dp,
+                                        tiltDeg = -10f,
+                                        modifier = Modifier
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(24.dp))
-                                QuoteCard(
-                                    date = todayDate,
-                                    text = vibe!!.part2,
-                                    author = "!!Phesty",
-                                    imageUrl = vibe!!.photo2,
-                                    cardWidth = cardWidth.dp,
-                                    cardHeight = cardHeight.dp,
-                                    tiltDeg = 10f,
-                                    modifier = Modifier.offset(x = -card1RightOffset)
-                                )
+
+                                // Phesty card (right tilt)
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = -card1RightOffset)
+                                        .drawWithContent {
+                                            card2Layer.record {
+                                                this@drawWithContent.drawContent()
+                                            }
+                                            drawLayer(card2Layer)
+                                        }
+                                ) {
+                                    QuoteCard(
+                                        date = todayDate,
+                                        text = vibe!!.part2,
+                                        author = "!!Phesty",
+                                        imageUrl = vibe!!.photo2,
+                                        cardWidth = cardWidth.dp,
+                                        cardHeight = cardHeight.dp,
+                                        tiltDeg = 10f,
+                                        modifier = Modifier
+                                    )
+                                }
                             }
                         }
                     }
@@ -263,7 +314,11 @@ fun DashboardScreen(navController: NavController) {
                             horizontalArrangement = Arrangement.spacedBy(btnGap, Alignment.CenterHorizontally)
                         ) {
                             OutlinedButton(
-                                onClick = { /* TODO: share Baroness card */ },
+                                onClick = {
+                                    coroutineScope.launch {
+                                        captureManager.captureAndShare(card1Layer, "baroness_card.png")
+                                    }
+                                },
                                 contentPadding = PaddingValues(
                                     vertical = btnPaddingVertical,
                                     horizontal = btnPaddingHorizontal
@@ -286,7 +341,11 @@ fun DashboardScreen(navController: NavController) {
                             }
 
                             OutlinedButton(
-                                onClick = { /* TODO: share Phesty card */ },
+                                onClick = {
+                                    coroutineScope.launch {
+                                        captureManager.captureAndShare(card2Layer, "phesty_card.png")
+                                    }
+                                },
                                 contentPadding = PaddingValues(
                                     vertical = btnPaddingVertical,
                                     horizontal = btnPaddingHorizontal
