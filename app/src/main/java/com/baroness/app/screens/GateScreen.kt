@@ -152,11 +152,13 @@ fun GateScreen(navController: NavController) {
                                 viewModel.onGateSelected("phesty") { profileId, personaId ->
                                     if (profileId != null) {
                                         navController.navigate("dashboard") {
-                                            popUpTo("gate") { inclusive = true }
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     } else {
-                                        navController.navigate("profile_setup/$personaId"){
-                                            popUpTo("gate") { inclusive = true }
+                                        navController.navigate("profile_setup/$personaId") {
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     }
                                 }
@@ -183,11 +185,13 @@ fun GateScreen(navController: NavController) {
                                 viewModel.onGateSelected("baroness") { profileId, personaId ->
                                     if (profileId != null) {
                                         navController.navigate("dashboard") {
-                                            popUpTo("gate") { inclusive = true }
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     } else {
-                                        navController.navigate("profile_setup/$personaId"){
-                                            popUpTo("gate") { inclusive = true }
+                                        navController.navigate("profile_setup/$personaId") {
+                                            popUpTo(0) { inclusive = true }
+                                            launchSingleTop = true
                                         }
                                     }
                                 }

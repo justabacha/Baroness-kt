@@ -53,6 +53,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.isGranted
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 private fun clamp(minVal: Float, value: Float, maxVal: Float): Float = min(maxVal, max(minVal, value))
 
@@ -99,6 +100,12 @@ fun DashboardScreen(navController: NavController) {
     val isInitialLoading by viewModel.isInitialLoading.collectAsState()
     val isRefreshing     by viewModel.isRefreshing.collectAsState()
 
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentEntry) {
+        if (currentEntry?.destination?.route == "dashboard") {
+            viewModel.reloadProfile()
+        }
+    }
     // Hoisted above LazyColumn — these must be in @Composable scope
     val captureManager = rememberCaptureManager()
     val coroutineScope = rememberCoroutineScope()
@@ -226,7 +233,9 @@ fun DashboardScreen(navController: NavController) {
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
                                         .clickable {
-                                            navController.navigate("profile_setup/${userProfile?.id ?: ""}")
+                                            navController.navigate("profile_setup/${userProfile?.id ?: ""}") {
+                                                launchSingleTop = true
+                                            }
                                         }
                                         .padding(5.dp)
                                 ) {
