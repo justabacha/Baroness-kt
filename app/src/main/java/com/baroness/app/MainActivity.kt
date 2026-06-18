@@ -3,11 +3,16 @@ package com.baroness.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,7 +21,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -32,6 +38,7 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             BaronessAppTheme {
@@ -57,7 +64,6 @@ fun AppEntryPoint() {
     }
 
     if (startDestination == null) {
-        // Loading screen while checking session
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
@@ -79,6 +85,40 @@ fun AppNavigation(startDestination: String) {
         composable("profile_setup/{personaId}", arguments = listOf(navArgument("personaId") { type = NavType.StringType })) { backStackEntry ->
             val personaId = backStackEntry.arguments?.getString("personaId") ?: ""
             ProfileSetupScreen(navController, personaId)
+        }
+
+        // FloatingMenu navigation destinations
+        composable("Messages") {
+            PlaceholderScreen(navController, "Messages")
+        }
+        composable("Friday") {
+            PlaceholderScreen(navController, "Friday (AI Companion)")
+        }
+        composable("Photos") {
+            PlaceholderScreen(navController, "Photos")
+        }
+        composable("Wishlist") {
+            PlaceholderScreen(navController, "Wishlist")
+        }
+    }
+}
+
+@Composable
+private fun PlaceholderScreen(navController: NavController, title: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = title, style = MaterialTheme.typography.headlineMedium)
+            Button(
+                onClick = { navController.popBackStack() },
+                modifier = Modifier.padding(top = 24.dp)
+            ) {
+                Text("Go Back")
+            }
         }
     }
 }

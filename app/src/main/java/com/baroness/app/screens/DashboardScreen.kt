@@ -43,6 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.components.QuoteCard
+import com.baroness.app.components.FloatingMenu
 import com.baroness.app.ui.theme.Colors
 import com.baroness.app.utils.rememberCaptureManager
 import com.baroness.app.viewmodels.DashboardViewModel
@@ -379,6 +380,7 @@ fun DashboardScreen(navController: NavController) {
                     }
                 }
             }
+            FloatingMenu(navController)
         }
     }
 }
