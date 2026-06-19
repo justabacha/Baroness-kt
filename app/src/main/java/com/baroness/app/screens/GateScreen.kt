@@ -33,6 +33,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.navigation.NavController
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import com.baroness.app.R
 import com.baroness.app.viewmodels.GateViewModel
 import kotlinx.coroutines.delay
@@ -47,7 +49,6 @@ fun GateScreen(navController: NavController) {
     val isPasswordValid = viewModel.isPasswordValid
 
     var isPasswordVisible by remember { mutableStateOf(false) }
-
     var blinkAlpha by remember { mutableFloatStateOf(1f) }
 
     LaunchedEffect(errorMessage) {
@@ -62,7 +63,12 @@ fun GateScreen(navController: NavController) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .systemBarsPadding()
+    ) {
         Image(
             painter = painterResource(id = R.drawable.image_45),
             contentDescription = "Background",
@@ -84,7 +90,8 @@ fun GateScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

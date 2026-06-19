@@ -31,6 +31,7 @@ import androidx.navigation.navArgument
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
+import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -38,11 +39,14 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             BaronessAppTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     AppEntryPoint()
                 }
             }
@@ -82,12 +86,13 @@ fun AppNavigation(startDestination: String) {
         composable("dashboard") {
             DashboardScreen(navController)
         }
-        composable("profile_setup/{personaId}", arguments = listOf(navArgument("personaId") { type = NavType.StringType })) { backStackEntry ->
+        composable(
+            "profile_setup/{personaId}",
+            arguments = listOf(navArgument("personaId") { type = NavType.StringType })
+        ) { backStackEntry ->
             val personaId = backStackEntry.arguments?.getString("personaId") ?: ""
             ProfileSetupScreen(navController, personaId)
         }
-
-        // FloatingMenu navigation destinations
         composable("Messages") {
             PlaceholderScreen(navController, "Messages")
         }
@@ -98,7 +103,7 @@ fun AppNavigation(startDestination: String) {
             PlaceholderScreen(navController, "Photos")
         }
         composable("Wishlist") {
-            PlaceholderScreen(navController, "Wishlist")
+            WishlistScreen(navController)
         }
     }
 }

@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.Baroness" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Baroness" parent="android:Theme.Material.Light.NoActionBar">
+        <!-- Transparent status and nav bars for edge-to-edge -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Ensure content draws behind system bars -->
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <!-- Dark icons on light scrim (or use false for light icons) -->
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

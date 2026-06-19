@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -129,7 +131,7 @@ fun DashboardScreen(navController: NavController) {
     }
 
     val pullRefreshState = rememberPullToRefreshState()
-
+    val navBarInset = WindowInsets.navigationBars.asPaddingValues()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -142,7 +144,12 @@ fun DashboardScreen(navController: NavController) {
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(outerPad),
+                contentPadding = PaddingValues(
+                    start = outerPad,
+                    end = outerPad,
+                    top = outerPad,
+                    bottom = outerPad + navBarInset.calculateBottomPadding()
+                ),
                 verticalArrangement = Arrangement.spacedBy(0.dp)
             ) {
                 item {
