@@ -4,6 +4,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit   // <-- ADD THIS
 
 object SupabaseConfig {
     const val SUPABASE_URL = "https://wckluymkbqxdmipzaiff.supabase.co"
@@ -15,4 +17,9 @@ object SupabaseConfig {
             install(Storage)
         }
     }
+
+    val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
 }

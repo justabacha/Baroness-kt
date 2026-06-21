@@ -4,14 +4,14 @@ data class Wish(
     val id: Long,
     val text: String,
     val date: String,
-    val status: String,          // "planning" or "dusted"
-    val creator: String,         // "P" or "B"
-    val reactions: Map<String, String>, // key: "P" or "B", value: emoji
-    val ratings: Map<String, Int>,      // key: "P" or "B", value: rating (1-5)
-    val createdAt: Long
+    val status: String,
+    val creator: String,
+    val ratings: Map<String, Int> = emptyMap(),
+    val reactions: Map<String, String> = emptyMap(),
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 data class WishStats(
-    val total: Int,
-    val dusted: Int
+    val total: Int = 0,
+    val dusted: Int = 0
 )

@@ -6,29 +6,49 @@ import androidx.lifecycle.viewModelScope
 import com.baroness.app.repository.WishlistRepository
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import androidx.compose.ui.geometry.Offset
 
 class WishlistViewModel(context: Context) : ViewModel() {
-    private val repository = WishlistRepository(context)
 
-    // UI state – explicitly typed
-    private val _wishes = MutableStateFlow<List<Wish>>(emptyList())
-    val wishes: StateFlow<List<Wish>> = _wishes.asStateFlow()
+    private val repository = WishlistRepository(context.applicationContext)
 
-    private val _stats = MutableStateFlow(WishStats(0, 0))
-    val stats: StateFlow<WishStats> = _stats.asStateFlow()
+    // ─── Data from Room (persists across navigation) ───
+    // Using stateIn with WhileSubscribed means the Flow stays alive while UI is active
+    // and re-emits latest value when UI comes back
+    val wishes: StateFlow<List<Wish>> = repository.getAllWishes()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000), // Keep alive 5s after UI leaves
+            initialValue = emptyList()
+        )
 
-    private val _loading = MutableStateFlow(true)
-    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+    // Stats derived from wishes Flow - always in sync
+    val stats: StateFlow<WishStats> = wishes.map { list ->
+        WishStats(
+            total = list.size,
+            dusted = list.count { it.status == "dusted" }
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = WishStats(0, 0)
+    )
 
+    // Loading only for initial empty state (Room is fast)
+    private val _isInitialLoading = MutableStateFlow(true)
+    val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
+
+    // ─── Modal States (ephemeral, don't need persistence) ───
     private val _selectedDate = MutableStateFlow<String?>(null)
     val selectedDate: StateFlow<String?> = _selectedDate.asStateFlow()
 
     private val _calendarVisible = MutableStateFlow(false)
     val calendarVisible: StateFlow<Boolean> = _calendarVisible.asStateFlow()
+
+    private val _calendarAnchor = MutableStateFlow<Offset?>(null)
+    val calendarAnchor: StateFlow<Offset?> = _calendarAnchor.asStateFlow()
 
     private val _emojiVisible = MutableStateFlow(false)
     val emojiVisible: StateFlow<Boolean> = _emojiVisible.asStateFlow()
@@ -48,28 +68,66 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val _pendingDeleteId = MutableStateFlow<Long?>(null)
     val pendingDeleteId: StateFlow<Long?> = _pendingDeleteId.asStateFlow()
 
+    private val _photoModalVisible = MutableStateFlow(false)
+    val photoModalVisible: StateFlow<Boolean> = _photoModalVisible.asStateFlow()
+
     private val _currentUserKey = MutableStateFlow("P")
     val currentUserKey: StateFlow<String> = _currentUserKey.asStateFlow()
 
-    init {
-        loadWishes()
-    }
+    private val _userNames = MutableStateFlow<Map<String, String>>(
+        mapOf("P" to "Phesty", "B" to "Baroness")
+    )
+    val userNames: StateFlow<Map<String, String>> = _userNames.asStateFlow()
 
-    fun loadWishes() {
+    private val _userAvatars = MutableStateFlow<Map<String, String?>>(
+        mapOf("P" to null, "B" to null)
+    )
+    val userAvatars: StateFlow<Map<String, String?>> = _userAvatars.asStateFlow()
+
+    init {
+        // Turn off loading once we have data (Room is instant after first load)
         viewModelScope.launch {
-            _loading.value = true
-            repository.getAllWishes().collect { wishList ->
-                _wishes.value = wishList
-                _stats.value = repository.getStats()
-                _loading.value = false
+            wishes.collect { list ->
+                if (list.isNotEmpty()) {
+                    _isInitialLoading.value = false
+                }
             }
+        }
+        // Also turn off after short delay if empty (first launch)
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(300)
+            _isInitialLoading.value = false
         }
     }
 
+    // ─── UI Actions ───
+    fun setSelectedDate(date: String?) { _selectedDate.value = date }
+    fun toggleCalendar(visible: Boolean) { _calendarVisible.value = visible }
+    fun setCalendarAnchor(position: Offset) { _calendarAnchor.value = position }
+
+    fun toggleEmojiPicker(visible: Boolean, wishId: Long? = null) {
+        _emojiVisible.value = visible
+        _activeWishId.value = wishId
+    }
+
+    fun toggleRatingModal(visible: Boolean, wish: Wish? = null) {
+        _ratingVisible.value = visible
+        _ratingWish.value = wish
+    }
+
+    fun toggleConfirmDialog(visible: Boolean, wishId: Long? = null) {
+        _confirmVisible.value = visible
+        _pendingDeleteId.value = wishId
+    }
+
+    fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
+
+    // ─── CRUD (all go to Repository → Room → Sync) ───
     fun createWish(text: String, date: String, creatorId: String) {
         viewModelScope.launch {
+            val tempId = -System.currentTimeMillis() // Negative temp ID
             val newWish = Wish(
-                id = System.currentTimeMillis(),
+                id = tempId,
                 text = text,
                 date = date,
                 status = "planning",
@@ -94,29 +152,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun setSelectedDate(date: String?) {
-        _selectedDate.value = date
-    }
-
-    fun toggleCalendar(show: Boolean) {
-        _calendarVisible.value = show
-    }
-
-    fun toggleEmojiPicker(show: Boolean, wishId: Long? = null) {
-        _emojiVisible.value = show
-        _activeWishId.value = wishId
-    }
-
-    fun toggleRatingModal(show: Boolean, wish: Wish? = null) {
-        _ratingVisible.value = show
-        _ratingWish.value = wish
-    }
-
-    fun toggleConfirmDialog(show: Boolean, wishId: Long? = null) {
-        _confirmVisible.value = show
-        _pendingDeleteId.value = wishId
-    }
-
     fun saveReaction(wishId: Long, emoji: String) {
         viewModelScope.launch {
             val personaId = if (_currentUserKey.value == "P") "phesty_official" else "baroness_official"
@@ -133,5 +168,10 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun setCurrentUserKey(key: String) {
         _currentUserKey.value = key
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        repository.cleanup()
     }
 }

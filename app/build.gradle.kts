@@ -58,9 +58,11 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:supabase-kt:3.1.1")
     implementation("io.github.jan-tennert.supabase:postgrest-kt:3.1.1")
     implementation("io.github.jan-tennert.supabase:storage-kt:3.1.1")
+    implementation("io.github.jan-tennert.supabase:realtime-kt:3.1.1")
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("io.ktor:ktor-client-okhttp:3.0.1")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
