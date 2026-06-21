@@ -25,4 +25,7 @@ interface SyncQueueDao {
 
     @Query("SELECT COUNT(*) FROM sync_queue WHERE retryCount < 5")
     suspend fun getPendingCount(): Int
+
+    @Query("SELECT * FROM sync_queue WHERE id = :id")
+    suspend fun getById(id: Long): SyncQueueItem?
 }

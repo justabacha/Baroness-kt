@@ -1,128 +1,176 @@
 package com.baroness.app.api
 
+import android.util.Log
 import com.baroness.app.config.SupabaseConfig
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
+import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+private const val TAG = "WishlistApi"
+
+// API 24 compatible ISO timestamp formatter
+private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}
+
+private fun Long.toIsoString(): String {
+    return isoFormat.format(Date(this))
+}
+
+// DTOs with @SerialName for JSON field mapping (Kotlin naming convention)
+@Serializable
+data class WishDto(
+    val id: Long? = null,
+    val text: String,
+    @SerialName("wish_date") val wishDate: String,
+    val status: String,
+    @SerialName("creator_id") val creatorId: String,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null
+)
+
+@Serializable
+data class ReactionDto(
+    @SerialName("wish_id") val wishId: Long,
+    @SerialName("persona_id") val personaId: String,
+    val emoji: String
+)
+
+@Serializable
+data class RatingDto(
+    @SerialName("wish_id") val wishId: Long,
+    @SerialName("persona_id") val personaId: String,
+    val rating: Int
+)
 
 object WishlistApi {
-    @Suppress("unused")
+
     private val supabase = SupabaseConfig.supabase
-    private val client = SupabaseConfig.client
-    private val supabaseUrl = SupabaseConfig.SUPABASE_URL
-    private val supabaseKey = SupabaseConfig.SUPABASE_ANON_KEY
 
-    suspend fun createWish(payload: String): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_items")
-                    .post(payload.toRequestBody("application/json".toMediaType()))
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .header("Prefer", "return=representation")
-                    .build()
-                val response = client.newCall(request).execute()
-                if (!response.isSuccessful) null else response.body?.string()
-            } catch (_: Exception) { null }
+    // ─── CREATE (returns created row with server-generated ID) ───
+    suspend fun createWish(
+        text: String,
+        wishDate: String,
+        status: String,
+        creatorId: String,
+        createdAt: Long
+    ): WishDto? {
+        return try {
+            Log.d(TAG, "Creating wish: text=$text, creator=$creatorId")
+
+            val wish = WishDto(
+                text = text,
+                wishDate = wishDate,
+                status = status,
+                creatorId = creatorId,
+                createdAt = createdAt.toIsoString()
+            )
+
+            val result = supabase.postgrest["wishlist_items"]
+                .insert(wish) {
+                    select()
+                }
+                .decodeSingleOrNull<WishDto>()
+
+            Log.d(TAG, "Create success: id=${result?.id}")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Create failed: ${e.message}", e)
+            null
         }
     }
 
-    suspend fun updateWish(wishId: String, payload: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_items?id=eq.$wishId")
-                    .patch(payload.toRequestBody("application/json".toMediaType()))
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .build()
-                val response = client.newCall(request).execute()
-                response.isSuccessful
-            } catch (_: Exception) { false }
+    // ─── UPDATE ───
+    suspend fun updateWish(wishId: Long, status: String, updatedAt: Long): Boolean {
+        return try {
+            Log.d(TAG, "Updating wish $wishId: status=$status")
+
+            supabase.postgrest["wishlist_items"]
+                .update({
+                    set("status", status)
+                    set("updated_at", updatedAt.toIsoString())
+                }) {
+                    filter { eq("id", wishId) }
+                }
+
+            Log.d(TAG, "Update success")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Update failed: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun deleteWish(wishId: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_items?id=eq.$wishId")
-                    .delete()
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .build()
-                val response = client.newCall(request).execute()
-                response.isSuccessful
-            } catch (_: Exception) { false }
+    // ─── DELETE ───
+    suspend fun deleteWish(wishId: Long): Boolean {
+        return try {
+            Log.d(TAG, "Deleting wish $wishId")
+
+            supabase.postgrest["wishlist_items"]
+                .delete {
+                    filter { eq("id", wishId) }
+                }
+
+            Log.d(TAG, "Delete success")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Delete failed: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun upsertReaction(wishId: String, personaId: String, emoji: String): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val json = JSONObject().apply {
-                    put("wish_id", wishId)
-                    put("persona_id", personaId)
-                    put("emoji", emoji)
-                }.toString()
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_reactions")
-                    .post(json.toRequestBody("application/json".toMediaType()))
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .header("Prefer", "resolution=merge-duplicates")
-                    .build()
-                val response = client.newCall(request).execute()
-                response.isSuccessful
-            } catch (_: Exception) { false }
+    // ─── UPSERT REACTION ───
+    suspend fun upsertReaction(reaction: ReactionDto): Boolean {
+        return try {
+            Log.d(TAG, "Upserting reaction: wish=${reaction.wishId}")
+
+            supabase.postgrest["wishlist_reactions"]
+                .upsert(reaction)
+
+            Log.d(TAG, "Reaction upsert success")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Reaction upsert failed: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun upsertRating(wishId: String, personaId: String, rating: Int): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val json = JSONObject().apply {
-                    put("wish_id", wishId)
-                    put("persona_id", personaId)
-                    put("rating", rating)
-                }.toString()
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_ratings")
-                    .post(json.toRequestBody("application/json".toMediaType()))
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .header("Prefer", "resolution=merge-duplicates")
-                    .build()
-                val response = client.newCall(request).execute()
-                response.isSuccessful
-            } catch (_: Exception) { false }
+    // ─── UPSERT RATING ───
+    suspend fun upsertRating(rating: RatingDto): Boolean {
+        return try {
+            Log.d(TAG, "Upserting rating: wish=${rating.wishId}")
+
+            supabase.postgrest["wishlist_ratings"]
+                .upsert(rating)
+
+            Log.d(TAG, "Rating upsert success")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Rating upsert failed: ${e.message}", e)
+            false
         }
     }
 
-    suspend fun fetchAllWishes(): List<String>? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url("$supabaseUrl/rest/v1/wishlist_items?select=*")
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .build()
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body?.string() ?: return@withContext emptyList()
-                    val jsonArray = JSONArray(body)
-                    val result = mutableListOf<String>()
-                    for (i in 0 until jsonArray.length()) {
-                        result.add(jsonArray.getJSONObject(i).toString())
-                    }
-                    result
-                } else null
-            } catch (_: Exception) { null }
+    // ─── FETCH ALL (for initial sync) ───
+    suspend fun fetchAllWishes(): List<WishDto> {
+        return try {
+            Log.d(TAG, "Fetching all wishes")
+
+            val result = supabase.postgrest["wishlist_items"]
+                .select {
+                    order("created_at", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                }
+                .decodeList<WishDto>()
+
+            Log.d(TAG, "Fetch success: ${result.size} wishes")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Fetch failed: ${e.message}", e)
+            emptyList()
         }
     }
 }

@@ -3,9 +3,10 @@ package com.baroness.app.config
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit   // <-- ADD THIS
+import java.util.concurrent.TimeUnit
 
 object SupabaseConfig {
     const val SUPABASE_URL = "https://wckluymkbqxdmipzaiff.supabase.co"
@@ -14,6 +15,7 @@ object SupabaseConfig {
     val supabase: SupabaseClient by lazy {
         createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY) {
             install(Postgrest)
+            install(Realtime)
             install(Storage)
         }
     }

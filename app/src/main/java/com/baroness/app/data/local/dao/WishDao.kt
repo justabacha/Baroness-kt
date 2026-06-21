@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface WishDao {
-    @Query("SELECT * FROM wishes ORDER BY wishDate ASC, createdAt ASC")
+    // FIXED: Sort by createdAt ASC (oldest first = index 1) - consistent across devices
+    @Query("SELECT * FROM wishes ORDER BY createdAt ASC")
     fun getAllWishes(): Flow<List<WishEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -32,4 +33,13 @@ interface WishDao {
 
     @Query("DELETE FROM wishes")
     suspend fun clearAll()
+
+    @Query("UPDATE wishes SET id = :newServerId, syncStatus = 'synced' WHERE id = :oldTempId")
+    suspend fun updateWishId(oldTempId: Long, newServerId: Long)
+
+    @Query("SELECT * FROM wishes WHERE id = :wishId")
+    suspend fun getWishById(wishId: Long): WishEntity?
+
+    @Query("SELECT MAX(createdAt) FROM wishes")
+    suspend fun getLastCreatedAt(): Long?
 }

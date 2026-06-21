@@ -14,33 +14,27 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     private val repository = WishlistRepository(context.applicationContext)
 
-    // ─── Data from Room (persists across navigation) ───
-    // Using stateIn with WhileSubscribed means the Flow stays alive while UI is active
-    // and re-emits latest value when UI comes back
+    // Data from Room via Repository - survives navigation
     val wishes: StateFlow<List<Wish>> = repository.getAllWishes()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000), // Keep alive 5s after UI leaves
+            started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
     // Stats derived from wishes Flow - always in sync
-    val stats: StateFlow<WishStats> = wishes.map { list ->
-        WishStats(
-            total = list.size,
-            dusted = list.count { it.status == "dusted" }
+    val stats: StateFlow<WishStats> = repository.getStats()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = WishStats(0, 0)
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = WishStats(0, 0)
-    )
 
-    // Loading only for initial empty state (Room is fast)
+    // Loading only for initial empty state
     private val _isInitialLoading = MutableStateFlow(true)
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
 
-    // ─── Modal States (ephemeral, don't need persistence) ───
+    // Modal States
     private val _selectedDate = MutableStateFlow<String?>(null)
     val selectedDate: StateFlow<String?> = _selectedDate.asStateFlow()
 
@@ -79,13 +73,14 @@ class WishlistViewModel(context: Context) : ViewModel() {
     )
     val userNames: StateFlow<Map<String, String>> = _userNames.asStateFlow()
 
+    // FIXED: Fetch avatars from Supabase profiles
     private val _userAvatars = MutableStateFlow<Map<String, String?>>(
         mapOf("P" to null, "B" to null)
     )
     val userAvatars: StateFlow<Map<String, String?>> = _userAvatars.asStateFlow()
 
     init {
-        // Turn off loading once we have data (Room is instant after first load)
+        // Turn off loading once we have data or after short delay
         viewModelScope.launch {
             wishes.collect { list ->
                 if (list.isNotEmpty()) {
@@ -93,14 +88,13 @@ class WishlistViewModel(context: Context) : ViewModel() {
                 }
             }
         }
-        // Also turn off after short delay if empty (first launch)
         viewModelScope.launch {
             kotlinx.coroutines.delay(300)
             _isInitialLoading.value = false
         }
     }
 
-    // ─── UI Actions ───
+    // UI Actions
     fun setSelectedDate(date: String?) { _selectedDate.value = date }
     fun toggleCalendar(visible: Boolean) { _calendarVisible.value = visible }
     fun setCalendarAnchor(position: Offset) { _calendarAnchor.value = position }
@@ -122,16 +116,17 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
 
-    // ─── CRUD (all go to Repository → Room → Sync) ───
+    // CRUD - all use negative temp IDs for new items
     fun createWish(text: String, date: String, creatorId: String) {
         viewModelScope.launch {
-            val tempId = -System.currentTimeMillis() // Negative temp ID
+            val tempId = -System.currentTimeMillis()  // Negative temp ID
+            val creator = if (creatorId == "phesty_official") "P" else "B"
             val newWish = Wish(
                 id = tempId,
                 text = text,
                 date = date,
                 status = "planning",
-                creator = if (creatorId == "phesty_official") "P" else "B",
+                creator = creator,
                 reactions = emptyMap(),
                 ratings = emptyMap(),
                 createdAt = System.currentTimeMillis()
@@ -170,8 +165,9 @@ class WishlistViewModel(context: Context) : ViewModel() {
         _currentUserKey.value = key
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        repository.cleanup()
-    }
+    // FIXED: Don't call repository.cleanup() - causes crashes during navigation
+    // override fun onCleared() {
+    //     super.onCleared()
+    //     repository.cleanup()
+    // }
 }
