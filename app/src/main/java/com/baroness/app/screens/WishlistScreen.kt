@@ -24,7 +24,7 @@ import com.baroness.app.components.wishlist.*
 import com.baroness.app.models.Wish
 import com.baroness.app.viewmodels.WishlistViewModel
 
-private val BACKGROUND_IMAGE = "https://baroness-test.vercel.app/bucket/Image-15.jpg"
+private const val BACKGROUND_IMAGE = "https://baroness-test.vercel.app/bucket/Image-15.jpg"
 
 @Composable
 fun WishlistScreen(
@@ -109,8 +109,8 @@ fun WishlistScreen(
                     },
                     onCast = {
                         if (inputText.isNotBlank() && selectedDate != null) {
-                            val creatorId = if (currentUserKey == "P") "phesty_official" else "baroness_official"
-                            viewModel.createWish(inputText.trim(), selectedDate!!, creatorId)
+                            // FIXED: No creatorId param - ViewModel reads from StorageManager
+                            viewModel.createWish(inputText.trim(), selectedDate!!)
                             inputText = ""
                             viewModel.setSelectedDate(null)
                         }
@@ -121,7 +121,9 @@ fun WishlistScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().weight(1f),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     contentPadding = PaddingValues(bottom = 16.dp)
                 ) {

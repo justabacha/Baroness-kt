@@ -123,13 +123,16 @@ object WishlistApi {
         }
     }
 
-    // ─── UPSERT REACTION ───
+    // FIXED: Use proper upsert with onConflict for composite key
     suspend fun upsertReaction(reaction: ReactionDto): Boolean {
         return try {
             Log.d(TAG, "Upserting reaction: wish=${reaction.wishId}")
 
             supabase.postgrest["wishlist_reactions"]
-                .upsert(reaction)
+                .upsert(reaction) {
+                    // FIXED: Specify onConflict columns for composite unique constraint
+                    onConflict = "wish_id,persona_id"
+                }
 
             Log.d(TAG, "Reaction upsert success")
             true
@@ -139,13 +142,16 @@ object WishlistApi {
         }
     }
 
-    // ─── UPSERT RATING ───
+    // FIXED: Use proper upsert with onConflict for composite key
     suspend fun upsertRating(rating: RatingDto): Boolean {
         return try {
             Log.d(TAG, "Upserting rating: wish=${rating.wishId}")
 
             supabase.postgrest["wishlist_ratings"]
-                .upsert(rating)
+                .upsert(rating) {
+                    // FIXED: Specify onConflict columns for composite unique constraint
+                    onConflict = "wish_id,persona_id"
+                }
 
             Log.d(TAG, "Rating upsert success")
             true

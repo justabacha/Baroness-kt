@@ -91,7 +91,6 @@ class SyncManager(context: Context) {
         return when (item.operation) {
             "create" -> {
                 Log.d(TAG, "Processing CREATE for wish")
-
                 val json = JSONObject(item.payload)
                 val text = json.getString("text")
                 val wishDate = json.getString("wish_date")
@@ -110,13 +109,10 @@ class SyncManager(context: Context) {
                 if (result != null && result.id != null) {
                     val tempId = item.localTempId
                     val serverId = result.id
-
                     if (tempId != null && tempId < 0) {
                         Log.d(TAG, "ID swap: $tempId -> $serverId")
                         wishDao.updateWishId(oldTempId = tempId, newServerId = serverId)
                         Log.d(TAG, "ID swap complete")
-                    } else {
-                        Log.d(TAG, "No temp ID to swap (tempId=$tempId)")
                     }
                     true
                 } else {

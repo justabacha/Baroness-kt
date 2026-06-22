@@ -14,6 +14,7 @@ import com.baroness.app.data.local.database.RatingEntity
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
 import com.baroness.app.utils.SyncManager
+import com.baroness.app.utils.SessionManager
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.postgresChangeFlow
@@ -23,6 +24,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -49,10 +53,15 @@ class WishlistRepository(context: Context) {
     private val reactionDao: ReactionDao = db.reactionDao()
     private val ratingDao: RatingDao = db.ratingDao()
     private val syncManager = SyncManager(context)
+    private val sessionManager = SessionManager(context)
     private val supabase = SupabaseConfig.supabase
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var isSubscribed = false
+
+    // Expose profiles as StateFlow so ViewModel + UI can observe
+    private val _profiles = MutableStateFlow<Map<String, ProfileDto>>(emptyMap())
+    val profiles: StateFlow<Map<String, ProfileDto>> = _profiles.asStateFlow()
 
     init {
         scope.launch {
@@ -77,9 +86,11 @@ class WishlistRepository(context: Context) {
                 .decodeList<ProfileDto>()
 
             Log.d(TAG, "Fetched ${profiles.size} profiles")
+            val profileMap = profiles.associateBy { it.id }
             profiles.forEach { profile ->
                 Log.d(TAG, "Profile: ${profile.id} -> ${profile.displayName}, avatar=${profile.avatarUrl}")
             }
+            _profiles.value = profileMap
         } catch (e: Exception) {
             Log.e(TAG, "Profile fetch failed: ${e.message}", e)
         }
@@ -108,48 +119,93 @@ class WishlistRepository(context: Context) {
         }
     }
 
+    // CRITICAL FIX: Remove old channels before creating new ones to avoid
+    // "postgresChangeFlow after joining" error when app restarts
     private suspend fun subscribeToRealtime() {
         if (isSubscribed) {
             Log.d(TAG, "Already subscribed, skipping")
             return
         }
-        isSubscribed = true
 
         try {
             Log.d(TAG, "Connecting to Supabase realtime")
             supabase.realtime.connect()
 
-            val wishChannel = supabase.realtime.channel("wishlist-items-channel")
+            // CRITICAL: Remove any existing channels with these names
+            // to prevent "reusing subscribed channel" error
+            supabase.realtime.subscriptions.entries.forEach { (name, channel) ->
+                if (name.startsWith("wishlist-")) {
+                    Log.d(TAG, "Removing old channel: $name")
+                    supabase.realtime.removeChannel(channel)
+                }
+            }
+
+            // Use unique channel names with timestamp to guarantee freshness
+            val timestamp = System.currentTimeMillis()
+
+            // ─── WISHES CHANNEL ───
+            val wishChannel = supabase.realtime.channel("wishlist-items-$timestamp")
             val wishFlow = wishChannel.postgresChangeFlow<PostgresAction>(
                 schema = "public"
             ) {
                 table = "wishlist_items"
             }
+            // Collect in separate coroutine so subscribe() can run after
+            scope.launch {
+                try {
+                    wishFlow.collect { action ->
+                        Log.d(TAG, "Realtime wish action: ${action::class.simpleName}")
+                        handleWishChange(action)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Wish flow collection error: ${e.message}", e)
+                }
+            }
             wishChannel.subscribe()
             Log.d(TAG, "Subscribed to wishlist_items channel")
 
-            val rxChannel = supabase.realtime.channel("reactions-channel")
+            // ─── REACTIONS CHANNEL ───
+            val rxChannel = supabase.realtime.channel("reactions-$timestamp")
             val reactionFlow = rxChannel.postgresChangeFlow<PostgresAction>(
                 schema = "public"
             ) {
                 table = "wishlist_reactions"
             }
+            scope.launch {
+                try {
+                    reactionFlow.collect { action ->
+                        Log.d(TAG, "Realtime reaction action: ${action::class.simpleName}")
+                        handleReactionChange(action)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Reaction flow collection error: ${e.message}", e)
+                }
+            }
             rxChannel.subscribe()
+            Log.d(TAG, "Subscribed to reactions channel")
 
-            val ratChannel = supabase.realtime.channel("ratings-channel")
+            // ─── RATINGS CHANNEL ───
+            val ratChannel = supabase.realtime.channel("ratings-$timestamp")
             val ratingFlow = ratChannel.postgresChangeFlow<PostgresAction>(
                 schema = "public"
             ) {
                 table = "wishlist_ratings"
             }
+            scope.launch {
+                try {
+                    ratingFlow.collect { action ->
+                        Log.d(TAG, "Realtime rating action: ${action::class.simpleName}")
+                        handleRatingChange(action)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Rating flow collection error: ${e.message}", e)
+                }
+            }
             ratChannel.subscribe()
+            Log.d(TAG, "Subscribed to ratings channel")
 
-            Log.d(TAG, "All realtime channels subscribed")
-
-            // FIXED: Use scope.launch since we're in a suspend function, not inside a CoroutineScope
-            scope.launch { wishFlow.collect { action -> handleWishChange(action) } }
-            scope.launch { reactionFlow.collect { action -> handleReactionChange(action) } }
-            scope.launch { ratingFlow.collect { action -> handleRatingChange(action) } }
+            isSubscribed = true
+            Log.d(TAG, "All realtime channels subscribed successfully")
 
         } catch (e: Exception) {
             Log.e(TAG, "Realtime subscription error: ${e.message}", e)
@@ -368,6 +424,4 @@ class WishlistRepository(context: Context) {
             syncManager.processQueue()
         }
     }
-
-    // No cleanup - don't cancel scope to avoid crashes during navigation
 }
