@@ -91,7 +91,6 @@ class QuoteRepository(context: Context) {
         println("QuoteRepository vibe photo1: ${vibe.photo1}")
         println("QuoteRepository vibe photo2: ${vibe.photo2}")
 
-        // Use unique file names based on the date hash to avoid collisions while keeping caches intact
         val uniqueId = today.hashCode().toString()
         val image1 = downloadImage(vibe.photo1, "quote_1_$uniqueId.jpg")
         val image2 = downloadImage(vibe.photo2, "quote_2_$uniqueId.jpg")
@@ -122,8 +121,7 @@ class QuoteRepository(context: Context) {
         storage.saveString(cacheDateKey, today)
         storage.saveString(quoteDataKey, json.encodeToString(cachedQuote))
 
-        // Clean up older cached quotes so we don't leak disk space
-        cleanOldQuotes(uniqueId)
+       cleanOldQuotes(uniqueId)
 
         return cachedQuote
     }

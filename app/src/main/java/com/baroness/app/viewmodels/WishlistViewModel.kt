@@ -159,9 +159,7 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
 
-    // FIXED: createWish reads creator from StorageManager (your existing session system)
-    // No parameters needed - uses the logged-in user's identity
-    fun createWish(text: String, date: String) {
+   fun createWish(text: String, date: String) {
         viewModelScope.launch {
             val tempId = -System.currentTimeMillis()
             val userId = currentUserId.value

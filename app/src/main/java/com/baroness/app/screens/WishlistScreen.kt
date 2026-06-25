@@ -21,7 +21,6 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.baroness.app.components.EmojiPicker
 import com.baroness.app.components.wishlist.*
-import com.baroness.app.models.Wish
 import com.baroness.app.viewmodels.WishlistViewModel
 
 private const val BACKGROUND_IMAGE = "https://baroness-test.vercel.app/bucket/Image-15.jpg"
