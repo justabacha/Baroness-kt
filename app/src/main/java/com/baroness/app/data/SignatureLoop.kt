@@ -24,7 +24,7 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-70.jpg",
             photo2 = "$BASE_URL/bucket/Image-69.jpg"
         ),
-        /*VibeQuote(
+        VibeQuote(
             part1 = "admire me and inspire me",
             part2 = "I do the same thing for that's the irony",
             photo1 = "$BASE_URL/bucket/Image-1.jpg",
@@ -70,7 +70,7 @@ object SignatureLoops {
             part1 = "We are perfect match :)",
             part2 = "We go together like copy and paste",
             photo1 = "$BASE_URL/bucket/Image-15.jpg",
-            photo2 = "BASE_URL/bucket/Image-16.jpg"
+            photo2 = "$BASE_URL/bucket/Image-16.jpg"
         ),
         VibeQuote(
             part1 = "Dear Best friend, I Love You 😉",
@@ -173,7 +173,13 @@ object SignatureLoops {
             part2 = "we'd look cute together..!",
             photo1 = "$BASE_URL/bucket/Image-49.jpg",
             photo2 = "$BASE_URL/bucket/Image-50.jpg"
-        )*/
+        ),
+        VibeQuote(
+            part1 = "little moments & special feelings",
+            part2 = "Happiness..🖤",
+            photo1 = "$BASE_URL/bucket/Image-51.jpg",
+            photo2 = "$BASE_URL/bucket/Image-52.jpg"
+        )
 
     )
 }
