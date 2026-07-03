@@ -108,7 +108,6 @@ fun WishlistScreen(
                     },
                     onCast = {
                         if (inputText.isNotBlank() && selectedDate != null) {
-                            // FIXED: No creatorId param - ViewModel reads from StorageManager
                             viewModel.createWish(inputText.trim(), selectedDate!!)
                             inputText = ""
                             viewModel.setSelectedDate(null)

@@ -17,6 +17,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.draw.clip
 import com.baroness.app.components.Emoji
 import com.baroness.app.components.PhestyText
 import com.baroness.app.models.Wish
@@ -48,18 +50,15 @@ fun WishItem(
         bEmoji.takeIf { it.isNotEmpty() }
     )
 
-    // Bar card container - BOTH planning and dusted have rounded corner cards
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(
                 if (isPlanning) {
-                    // Planning: semi-transparent white bar card
                     Modifier
                         .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                         .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                 } else {
-                    // Dusted: dark bar card
                     Modifier
                         .background(Color(0xFF1A1A1A), RoundedCornerShape(12.dp))
                         .border(1.dp, Color(0xFF333333), RoundedCornerShape(12.dp))
@@ -69,7 +68,6 @@ fun WishItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Colored star number with glow - color changes based on creator
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -90,7 +88,6 @@ fun WishItem(
             )
         }
 
-        // Meta section (date + status)
         Column(
             modifier = Modifier.widthIn(min = 58.dp, max = 64.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -123,7 +120,6 @@ fun WishItem(
                     .padding(vertical = 2.dp)
             )
 
-            // Action buttons
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -132,17 +128,18 @@ fun WishItem(
                 Box(
                     modifier = Modifier
                         .size(32.dp)
+                        .clip(CircleShape)
                         .clickable { onDelete(wish.id) },
                     contentAlignment = Alignment.Center
                 ) {
                     TrashIcon(size = 20.dp, color = Color.White.copy(alpha = 0.7f))
                 }
 
-                // Check button (green circle with checkmark)
                 Box(
                     modifier = Modifier
                         .size(32.dp)
                         .background(Color(0xFF4CAF50), CircleShape)
+                        .clip(CircleShape)
                         .clickable { onDust(wish.id) },
                     contentAlignment = Alignment.Center
                 ) {
@@ -162,7 +159,10 @@ fun WishItem(
                     fontSize = 14.sp,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { expanded = false }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { expanded = false }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 )
             } else {
@@ -174,7 +174,10 @@ fun WishItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { expanded = true }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { expanded = true }
                         .padding(vertical = 2.dp)
                 )
 
@@ -186,6 +189,7 @@ fun WishItem(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
+                            .clip(CircleShape)
                             .clickable(onClick = onUploadPhotos),
                         contentAlignment = Alignment.Center
                     ) {
@@ -195,27 +199,29 @@ fun WishItem(
                     // Emoji reaction
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
-                            .clickable { onOpenEmoji(wish.id) },
+                            .width(if (emojisList.isNotEmpty()) 44.dp else 32.dp)
+                            .height(32.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { onOpenEmoji(wish.id) },
                         contentAlignment = Alignment.Center
                     ) {
                         if (emojisList.isNotEmpty()) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy((-6).dp),
+                                horizontalArrangement = Arrangement.spacedBy((-8).dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 emojisList.forEachIndexed { idx, emoji ->
                                     Emoji(
                                         emoji = emoji,
-                                        size = 18.dp,
-                                        modifier = Modifier
-                                            .offset(x = if (idx > 0) (-6).dp else 0.dp)
-                                            .zIndex(idx.toFloat())
+                                        size = 22.dp,
+                                        modifier = Modifier.zIndex(idx.toFloat())
                                     )
                                 }
                             }
                         } else {
-                            SmileyIcon(size = 20.dp, color = Color.White.copy(alpha = 0.7f))
+                            SmileyIcon(size = 22.dp, color = Color.White.copy(alpha = 0.7f))
                         }
                     }
 
@@ -223,6 +229,7 @@ fun WishItem(
                     Box(
                         modifier = Modifier
                             .background(Color(0xFF2A2A2A), RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(6.dp))
                             .clickable(onClick = onOpenRating)
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center

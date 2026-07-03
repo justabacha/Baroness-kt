@@ -1,13 +1,12 @@
 package com.baroness.app.viewmodels
 
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.baroness.app.repository.WishlistRepository
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
-import com.baroness.app.utils.SessionManager
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -18,7 +17,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val repository = WishlistRepository(context.applicationContext)
     private val storageManager = StorageManager(context.applicationContext)
 
-    // Data from Room via Repository - survives navigation
     val wishes: StateFlow<List<Wish>> = repository.getAllWishes()
         .stateIn(
             scope = viewModelScope,
@@ -26,7 +24,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
             initialValue = emptyList()
         )
 
-    // Stats derived from wishes Flow - always in sync
     val stats: StateFlow<WishStats> = repository.getStats()
         .stateIn(
             scope = viewModelScope,
@@ -34,7 +31,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
             initialValue = WishStats(0, 0)
         )
 
-    // Loading only for initial empty state
     private val _isInitialLoading = MutableStateFlow(true)
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
 
@@ -69,36 +65,12 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val _photoModalVisible = MutableStateFlow(false)
     val photoModalVisible: StateFlow<Boolean> = _photoModalVisible.asStateFlow()
 
-    // FIXED: Read user identity from StorageManager (used by SessionManager)
-    // This uses your existing storage system - "vibe_persona" key
-    private val _currentUserKey: StateFlow<String> = flow {
-        val persona = storageManager.getString("vibe_persona")
-        emit(persona ?: "P")
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = "P"
-    )
-    val currentUserKey: StateFlow<String> = _currentUserKey
+    private val _currentUserKey = MutableStateFlow("P")
+    val currentUserKey: StateFlow<String> = _currentUserKey.asStateFlow()
 
-    // FIXED: Read user profile from StorageManager
-    private val _currentUserId: StateFlow<String> = flow {
-        val profile = storageManager.getString("userProfile")
-        // If userProfile contains "baroness", use baroness, else phesty
-        val userId = if (profile?.contains("baroness", ignoreCase = true) == true) {
-            "baroness_official"
-        } else {
-            "phesty_official"
-        }
-        emit(userId)
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = "phesty_official"
-    )
-    val currentUserId: StateFlow<String> = _currentUserId
+    private val _currentUserId = MutableStateFlow("phesty_official")
+    val currentUserId: StateFlow<String> = _currentUserId.asStateFlow()
 
-    // FIXED: Observe profiles from repository and derive names
     val userNames: StateFlow<Map<String, String>> = repository.profiles.map { profileMap ->
         mapOf(
             "P" to (profileMap["phesty_official"]?.displayName ?: "Phesty"),
@@ -110,7 +82,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
         initialValue = mapOf("P" to "Phesty", "B" to "Baroness")
     )
 
-    // FIXED: Observe avatars from repository profiles
     val userAvatars: StateFlow<Map<String, String?>> = repository.profiles.map { profileMap ->
         mapOf(
             "P" to profileMap["phesty_official"]?.avatarUrl,
@@ -123,7 +94,10 @@ class WishlistViewModel(context: Context) : ViewModel() {
     )
 
     init {
-        // Turn off loading once we have data or after short delay
+        viewModelScope.launch {
+            loadUserIdentity()
+        }
+
         viewModelScope.launch {
             wishes.collect { list ->
                 if (list.isNotEmpty()) {
@@ -135,6 +109,13 @@ class WishlistViewModel(context: Context) : ViewModel() {
             kotlinx.coroutines.delay(300)
             _isInitialLoading.value = false
         }
+    }
+
+    private suspend fun loadUserIdentity() {
+        val personaId = storageManager.getString("currentPersonaId") ?: "phesty_official"
+        _currentUserId.value = personaId
+        _currentUserKey.value = if (personaId == "phesty_official") "P" else "B"
+        Log.d("WishlistVM", "Loaded identity: $personaId -> key=${_currentUserKey.value}")
     }
 
     // UI Actions
@@ -159,11 +140,11 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
 
-   fun createWish(text: String, date: String) {
+    fun createWish(text: String, date: String) {
         viewModelScope.launch {
             val tempId = -System.currentTimeMillis()
-            val userId = currentUserId.value
-            val creator = if (userId == "phesty_official") "P" else "B"
+            val userId = _currentUserId.value
+            val creator = _currentUserKey.value
 
             Log.d("WishlistVM", "Creating wish as $userId (key=$creator)")
 
@@ -193,7 +174,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
     }
 
-    // FIXED: Uses current user from StorageManager
     fun saveReaction(wishId: Long, emoji: String) {
         viewModelScope.launch {
             val personaId = _currentUserId.value
@@ -201,7 +181,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
     }
 
-    // FIXED: Uses current user from StorageManager
     fun saveRating(wishId: Long, rating: Int) {
         viewModelScope.launch {
             val personaId = _currentUserId.value
@@ -209,12 +188,4 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
     }
 
-    // No setCurrentUserKey - identity comes from your existing SessionManager/StorageManager
-    // This keeps your UI exactly as it was before
-
-    // FIXED: Don't call repository.cleanup() - causes crashes during navigation
-    // override fun onCleared() {
-    //     super.onCleared()
-    //     repository.cleanup()
-    // }
 }

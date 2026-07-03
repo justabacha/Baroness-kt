@@ -21,7 +21,6 @@ private fun Long.toIsoString(): String {
     return isoFormat.format(Date(this))
 }
 
-// DTOs with @SerialName for JSON field mapping (Kotlin naming convention)
 @Serializable
 data class WishDto(
     val id: Long? = null,
@@ -51,7 +50,7 @@ object WishlistApi {
 
     private val supabase = SupabaseConfig.supabase
 
-    // ─── CREATE (returns created row with server-generated ID) ───
+    // ─── CREATE ───
     suspend fun createWish(
         text: String,
         wishDate: String,
@@ -123,14 +122,12 @@ object WishlistApi {
         }
     }
 
-    // FIXED: Use proper upsert with onConflict for composite key
     suspend fun upsertReaction(reaction: ReactionDto): Boolean {
         return try {
             Log.d(TAG, "Upserting reaction: wish=${reaction.wishId}")
 
             supabase.postgrest["wishlist_reactions"]
                 .upsert(reaction) {
-                    // FIXED: Specify onConflict columns for composite unique constraint
                     onConflict = "wish_id,persona_id"
                 }
 
@@ -142,14 +139,12 @@ object WishlistApi {
         }
     }
 
-    // FIXED: Use proper upsert with onConflict for composite key
     suspend fun upsertRating(rating: RatingDto): Boolean {
         return try {
             Log.d(TAG, "Upserting rating: wish=${rating.wishId}")
 
             supabase.postgrest["wishlist_ratings"]
                 .upsert(rating) {
-                    // FIXED: Specify onConflict columns for composite unique constraint
                     onConflict = "wish_id,persona_id"
                 }
 
@@ -161,7 +156,6 @@ object WishlistApi {
         }
     }
 
-    // ─── FETCH ALL (for initial sync) ───
     suspend fun fetchAllWishes(): List<WishDto> {
         return try {
             Log.d(TAG, "Fetching all wishes")
@@ -176,6 +170,38 @@ object WishlistApi {
             result
         } catch (e: Exception) {
             Log.e(TAG, "Fetch failed: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    suspend fun fetchAllReactions(): List<ReactionDto> {
+        return try {
+            Log.d(TAG, "Fetching all reactions")
+
+            val result = supabase.postgrest["wishlist_reactions"]
+                .select()
+                .decodeList<ReactionDto>()
+
+            Log.d(TAG, "Fetch success: ${result.size} reactions")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Fetch reactions failed: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    suspend fun fetchAllRatings(): List<RatingDto> {
+        return try {
+            Log.d(TAG, "Fetching all ratings")
+
+            val result = supabase.postgrest["wishlist_ratings"]
+                .select()
+                .decodeList<RatingDto>()
+
+            Log.d(TAG, "Fetch success: ${result.size} ratings")
+            result
+        } catch (e: Exception) {
+            Log.e(TAG, "Fetch ratings failed: ${e.message}", e)
             emptyList()
         }
     }

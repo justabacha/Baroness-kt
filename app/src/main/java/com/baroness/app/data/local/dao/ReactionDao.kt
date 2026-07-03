@@ -5,11 +5,15 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.baroness.app.data.local.database.ReactionEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReactionDao {
     @Query("SELECT * FROM reactions WHERE wishId = :wishId")
-    suspend fun getReactionsForWish(wishId: Long): List<ReactionEntity>
+    fun getReactionsForWish(wishId: Long): Flow<List<ReactionEntity>>
+
+    @Query("SELECT * FROM reactions")
+    fun getAllReactions(): Flow<List<ReactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReaction(reaction: ReactionEntity)

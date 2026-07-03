@@ -49,7 +49,6 @@ fun QuoteCard(
 
     val pad: Dp = (abs(tiltDeg) * 3.5f + 10f).dp
 
-    // Debug: log what we're receiving
     LaunchedEffect(imageUrl) {
         println("QuoteCard imageUrl: $imageUrl")
         println("Is file: ${imageUrl?.startsWith("/")}")

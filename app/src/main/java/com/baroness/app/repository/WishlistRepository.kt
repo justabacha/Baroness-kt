@@ -14,7 +14,7 @@ import com.baroness.app.data.local.database.RatingEntity
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
 import com.baroness.app.utils.SyncManager
-import com.baroness.app.utils.SessionManager
+import com.baroness.app.utils.StorageManager
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.postgresChangeFlow
@@ -53,13 +53,12 @@ class WishlistRepository(context: Context) {
     private val reactionDao: ReactionDao = db.reactionDao()
     private val ratingDao: RatingDao = db.ratingDao()
     private val syncManager = SyncManager(context)
-    private val sessionManager = SessionManager(context)
+    private val storageManager = StorageManager(context)
     private val supabase = SupabaseConfig.supabase
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var isSubscribed = false
 
-    // Expose profiles as StateFlow so ViewModel + UI can observe
     private val _profiles = MutableStateFlow<Map<String, ProfileDto>>(emptyMap())
     val profiles: StateFlow<Map<String, ProfileDto>> = _profiles.asStateFlow()
 
@@ -99,8 +98,13 @@ class WishlistRepository(context: Context) {
     private suspend fun initialSync() {
         try {
             Log.d(TAG, "Starting initial sync from Supabase")
+
             val remoteWishes = WishlistApi.fetchAllWishes()
-            Log.d(TAG, "Fetched ${remoteWishes.size} wishes from Supabase")
+            val remoteReactions = WishlistApi.fetchAllReactions()
+            val remoteRatings = WishlistApi.fetchAllRatings()
+
+            Log.d(TAG, "Fetched ${remoteWishes.size} wishes, ${remoteReactions.size} reactions, ${remoteRatings.size} ratings")
+
             remoteWishes.forEach { dto ->
                 val entity = WishEntity(
                     id = dto.id ?: return@forEach,
@@ -114,13 +118,32 @@ class WishlistRepository(context: Context) {
                 wishDao.insertWish(entity)
                 Log.d(TAG, "Inserted remote wish id=${dto.id}")
             }
+
+            //insert reaction
+            remoteReactions.forEach { dto ->
+                reactionDao.insertReaction(ReactionEntity(
+                    wishId = dto.wishId,
+                    personaId = dto.personaId,
+                    emoji = dto.emoji
+                ))
+            }
+            Log.d(TAG, "Inserted ${remoteReactions.size} reactions")
+
+            // Insert ratings
+            remoteRatings.forEach { dto ->
+                ratingDao.insertRating(RatingEntity(
+                    wishId = dto.wishId,
+                    personaId = dto.personaId,
+                    rating = dto.rating
+                ))
+            }
+            Log.d(TAG, "Inserted ${remoteRatings.size} ratings")
+
         } catch (e: Exception) {
             Log.e(TAG, "Initial sync failed: ${e.message}", e)
         }
     }
 
-    // CRITICAL FIX: Remove old channels before creating new ones to avoid
-    // "postgresChangeFlow after joining" error when app restarts
     private suspend fun subscribeToRealtime() {
         if (isSubscribed) {
             Log.d(TAG, "Already subscribed, skipping")
@@ -131,16 +154,13 @@ class WishlistRepository(context: Context) {
             Log.d(TAG, "Connecting to Supabase realtime")
             supabase.realtime.connect()
 
-            // CRITICAL: Remove any existing channels with these names
-            // to prevent "reusing subscribed channel" error
-            supabase.realtime.subscriptions.entries.forEach { (name, channel) ->
-                if (name.startsWith("wishlist-")) {
-                    Log.d(TAG, "Removing old channel: $name")
-                    supabase.realtime.removeChannel(channel)
-                }
+
+            val channelsToRemove = supabase.realtime.subscriptions.keys.toList()
+            channelsToRemove.forEach { name ->
+                Log.d(TAG, "Removing old channel: $name")
+                supabase.realtime.removeChannel(supabase.realtime.subscriptions[name]!!)
             }
 
-            // Use unique channel names with timestamp to guarantee freshness
             val timestamp = System.currentTimeMillis()
 
             // ─── WISHES CHANNEL ───
@@ -150,7 +170,6 @@ class WishlistRepository(context: Context) {
             ) {
                 table = "wishlist_items"
             }
-            // Collect in separate coroutine so subscribe() can run after
             scope.launch {
                 try {
                     wishFlow.collect { action ->
@@ -294,14 +313,20 @@ class WishlistRepository(context: Context) {
     }
 
     fun getAllWishes(): Flow<List<Wish>> {
-        return wishDao.getAllWishes().map { entities ->
-            entities.map { entity ->
-                val reactions = reactionDao.getReactionsForWish(entity.id)
+        return combine(
+            wishDao.getAllWishes(),
+            reactionDao.getAllReactions(),
+            ratingDao.getAllRatings()
+        ) { wishes, reactions, ratings ->
+            wishes.map { entity ->
+                val wishReactions = reactions
+                    .filter { it.wishId == entity.id }
                     .associate { reaction ->
                         val key = if (reaction.personaId == "phesty_official") "P" else "B"
                         key to reaction.emoji
                     }
-                val ratings = ratingDao.getRatingsForWish(entity.id)
+                val wishRatings = ratings
+                    .filter { it.wishId == entity.id }
                     .associate { rating ->
                         val key = if (rating.personaId == "phesty_official") "P" else "B"
                         key to rating.rating
@@ -312,8 +337,8 @@ class WishlistRepository(context: Context) {
                     date = entity.wishDate,
                     status = entity.status,
                     creator = if (entity.creatorId == "phesty_official") "P" else "B",
-                    reactions = reactions,
-                    ratings = ratings,
+                    reactions = wishReactions,
+                    ratings = wishRatings,
                     createdAt = entity.createdAt
                 )
             }
@@ -321,11 +346,11 @@ class WishlistRepository(context: Context) {
     }
 
     fun getStats(): Flow<WishStats> {
-        return combine(
-            wishDao.getAllWishes().map { it.size },
-            wishDao.getAllWishes().map { list -> list.count { it.status == "dusted" } }
-        ) { total, dusted ->
-            WishStats(total, dusted)
+        return wishDao.getAllWishes().map { list ->
+            WishStats(
+                total = list.size,
+                dusted = list.count { it.status == "dusted" }
+            )
         }
     }
 

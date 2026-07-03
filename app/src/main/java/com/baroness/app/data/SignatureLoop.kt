@@ -7,12 +7,12 @@ object SignatureLoops {
 
     val quotes = listOf(
         VibeQuote(
-            part1 = "Some people just make the world easier.", //Baroness Quote
+            part1 = "its not that easy\n am gonna keep u.", //Baroness Quote
             part2 = "You're exactly where you need to be.", //My Quote
-            photo1 = "$BASE_URL/bucket/Image-41.jpg",
-            photo2 = "$BASE_URL/bucket/Image-42.jpg"
+            photo1 = "$BASE_URL/bucket/Image-1.jpg",
+            photo2 = "$BASE_URL/bucket/Image-24.jpg"
         ),
-        VibeQuote(
+      /*  VibeQuote(
             part1 = "I don't really do 'ordinary'.",
             part2 = "We're on a completely different wave.",
             photo1 = "$BASE_URL/bucket/Image-43.jpg",
@@ -45,8 +45,8 @@ object SignatureLoops {
         VibeQuote(
             part1 = "am lucky to have a best friend like you",
             part2 = "always better together :)",
-            photo1 = "$BASE_URL/bucket/Image-7.jpg",
-            photo2 = "$BASE_URL/bucket/Image-8.jpg"
+            photo1 = "$BASE_URL/bucket/Image-7.JPG",
+            photo2 = "$BASE_URL/bucket/Image-8.JPG"
         ),
         VibeQuote(
             part1 = "Life is hard, but at least I have a pretty best-friend",
@@ -74,7 +74,7 @@ object SignatureLoops {
         ),
         VibeQuote(
             part1 = "Dear Best friend, I Love You 😉",
-            part2 = "I like you because you're wierd like me 😂",
+            part2 = "I like you because you're weird like me 😂",
             photo1 = "$BASE_URL/bucket/Image-17.jpg",
             photo2 = "$BASE_URL/bucket/Image-18.jpg"
         ),
@@ -158,7 +158,7 @@ object SignatureLoops {
         ),
         VibeQuote(
            part1 = "you are so WEIRD (Don't Change)😂",
-           part2 = "you're wierd I like that 😉",
+           part2 = "you're weird I like that 😉",
            photo1 = "$BASE_URL/bucket/Image-45.jpg",
            photo2 = "$BASE_URL/bucket/Image-46.jpg"
         ),
@@ -179,7 +179,103 @@ object SignatureLoops {
             part2 = "Happiness..🖤",
             photo1 = "$BASE_URL/bucket/Image-51.jpg",
             photo2 = "$BASE_URL/bucket/Image-52.jpg"
-        )
+        ),
+        VibeQuote(
+            part1 = "I love you stupid boy",
+            part2 = "babe you're the cutest cutie of all cute cuties",
+            photo1 = "$BASE_URL/bucket/Image-53.jpg",
+            photo2 = "$BASE_URL/bucket/Image-54.jpg"
+        ),
+        VibeQuote(
+            part1 = "you are special to me",
+            part2 = "let whoever think whatever",
+            photo1 = "$BASE_URL/bucket/Image-55.jpg",
+            photo2 = "$BASE_URL/bucket/Image-56.jpg"
+        ),
+        VibeQuote(
+            part1 = "you are crazy I like that..😂",
+            part2 = "REMEMBER: you've survived every (I CANT DO THIS) so far",
+            photo1 = "$BASE_URL/bucket/Image-57.jpg",
+            photo2 = "$BASE_URL/bucket/Image-58.jpg"
+        ),
+        VibeQuote(
+            part1 = "I still wish for you at 11:11 🥹",
+            part2 = "she was simple like quantum physics",
+            photo1 = "$BASE_URL/bucket/Image-59.jpg",
+            photo2 = "$BASE_URL/bucket/Image-60.jpg"
+        ),
+        VibeQuote(
+            part1 = "Why fit in when u are custom made..??",
+            part2 = "Her AURA is made of poetry, roses and galaxies",
+            photo1 = "$BASE_URL/bucket/Image-61.jpg",
+            photo2 = "$BASE_URL/bucket/Image-62.jpg"
+        ),
+        VibeQuote(
+            part1 = "chin up kiddo, they'd kill to see us fall",
+            part2 = "tell the wolves I'm home",
+            photo1 = "$BASE_URL/bucket/Image-63.jpg",
+            photo2 = "$BASE_URL/bucket/Image-64.jpg"
+        ),
+        VibeQuote(
+            part1 = "not fragile like a flower...",
+            part2 = "fragile like a bomb",
+            photo1 = "$BASE_URL/bucket/Image-65.jpg",
+            photo2 = "$BASE_URL/bucket/Image-66.jpg"
+        ),
+        VibeQuote(
+            part1 = "you are the trouble am in",
+            part2 = "trouble never looked so goddamn fine",
+            photo1 = "$BASE_URL/bucket/Image-67.jpg",
+            photo2 = "$BASE_URL/bucket/Image-68.jpg"
+        ),
+        VibeQuote(
+            part1 = "Dangerous but fun..",
+            part2 = "you cant do epic shit with basic people",
+            photo1 = "$BASE_URL/bucket/Image-69.jpg",
+            photo2 = "$BASE_URL/bucket/Image-70.jpg"
+        ),
+        VibeQuote(
+            part1 = "..but here I am wanting you",
+            part2 = "am scared as hell to want you..",
+            photo1 = "$BASE_URL/bucket/Image-71.jpg",
+            photo2 = "$BASE_URL/bucket/Image-72.jpg"
+        ),
+        VibeQuote(
+            part1 = "there is fire between us",
+            part2 = "a beautiful thing is never perfect",
+            photo1 = "$BASE_URL/bucket/Image-73.jpg",
+            photo2 = "$BASE_URL/bucket/Image-74.jpg"
+        ),
+        VibeQuote(
+            part1 = "you keep me safe :)",
+            part2 = "I'll keep you wild",
+            photo1 = "$BASE_URL/bucket/Image-75.jpg",
+            photo2 = "$BASE_URL/bucket/Image-76.jpg"
+        ),
+        VibeQuote(
+            part1 = "Don't believe everything you think",
+            part2 = "RULE NUMBER 1: fuck what they think",
+            photo1 = "$BASE_URL/bucket/Image-77.jpg",
+            photo2 = "$BASE_URL/bucket/Image-78.jpg"
+        ),
+        VibeQuote(
+            part1 = "Real and Rare",
+            part2 = "she's a whiskey in a teacup",
+            photo1 = "$BASE_URL/bucket/Image-79.jpg",
+            photo2 = "$BASE_URL/bucket/Image-80.jpg"
+        ),
+        VibeQuote(
+            part1 = "after all we are here only once",
+            part2 = "intellectual intercourse",
+            photo1 = "$BASE_URL/bucket/Image-81.jpg",
+            photo2 = "$BASE_URL/bucket/Image-82.jpg"
+        ),
+        VibeQuote(
+            part1 = "avec toi, je suis moi",
+            part2 = "tout pour toi..",
+            photo1 = "$BASE_URL/bucket/Image-83.jpg",
+            photo2 = "$BASE_URL/bucket/Image-84.jpg"
+        )*/
 
     )
 }
