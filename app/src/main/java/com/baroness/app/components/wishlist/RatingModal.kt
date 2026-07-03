@@ -52,6 +52,7 @@ fun RatingModal(
                         .size(28.dp)
                         .background(Color(0x4D464545), RoundedCornerShape(14.dp))
                         .border(1.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .clickable(onClick = onDismiss),
                     contentAlignment = Alignment.Center
                 ) {
@@ -117,7 +118,10 @@ fun RatingModal(
                                 }
                             } else Color(0xFF2A2A2A),
                             modifier = Modifier
-                                .clickable { rating = star }
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { rating = star }
                                 .padding(horizontal = 2.dp)
                         )
                     }
@@ -130,6 +134,7 @@ fun RatingModal(
                         .fillMaxWidth()
                         .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
                         .border(1.dp, Color(0xFF7FF871), RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable(enabled = rating > 0) { if (rating > 0) onRate(rating) }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
