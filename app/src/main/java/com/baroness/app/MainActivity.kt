@@ -32,6 +32,7 @@ import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
 import com.baroness.app.screens.WishlistScreen
+import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -100,7 +101,7 @@ fun AppNavigation(startDestination: String) {
             PlaceholderScreen(navController, "Friday (AI Companion)")
         }
         composable("Photos") {
-            PlaceholderScreen(navController, "Photos")
+            PhotosScreen(navController)
         }
         composable("Wishlist") {
             WishlistScreen(navController)
