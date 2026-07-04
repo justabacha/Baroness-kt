@@ -10,15 +10,15 @@ Photo browsing and viewing feature for the Baroness app.
 
 \## Existing Files
 
-\- `screens/PhotosScreen.kt` — main photo grid screen
+\- `screens/PhotosScreen.kt` — main photo grid screen with LazyVerticalGrid and shimmer loading
 
-\- `viewmodels/PhotosViewModel.kt` — state management and business logic
+\- `viewmodels/PhotosViewModel.kt` — state management, photo grouping by time period
 
-\- `repository/PhotoRepository.kt` — data access layer
+\- `repository/PhotoRepository.kt` — data access layer with mock Unsplash photo data
 
-\- `components/PhotoViewerOverlay.kt` — full-screen overlay viewer
+\- `components/PhotoViewerOverlay.kt` — full-screen overlay viewer with zoom, pan, and swipe gestures
 
-\- `models/PhotoItem.kt` — photo data model
+\- `models/PhotoItem.kt` — photo data model with id, url, title, dateString, location
 
 
 
