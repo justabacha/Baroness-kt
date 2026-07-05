@@ -14,7 +14,8 @@
 
 \- Remote Data: Supabase API in `api/`
 
-
+- Modules Layer: High-level application business logic in `modules/` (e.g., `AuthManager.kt`, `ProfileManager.kt`)
+- Utility Layer: Reusable helper classes and cross-cutting concerns in `utils/` (e.g., `DateUtils.kt`, `StorageManager.kt`, `VibeManager.kt`, `VoiceManager.kt`)
 
 \## Naming Conventions
 
@@ -46,7 +47,9 @@
 
 \- App must function fully without network
 
-\- Use WorkManager for background sync
+\- Background sync is currently handled by calling SyncManager directly from repository methods
+
+\- WorkManager integration for scheduled/reliable background sync is **planned but not yet implemented**
 
 
 
