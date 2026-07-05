@@ -74,7 +74,10 @@ Authentication gate screen requiring users to enter a secret key to access the a
 
 ## Known Issues
 
-- [To be filled by review agents]
+- Issue #1: Design System Primary color mismatch with Color.kt (Severity: 🔴)
+- Issue #2: Design System Background/Surface color mismatch with Color.kt (Severity: 🔴)
+- Issue #5: Typography not fully configured in Type.kt, hardcoded font sizes in screens (Severity: 🟡)
+- Issue #6: Component corner radius inconsistency across various cards and components (Severity: 🟡)
 
 
 

@@ -52,7 +52,11 @@ Photo browsing and viewing feature for the Baroness app.
 
 \## Known Issues
 
-\- \[To be filled by review agents]
+\- Issue #1: Design System Primary color mismatch with Color.kt (Severity: 🔴)
+\- Issue #2: Design System Background/Surface color mismatch with Color.kt (Severity: 🔴)
+\- Issue #4: State collection in UI uses `collectAsState()` instead of `collectAsStateWithLifecycle()` (Severity: 🟡)
+\- Issue #5: Typography not fully configured in Type.kt, hardcoded font sizes in screens (Severity: 🟡)
+\- Issue #6: Component corner radius inconsistency across various cards and components (Severity: 🟡)
 
 
 
