@@ -9,10 +9,10 @@ object SignatureLoops {
         VibeQuote(
             part1 = "its not that easy\n am gonna keep u.", //Baroness Quote
             part2 = "You're exactly where you need to be.", //My Quote
-            photo1 = "$BASE_URL/bucket/Image-1.jpg",
+            photo1 = "$BASE_URL/bucket/Image-18.jpg",
             photo2 = "$BASE_URL/bucket/Image-24.jpg"
         ),
-      /*  VibeQuote(
+        VibeQuote(
             part1 = "I don't really do 'ordinary'.",
             part2 = "We're on a completely different wave.",
             photo1 = "$BASE_URL/bucket/Image-43.jpg",
@@ -275,7 +275,7 @@ object SignatureLoops {
             part2 = "tout pour toi..",
             photo1 = "$BASE_URL/bucket/Image-83.jpg",
             photo2 = "$BASE_URL/bucket/Image-84.jpg"
-        )*/
+        )
 
     )
 }
