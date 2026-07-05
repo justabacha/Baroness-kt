@@ -17,3 +17,5 @@ Output format:
 - Rule violations: [list or "None"]
 - Unintended changes: [list or "None"]
 - Overall verdict: [READY TO COMMIT / NEEDS FIX]
+
+Write your complete verification findings to reports/VERIFY_[YYYY-MM-DD]_[HHMMSS].md following the structure in REVIEW_REPORT.md.
