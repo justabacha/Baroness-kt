@@ -55,6 +55,7 @@ Write the plan in this exact structure:
 - `components/[Feature]/[Component].kt` — [reusable UI pieces]
 - `data/local/dao/[Feature]Dao.kt` — [Room database access]
 - `data/local/database/[Feature]Entity.kt` — [Room entity]
+- `docs/specs/[FeatureName].md` — feature specification following docs/SPEC_TEMPLATE.md
 
 ## Architecture Constraints
 - Use StateFlow (not LiveData)
@@ -72,3 +73,15 @@ Write the plan in this exact structure:
 
 ## Open Questions
 [Anything still being decided]
+
+
+## Rules
+- Write the spec file following the exact structure in docs/SPEC_TEMPLATE.md
+- Be specific — vague plans create vague code
+- Reference existing features when similar (e.g., "Follow Wishlist pattern for Room setup")
+- Include error handling and edge cases
+- Think about offline-first from the start
+- Consider performance (lazy lists, image caching, etc.)
+
+## Input
+[Describe your feature idea here]
