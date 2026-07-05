@@ -46,6 +46,38 @@ Write the plan in this exact structure:
 - Offline support: [how it works without network]
 - Sync strategy: [when and how data syncs]
 
+## Supabase Database Schema
+[If this feature needs new tables or modifies existing ones, provide SQL]
+
+### New Tables
+sql
+-- Table: [table_name]
+CREATE TABLE [table_name] (
+    id [type] PRIMARY KEY,
+    [column] [type] [constraints],
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE [table_name] ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "[table_name]_select" ON [table_name]
+    FOR SELECT USING (true);
+
+CREATE POLICY "[table_name]_insert" ON [table_name]
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "[table_name]_update" ON [table_name]
+    FOR UPDATE USING (true);
+
+CREATE POLICY "[table_name]_delete" ON [table_name]
+    FOR DELETE USING (true);
+
+-- Enable realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE [table_name];
+
 ## Files to Create
 [List every file the agent should create]
 - `screens/[Feature]Screen.kt` — [purpose]
