@@ -18,16 +18,11 @@
 
 
 
-\### Weaknesses
-
-\- AUTO-COMMITS by default — cannot be disabled via prompt alone
-
-\- Ignores "do not edit" when it sees "obvious fixes"
-
-\- Unicode emoji in prompts causes encoding crashes
-
-\- Will create new files without explicit permission
-
+### Weaknesses
+- AUTO-COMMITS by default — but CAN be disabled with `--no-auto-commits` flag
+- Ignores "do not edit" when it sees "obvious fixes"
+- Unicode emoji in prompts causes encoding crashes
+- Will create new files without explicit permission
 
 
 \### Best Practices
