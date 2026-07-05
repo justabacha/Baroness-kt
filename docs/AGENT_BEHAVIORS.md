@@ -16,6 +16,10 @@
 
 \- Good at generating structured reports
 
+## Verification Stage
+- NEVER use Aider for verification — it will edit despite instructions
+- ALWAYS use Windsurf for verification — respects read-only boundaries
+- Verification checks: issue status, rule violations, unintended changes
 
 
 ### Weaknesses
