@@ -33,6 +33,14 @@
 \- Run a mental check: "Does this break offline mode?"
 
 
+\## Database Rules
+- ALWAYS check `supabase/schema.sql` before changing model fields or types
+- ALWAYS check `supabase/policies.sql` before adding CRUD operations
+- Treat `supabase/schema.sql` as the source of truth for database structure
+- Treat `supabase/policies.sql` as the source of truth for access control
+- If Kotlin code and schema disagree, the schema is correct — update Kotlin, not the schema
+- If a required RLS policy is missing, flag it as an issue — do NOT implement workarounds in code
+- Not every table needs all CRUD operations — check policies.sql to see what's actually enabled
 
 \## Before Any Edit
 

@@ -13,6 +13,8 @@
 \- Local Data: Room database in `data/local/`
 
 \- Remote Data: Supabase API in `api/`
+- Database Schema: `supabase/schema.sql` (table structures for agent reference)
+- RLS Policies: `supabase/policies.sql` (access control for agent reference)
 
 - Modules Layer: High-level application business logic in `modules/` (e.g., `AuthManager.kt`, `ProfileManager.kt`)
 - Utility Layer: Reusable helper classes and cross-cutting concerns in `utils/` (e.g., `DateUtils.kt`, `StorageManager.kt`, `VibeManager.kt`, `VoiceManager.kt`)
