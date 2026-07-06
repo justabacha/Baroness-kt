@@ -14,6 +14,7 @@ import com.baroness.app.data.local.database.RatingEntity
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
 import com.baroness.app.utils.SyncManager
+import com.baroness.app.workers.SyncWorker
 import com.baroness.app.utils.StorageManager
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
@@ -34,9 +35,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonPrimitive
+import androidx.work.*
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.intOrNull
 import org.json.JSONObject
+import java.util.concurrent.TimeUnit
 
 private const val TAG = "WishlistRepo"
 
@@ -56,6 +59,7 @@ class WishlistRepository(context: Context) {
     private val storageManager = StorageManager(context)
     private val supabase = SupabaseConfig.supabase
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val workManager = WorkManager.getInstance(context) // WorkManager instance
 
     private var isSubscribed = false
 
@@ -444,9 +448,19 @@ class WishlistRepository(context: Context) {
     }
 
     suspend fun syncNow() {
-        Log.d(TAG, "Triggering sync")
-        withContext(Dispatchers.IO) {
-            syncManager.processQueue()
-        }
+        Log.d(TAG, "Enqueuing sync work")
+        val workRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .setBackoffCriteria(
+                BackoffPolicy.LINEAR,
+                30,
+                TimeUnit.SECONDS
+            )
+            .build()
+        workManager.enqueue(workRequest)
     }
 }
