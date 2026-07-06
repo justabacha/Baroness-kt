@@ -33,6 +33,7 @@ import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
 import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.screens.PhotosScreen
+import com.baroness.app.screens.MessagesScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import kotlinx.coroutines.Dispatchers
@@ -95,7 +96,7 @@ fun AppNavigation(startDestination: String) {
             ProfileSetupScreen(navController, personaId)
         }
         composable("Messages") {
-            PlaceholderScreen(navController, "Messages")
+            MessagesScreen(navController)
         }
         composable("Friday") {
             PlaceholderScreen(navController, "Friday (AI Companion)")
