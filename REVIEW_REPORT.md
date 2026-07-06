@@ -10,7 +10,7 @@
 ---
 
 ## Report Location
-Save completed reports to: `reports/REPORT_YYYY-MM-DD_HHMMSS.md`
+Save completed reports to: `reports/REPORT_YYYY-MM-DD_HHMMSS.md`(show the actual path here )
 Example: `reports/REPORT_2026-07-04_221800.md`
 
 ---
