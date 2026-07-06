@@ -14,6 +14,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,22 +33,22 @@ fun WishlistScreen(
         factory = WishlistViewModelFactory(LocalContext.current)
     )
 ) {
-    val wishes by viewModel.wishes.collectAsState()
-    val stats by viewModel.stats.collectAsState()
-    val isInitialLoading by viewModel.isInitialLoading.collectAsState()
-    val selectedDate by viewModel.selectedDate.collectAsState()
-    val calendarVisible by viewModel.calendarVisible.collectAsState()
-    val emojiVisible by viewModel.emojiVisible.collectAsState()
-    val activeWishId by viewModel.activeWishId.collectAsState()
-    val ratingVisible by viewModel.ratingVisible.collectAsState()
-    val ratingWish by viewModel.ratingWish.collectAsState()
-    val confirmVisible by viewModel.confirmVisible.collectAsState()
-    val pendingDeleteId by viewModel.pendingDeleteId.collectAsState()
-    val photoModalVisible by viewModel.photoModalVisible.collectAsState()
-    val currentUserKey by viewModel.currentUserKey.collectAsState()
-    val userNames by viewModel.userNames.collectAsState()
-    val userAvatars by viewModel.userAvatars.collectAsState()
-    val calendarAnchor by viewModel.calendarAnchor.collectAsState()
+    val wishes by viewModel.wishes.collectAsStateWithLifecycle()
+    val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
+    val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
+    val calendarVisible by viewModel.calendarVisible.collectAsStateWithLifecycle()
+    val emojiVisible by viewModel.emojiVisible.collectAsStateWithLifecycle()
+    val activeWishId by viewModel.activeWishId.collectAsStateWithLifecycle()
+    val ratingVisible by viewModel.ratingVisible.collectAsStateWithLifecycle()
+    val ratingWish by viewModel.ratingWish.collectAsStateWithLifecycle()
+    val confirmVisible by viewModel.confirmVisible.collectAsStateWithLifecycle()
+    val pendingDeleteId by viewModel.pendingDeleteId.collectAsStateWithLifecycle()
+    val photoModalVisible by viewModel.photoModalVisible.collectAsStateWithLifecycle()
+    val currentUserKey by viewModel.currentUserKey.collectAsStateWithLifecycle()
+    val userNames by viewModel.userNames.collectAsStateWithLifecycle()
+    val userAvatars by viewModel.userAvatars.collectAsStateWithLifecycle()
+    val calendarAnchor by viewModel.calendarAnchor.collectAsStateWithLifecycle()
 
     var inputText by remember { mutableStateOf("") }
 
