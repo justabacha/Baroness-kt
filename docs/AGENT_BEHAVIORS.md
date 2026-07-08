@@ -1,213 +1,234 @@
-\# Agent Behavior Reference
+# Agent Behavior Reference
 
+---
 
+## Aider (Gemini 2.5 Flash)
 
-\## Aider (Gemini 2.5 Flash)
+### Strengths
 
+- Unlimited usage (free Gemini API key)
+- Fast, reads entire codebase context
+- Excellent for multi-file refactors
+- Good at generating structured reports
 
+### Verification Stage
 
-\### Strengths
-
-\- Unlimited usage (free Gemini API key)
-
-\- Fast, reads entire codebase context
-
-\- Excellent for multi-file refactors
-
-\- Good at generating structured reports
-
-## Verification Stage
 - NEVER use Aider for verification — it will edit despite instructions
 - ALWAYS use Windsurf for verification — respects read-only boundaries
-- Verification checks: issue status, rule violations, unintended changes
-
+- Verification checks:
+    - Issue status
+    - Rule violations
+    - Unintended changes
 
 ### Weaknesses
-- AUTO-COMMITS by default — but CAN be disabled with `--no-auto-commits` flag
-- Ignores "do not edit" when it sees "obvious fixes"
-- Unicode emoji in prompts causes encoding crashes
-- Will create new files without explicit permission
 
+- Auto-commits by default (disable with `--no-auto-commits`)
+- Ignores "do not edit" if it believes a fix is obvious
+- Unicode emoji in prompts may cause encoding issues
+- Can create new files without explicit approval
 
-\### Best Practices
+### Best Practices
 
-\- ALWAYS check `git log` after Aider runs
+- Always check `git log` after every session
+- Prefer `--no-auto-commits`
+- Avoid emoji in prompts
+- Explicitly list protected files
+- Revert immediately if scope is exceeded
 
-\- Use `--no-auto-commit` flag if available
+### Use For
 
-\- Avoid emoji in prompts (use text: "Critical" instead of 🔴)
+- Heavy analysis
+- Large multi-file refactors
+- Structured report generation
+- Backup implementation agent
 
-\- Explicitly list files it should NOT touch
+---
 
-\- Revert immediately if it goes off-script
+## Windsurf / Cascade (Codeium)
 
+### Strengths
 
+- Excellent implementation agent
+- Respects read-only boundaries
+- Writes directly into project
+- Strong understanding of project context
+- Generous daily/weekly quota
+- Full IDE experience
 
-\### Use For
+### Weaknesses
 
-\- Heavy analysis and report generation
+- Quota based
+- Requires IDE
 
-\- Multi-file implementation (with close supervision)
+### Best Practices
 
-\- Backup when other agents hit limits
+- Use for implementation after planning
+- Use for verification
+- Save quota for medium and large features
 
+### Use For
 
+- Daily development
+- Feature implementation
+- Verification
+- UI work
+- Controlled refactoring
 
-\---
+---
 
+## GitHub Copilot
 
+### Strengths
 
-\## Windsurf / Cascade (Codeium)
+- Excellent Kotlin + Jetpack Compose generation
+- Reads existing project structure well
+- Produces modular code
+- Fixes its own compile errors
+- Uses Gradle to verify builds
+- Clearly explains root cause of compiler errors
+- Usually stays within requested scope
 
+### Weaknesses
 
+- Can generate incorrect imports/packages on first attempt
+- Consumes monthly usage credits
+- May simplify UI details if prompts lack context
 
-\### Strengths
+### Best Practices
 
-\- Respects "do not modify" instructions
+- Give complete feature context
+- Require a build after implementation
+- Ask it to explain compiler errors before fixing
+- Keep implementation scope narrow
+- Review git diff before committing
 
-\- Writes files to disk correctly
+### Use For
 
-\- Generous daily/weekly quota (resets daily)
+- Compose screen creation
+- Kotlin implementation
+- UI components
+- Small-to-medium features
+- Compile-error fixing
+- Gradle verification
 
-\- Full IDE experience
+---
 
+## Gemini Code Assist (Google)
 
+### Strengths
 
-\### Weaknesses
+- Excellent understanding of Android architecture
+- Strong Compose and MVVM knowledge
+- Reviews business logic well
+- Considers Offline-First architecture
+- Good at identifying validation gaps
+- Explains reasoning clearly
 
-\- Quota-based (not unlimited)
+### Weaknesses
 
-\- Cannot run without IDE open
+- Tends to over-architect solutions
+- May recommend unnecessary file creation
+- Sometimes proposes navigation or naming changes outside scope
+- Authentication may require correct Google account permissions
 
+### Best Practices
 
+- Use for reviews before implementation
+- Tell it explicitly:
+    - Do not edit files
+    - Do not refactor
+    - Recommend only
+- Ask for implementation plans before writing code
+- Reject unnecessary architecture changes
 
-\### Best Practices
+### Use For
 
-\- Use for controlled report generation
+- Code reviews
+- Business rule validation
+- MVVM reviews
+- Compose reviews
+- Offline-first reviews
+- Performance analysis
+- Android best practices
 
-\- Use for daily coding and UI work
+---
 
-\- Save daily quota for important tasks
+## Antigravity
 
+### Strengths
 
+- Respects boundaries
+- Full IDE experience
+- Access to multiple models
 
-\### Use For
+### Weaknesses
 
-\- Primary IDE for daily development
+- Weekly lockout after heavy usage
+- Free tier behaves like a trial
 
-\- Report generation (reliable, controlled)
+### Best Practices
 
-\- Implementation when precision matters
+- Emergency backup only
+- Save quota for important work
 
+### Use For
 
+- Emergency implementation
+- Quick fixes
 
-\---
+---
 
+## Codex (OpenAI)
 
+### Strengths
 
-\## Antigravity (Google)
+- Deep architectural reasoning
+- Excellent dependency tracing
+- Produces comprehensive review reports
+- Finds hidden design issues
+- Excellent at project-wide analysis
 
+### Weaknesses
 
+- Tight monthly usage limits
+- Web-first workflow
 
-\### Strengths
+### Best Practices
 
-\- Respects boundaries well
+- Reserve for architecture work
+- Don't spend credits on simple fixes
+- Export reports for implementation agents
 
-\- Full IDE experience
+### Use For
 
-\- Access to multiple models (Gemini, Claude)
+- Architecture audits
+- Project health reviews
+- Technical debt analysis
+- Refactoring strategy
 
+---
 
+# General Rules for Every Agent
 
-\### Weaknesses
+1. Git checkpoint before every session.
+2. Define explicit scope.
+3. Explicitly state what MUST NOT change.
+4. Never assume the agent has read AGENT_RULES.md.
+5. Review `git diff` before committing.
+6. Rotate agents to preserve quotas.
+7. Avoid emoji in prompts where compatibility is uncertain.
+8. Require implementation agents to build the project before completion.
+9. Require review agents to stop after recommendations.
+10. Large features should follow this workflow:
 
-\- Weekly lockout after \~20-30 minutes of heavy use
-
-\- Free tier is basically a trial
-
-
-
-\### Best Practices
-
-\- Use for emergency backup only
-
-\- Save weekly quota for critical fixes
-
-\- Don't rely on it as primary tool
-
-
-
-\### Use For
-
-\- Emergency implementation when others are capped
-
-\- Quick fixes that don't need deep context
-
-
-
-\---
-
-
-
-\## Codex (OpenAI)
-
-
-
-\### Strengths
-
-\- Deep analysis capabilities
-
-\- Excellent at architecture reviews
-
-\- Good at tracing dependencies
-
-
-
-\### Weaknesses
-
-\- Tight usage limits (depreciating)
-
-\- Web-based only (no local file access directly)
-
-
-
-\### Best Practices
-
-\- Save for heavy analysis only
-
-\- Don't waste credits on simple tasks
-
-\- Use when other agents can't handle complexity
-
-
-
-\### Use For
-
-\- Initial project audits
-
-\- Complex architecture reviews
-
-\- When other agents miss deep issues
-
-
-
-\---
-
-
-
-\## General Rules for All Agents
-
-
-
-1\. \*\*Git checkpoint before every agent session\*\*
-
-2\. \*\*Explicit boundaries in every prompt\*\* — list what NOT to do
-
-3\. \*\*Never assume agent read AGENT\_RULES.md\*\* — include key rules in prompt
-
-4\. \*\*Verify output before trusting\*\* — check `git diff` after every run
-
-5\. \*\*Rotate agents to avoid limit exhaustion\*\*
-
-6\. \*\*Emoji causes crashes in some agents\*\* — use text labels instead
-
+Planning (ChatGPT)
+↓
+Architecture Review (Codex)
+↓
+Business Logic Review (Gemini)
+↓
+Implementation (Copilot or Windsurf)
+↓
+Verification Build (Copilot or Windsurf)
+↓
+Git Commit
