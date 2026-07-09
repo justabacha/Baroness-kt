@@ -2,24 +2,13 @@ package com.baroness.app.api
 
 import android.util.Log
 import com.baroness.app.config.SupabaseConfig
+import com.baroness.app.utils.formatLongToIso
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 
 private const val TAG = "WishlistApi"
-
-// API 24 compatible ISO timestamp formatter
-private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
-    timeZone = TimeZone.getTimeZone("UTC")
-}
-
-private fun Long.toIsoString(): String {
-    return isoFormat.format(Date(this))
-}
 
 @Serializable
 data class WishDto(
@@ -66,7 +55,7 @@ object WishlistApi {
                 wishDate = wishDate,
                 status = status,
                 creatorId = creatorId,
-                createdAt = createdAt.toIsoString()
+                createdAt = formatLongToIso(createdAt)
             )
 
             val result = supabase.postgrest["wishlist_items"]
@@ -91,7 +80,7 @@ object WishlistApi {
             supabase.postgrest["wishlist_items"]
                 .update({
                     set("status", status)
-                    set("updated_at", updatedAt.toIsoString())
+                    set("updated_at", formatLongToIso(updatedAt))
                 }) {
                     filter { eq("id", wishId) }
                 }

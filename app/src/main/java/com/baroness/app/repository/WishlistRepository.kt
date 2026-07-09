@@ -14,6 +14,7 @@ import com.baroness.app.data.local.database.RatingEntity
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
 import com.baroness.app.utils.SyncManager
+import com.baroness.app.utils.parseIsoToLong
 import com.baroness.app.workers.SyncWorker
 import com.baroness.app.utils.StorageManager
 import io.github.jan.supabase.postgrest.postgrest
@@ -116,11 +117,12 @@ class WishlistRepository(context: Context) {
                     wishDate = dto.wishDate,
                     status = dto.status,
                     creatorId = dto.creatorId,
-                    createdAt = System.currentTimeMillis(),
+                    createdAt = parseIsoToLong(dto.createdAt),
+                    updatedAt = parseIsoToLong(dto.updatedAt),
                     syncStatus = "synced"
                 )
-                wishDao.insertWish(entity)
-                Log.d(TAG, "Inserted remote wish id=${dto.id}")
+                wishDao.upsertWithTimestampCheck(entity)
+                Log.d(TAG, "Upserted remote wish id=${dto.id}")
             }
 
             //insert reaction
@@ -248,11 +250,22 @@ class WishlistRepository(context: Context) {
                     val wishDate = record["wish_date"]?.jsonPrimitive?.content ?: ""
                     val status = record["status"]?.jsonPrimitive?.content ?: "planning"
                     val creatorId = record["creator_id"]?.jsonPrimitive?.content ?: "phesty_official"
+                    val createdAtStr = record["created_at"]?.jsonPrimitive?.content
+                    val updatedAtStr = record["updated_at"]?.jsonPrimitive?.content
 
                     Log.d(TAG, "Realtime wish change: id=$id, status=$status, creator=$creatorId")
 
-                    val entity = WishEntity(id, text, wishDate, status, creatorId, System.currentTimeMillis(), "synced")
-                    wishDao.insertWish(entity)
+                    val entity = WishEntity(
+                        id = id,
+                        text = text,
+                        wishDate = wishDate,
+                        status = status,
+                        creatorId = creatorId,
+                        createdAt = parseIsoToLong(createdAtStr),
+                        updatedAt = parseIsoToLong(updatedAtStr),
+                        syncStatus = "synced"
+                    )
+                    wishDao.upsertWithTimestampCheck(entity)
                 }
                 is PostgresAction.Delete -> {
                     val id = action.oldRecord["id"]?.jsonPrimitive?.longOrNull ?: return

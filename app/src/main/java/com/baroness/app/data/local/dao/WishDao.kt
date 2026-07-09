@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.baroness.app.data.local.database.WishEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -42,4 +43,17 @@ interface WishDao {
 
     @Query("SELECT MAX(createdAt) FROM wishes")
     suspend fun getLastCreatedAt(): Long?
+
+    @Transaction
+    suspend fun upsertWithTimestampCheck(wish: WishEntity) {
+        val existing = getWishById(wish.id)
+        if (existing == null || wish.updatedAt > existing.updatedAt) {
+            insertWish(wish)
+        }
+    }
+
+    @Transaction
+    suspend fun upsertAllWithTimestampCheck(wishes: List<WishEntity>) {
+        wishes.forEach { upsertWithTimestampCheck(it) }
+    }
 }

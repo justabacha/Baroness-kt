@@ -16,7 +16,7 @@ import com.baroness.app.data.local.dao.SyncQueueDao
         RatingEntity::class,
         SyncQueueItem::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -1,6 +1,7 @@
 package com.baroness.app.utils
 
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.util.Log
 import com.baroness.app.api.WishlistApi
 import com.baroness.app.api.WishDto
@@ -111,8 +112,13 @@ class SyncManager(context: Context) {
                     val serverId = result.id
                     if (tempId != null && tempId < 0) {
                         Log.d(TAG, "ID swap: $tempId -> $serverId")
-                        wishDao.updateWishId(oldTempId = tempId, newServerId = serverId)
-                        Log.d(TAG, "ID swap complete")
+                        try {
+                            wishDao.updateWishId(oldTempId = tempId, newServerId = serverId)
+                            Log.d(TAG, "ID swap complete")
+                        } catch (e: SQLiteConstraintException) {
+                            Log.w(TAG, "ID swap failed: Server ID $serverId already exists. Deleting temp record $tempId.")
+                            wishDao.deleteWish(tempId)
+                        }
                     }
                     true
                 } else {

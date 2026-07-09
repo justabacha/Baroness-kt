@@ -28,6 +28,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.work.*
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
@@ -67,6 +68,20 @@ fun AppEntryPoint() {
             sessionManager.getStartDestination()
         }
         startDestination = destination
+
+        // Register periodic background sync
+        val syncRequest = PeriodicWorkRequestBuilder<com.baroness.app.workers.SyncWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+            "periodic_wishlist_sync",
+            ExistingPeriodicWorkPolicy.KEEP,
+            syncRequest
+        )
     }
 
     if (startDestination == null) {

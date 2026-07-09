@@ -1,6 +1,24 @@
 package com.baroness.app.utils
 
+import java.text.SimpleDateFormat
 import java.util.*
+
+private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
+    timeZone = TimeZone.getTimeZone("UTC")
+}
+
+fun parseIsoToLong(isoString: String?): Long {
+    if (isoString.isNullOrEmpty()) return System.currentTimeMillis()
+    return try {
+        isoFormat.parse(isoString)?.time ?: System.currentTimeMillis()
+    } catch (_: Exception) {
+        System.currentTimeMillis()
+    }
+}
+
+fun formatLongToIso(timestamp: Long): String {
+    return isoFormat.format(Date(timestamp))
+}
 
 fun formatDateLabel(dateStr: String?): String? {
     if (dateStr.isNullOrEmpty()) return null

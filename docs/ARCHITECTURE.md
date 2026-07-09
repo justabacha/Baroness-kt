@@ -49,9 +49,7 @@
 
 \- App must function fully without network
 
-\- Background sync is currently handled by calling SyncManager directly from repository methods
-
-\- WorkManager integration for scheduled/reliable background sync is **planned but not yet implemented**
+\- Background sync is handled by WorkManager. Both OneTimeWorkRequest (for immediate sync) and PeriodicWorkRequest (for eventual consistency) are implemented.
 
 
 

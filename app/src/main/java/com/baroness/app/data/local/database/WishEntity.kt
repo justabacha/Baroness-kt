@@ -12,5 +12,6 @@ data class WishEntity(
     val status: String,            // "planning" or "dusted"
     val creatorId: String,         // "phesty_official" or "baroness_official"
     val createdAt: Long,            // timestamp
+    val updatedAt: Long = System.currentTimeMillis(), // last modified timestamp
     val syncStatus: String = "synced"  // "synced" | "pending_create" | "pending_update" | "pending_delete"
 )
