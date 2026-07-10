@@ -17,14 +17,14 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
-            val syncManager = SyncManager(applicationContext) // Instantiate SyncManager directly
+            val syncManager = SyncManager(applicationContext)
             try {
-                Log.d(TAG, "SyncWorker started, processing queue.")
+                Log.d(TAG, "SyncWorker started: Processing queue")
                 syncManager.processQueue()
-                Log.d(TAG, "SyncWorker finished successfully.")
+                Log.d(TAG, "SyncWorker finished: Queue processed")
                 Result.success()
             } catch (e: Exception) {
-                Log.e(TAG, "SyncWorker failed: ${e.message}", e)
+                Log.e(TAG, "SyncWorker failed critically: ${e.message}", e)
                 Result.retry()
             }
         }

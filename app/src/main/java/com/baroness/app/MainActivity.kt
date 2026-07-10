@@ -29,6 +29,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.work.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.baroness.app.components.notification.InAppNotification
+import com.baroness.app.repository.WishlistRepository
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
@@ -37,6 +41,7 @@ import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.screens.MessagesScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
+import com.baroness.app.viewmodels.NotificationViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -46,11 +51,40 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             BaronessAppTheme {
+                val notificationViewModel: NotificationViewModel = viewModel()
+                val currentNotification by notificationViewModel.currentNotification.collectAsStateWithLifecycle()
+                val navController = rememberNavController()
+
+                val context = androidx.compose.ui.platform.LocalContext.current
+                LaunchedEffect(Unit) {
+                    WishlistRepository.getInstance(context).setNotificationViewModel(notificationViewModel)
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppEntryPoint()
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        AppEntryPoint(navController)
+
+                        // In-App Notification Overlay
+                        currentNotification?.let { data ->
+                            InAppNotification(
+                                data = data,
+                                onDismiss = { notificationViewModel.dismiss() },
+                                onClick = { route ->
+                                    notificationViewModel.dismiss()
+                                    route?.let { navController.navigate(it) }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                LaunchedEffect(intent) {
+                    intent?.getStringExtra("route")?.let { route ->
+                        navController.navigate(route)
+                    }
                 }
             }
         }
@@ -58,7 +92,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppEntryPoint() {
+fun AppEntryPoint(navController: androidx.navigation.NavHostController) {
     var startDestination by remember { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val sessionManager = SessionManager(context)
@@ -89,13 +123,12 @@ fun AppEntryPoint() {
             CircularProgressIndicator()
         }
     } else {
-        AppNavigation(startDestination = startDestination!!)
+        AppNavigation(startDestination = startDestination!!, navController = navController)
     }
 }
 
 @Composable
-fun AppNavigation(startDestination: String) {
-    val navController = rememberNavController()
+fun AppNavigation(startDestination: String, navController: androidx.navigation.NavHostController) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("gate") {
             GateScreen(navController)

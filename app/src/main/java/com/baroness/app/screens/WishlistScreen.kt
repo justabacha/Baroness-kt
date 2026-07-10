@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +28,7 @@ import com.baroness.app.viewmodels.WishlistViewModel
 
 private const val BACKGROUND_IMAGE = "https://baroness-test.vercel.app/bucket/Image-15.jpg"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WishlistScreen(
     navController: NavController,
@@ -36,6 +39,7 @@ fun WishlistScreen(
     val wishes by viewModel.wishes.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val calendarVisible by viewModel.calendarVisible.collectAsStateWithLifecycle()
     val emojiVisible by viewModel.emojiVisible.collectAsStateWithLifecycle()
@@ -51,6 +55,13 @@ fun WishlistScreen(
     val calendarAnchor by viewModel.calendarAnchor.collectAsStateWithLifecycle()
 
     var inputText by remember { mutableStateOf("") }
+
+    // Trigger background sync when screen first appears
+    LaunchedEffect(Unit) {
+        viewModel.syncInBackground()
+    }
+
+    val pullToRefreshState = rememberPullToRefreshState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         AsyncImage(
@@ -84,62 +95,69 @@ fun WishlistScreen(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp, bottom = 8.dp)
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = { viewModel.refreshWishes() },
+                state = pullToRefreshState,
+                modifier = Modifier.fillMaxSize()
             ) {
-                WishlistHeader(
-                    stats = stats,
-                    avatarP = userAvatars["P"],
-                    avatarB = userAvatars["B"],
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                WishlistInput(
-                    text = inputText,
-                    onTextChange = { inputText = it },
-                    selectedDate = selectedDate,
-                    onCalendarClick = { viewModel.toggleCalendar(true) },
-                    onCalendarPositioned = { position ->
-                        viewModel.setCalendarAnchor(position)
-                    },
-                    onCast = {
-                        if (inputText.isNotBlank() && selectedDate != null) {
-                            viewModel.createWish(inputText.trim(), selectedDate!!)
-                            inputText = ""
-                            viewModel.setSelectedDate(null)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 16.dp, bottom = 8.dp)
                 ) {
-                    itemsIndexed(
-                        items = wishes,
-                        key = { _, wish -> wish.id }
-                    ) { index, wish ->
-                        WishItem(
-                            wish = wish,
-                            index = index,
-                            currentUserKey = currentUserKey,
-                            onDust = { viewModel.dustWish(it) },
-                            onDelete = { viewModel.toggleConfirmDialog(true, it) },
-                            onOpenEmoji = { viewModel.toggleEmojiPicker(true, it) },
-                            onOpenRating = { viewModel.toggleRatingModal(true, wish) },
-                            onUploadPhotos = { viewModel.togglePhotoModal(true) }
-                        )
+                    WishlistHeader(
+                        stats = stats,
+                        avatarP = userAvatars["P"],
+                        avatarB = userAvatars["B"],
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    WishlistInput(
+                        text = inputText,
+                        onTextChange = { inputText = it },
+                        selectedDate = selectedDate,
+                        onCalendarClick = { viewModel.toggleCalendar(true) },
+                        onCalendarPositioned = { position ->
+                            viewModel.setCalendarAnchor(position)
+                        },
+                        onCast = {
+                            if (inputText.isNotBlank() && selectedDate != null) {
+                                viewModel.createWish(inputText.trim(), selectedDate!!)
+                                inputText = ""
+                                viewModel.setSelectedDate(null)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        itemsIndexed(
+                            items = wishes,
+                            key = { _, wish -> wish.id }
+                        ) { index, wish ->
+                            WishItem(
+                                wish = wish,
+                                index = index,
+                                currentUserKey = currentUserKey,
+                                onDust = { viewModel.dustWish(it) },
+                                onDelete = { viewModel.toggleConfirmDialog(true, it) },
+                                onOpenEmoji = { viewModel.toggleEmojiPicker(true, it) },
+                                onOpenRating = { viewModel.toggleRatingModal(true, wish) },
+                                onUploadPhotos = { viewModel.togglePhotoModal(true) }
+                            )
+                        }
                     }
                 }
             }

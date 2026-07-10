@@ -22,6 +22,15 @@ data class WishDto(
 )
 
 @Serializable
+data class WishInsertDto(
+    val text: String,
+    @SerialName("wish_date") val wishDate: String,
+    val status: String,
+    @SerialName("creator_id") val creatorId: String,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+@Serializable
 data class ReactionDto(
     @SerialName("wish_id") val wishId: Long,
     @SerialName("persona_id") val personaId: String,
@@ -48,9 +57,9 @@ object WishlistApi {
         createdAt: Long
     ): WishDto? {
         return try {
-            Log.d(TAG, "Creating wish: text=$text, creator=$creatorId")
+            Log.d(TAG, "Creating wish in Supabase: text=$text, creator=$creatorId")
 
-            val wish = WishDto(
+            val wishInsert = WishInsertDto(
                 text = text,
                 wishDate = wishDate,
                 status = status,
@@ -59,15 +68,19 @@ object WishlistApi {
             )
 
             val result = supabase.postgrest["wishlist_items"]
-                .insert(wish) {
+                .insert(wishInsert) {
                     select()
                 }
                 .decodeSingleOrNull<WishDto>()
 
-            Log.d(TAG, "Create success: id=${result?.id}")
+            if (result != null) {
+                Log.d(TAG, "Create success: server_id=${result.id}")
+            } else {
+                Log.e(TAG, "Create failed: Received null result from Supabase")
+            }
             result
         } catch (e: Exception) {
-            Log.e(TAG, "Create failed: ${e.message}", e)
+            Log.e(TAG, "Create failed with exception: ${e.message}", e)
             null
         }
     }

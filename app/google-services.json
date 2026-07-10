@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "653558769233",
+    "project_id": "baroness-kt",
+    "storage_bucket": "baroness-kt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653558769233:android:ccdb5e6a2a75aacf39fa70",
+        "android_client_info": {
+          "package_name": "com.baroness.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYpCSvsD8JnIt3NKt0UQ315N9ToQ9n8es"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

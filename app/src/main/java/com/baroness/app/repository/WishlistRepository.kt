@@ -17,6 +17,8 @@ import com.baroness.app.utils.SyncManager
 import com.baroness.app.utils.parseIsoToLong
 import com.baroness.app.workers.SyncWorker
 import com.baroness.app.utils.StorageManager
+import com.baroness.app.data.models.NotificationData
+import com.baroness.app.viewmodels.NotificationViewModel
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.postgresChangeFlow
@@ -37,6 +39,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.jsonPrimitive
 import androidx.work.*
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.intOrNull
 import org.json.JSONObject
@@ -51,7 +62,7 @@ data class ProfileDto(
     @SerialName("avatar_url") val avatarUrl: String? = null
 )
 
-class WishlistRepository(context: Context) {
+class WishlistRepository private constructor(context: Context) {
     private val db = AppDatabase.getInstance(context)
     private val wishDao: WishDao = db.wishDao()
     private val reactionDao: ReactionDao = db.reactionDao()
@@ -60,7 +71,14 @@ class WishlistRepository(context: Context) {
     private val storageManager = StorageManager(context)
     private val supabase = SupabaseConfig.supabase
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val workManager = WorkManager.getInstance(context) // WorkManager instance
+    private val workManager = WorkManager.getInstance(context)
+
+    private var notificationViewModel: NotificationViewModel? = null
+
+    fun setNotificationViewModel(viewModel: NotificationViewModel) {
+        Log.d(TAG, "Setting NotificationViewModel for repository instance")
+        this.notificationViewModel = viewModel
+    }
 
     private var isSubscribed = false
 
@@ -71,7 +89,50 @@ class WishlistRepository(context: Context) {
         scope.launch {
             fetchProfiles()
             subscribeToRealtime()
-            initialSync()
+            setupNetworkListener(context)
+            setupLifecycleObserver()
+        }
+    }
+
+    private fun setupNetworkListener(context: Context) {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+
+        connectivityManager.registerNetworkCallback(request, object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                Log.d(TAG, "Network available, triggering sync")
+                scope.launch {
+                    fetchRemoteWishes()
+                    syncNow()
+                }
+            }
+        })
+    }
+
+    private fun setupLifecycleObserver() {
+        scope.launch(Dispatchers.Main) {
+            ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    Log.d(TAG, "App resumed, triggering sync")
+                    scope.launch {
+                        fetchRemoteWishes()
+                        syncNow()
+                    }
+                }
+            })
+        }
+    }
+
+    companion object {
+        @Volatile
+        private var INSTANCE: WishlistRepository? = null
+
+        fun getInstance(context: Context): WishlistRepository {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: WishlistRepository(context.applicationContext).also { INSTANCE = it }
+            }
         }
     }
 
@@ -98,6 +159,10 @@ class WishlistRepository(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Profile fetch failed: ${e.message}", e)
         }
+    }
+
+    suspend fun fetchRemoteWishes() {
+        initialSync()
     }
 
     private suspend fun initialSync() {
@@ -156,85 +221,96 @@ class WishlistRepository(context: Context) {
             return
         }
 
-        try {
-            Log.d(TAG, "Connecting to Supabase realtime")
-            supabase.realtime.connect()
-
-
-            val channelsToRemove = supabase.realtime.subscriptions.keys.toList()
-            channelsToRemove.forEach { name ->
-                Log.d(TAG, "Removing old channel: $name")
-                supabase.realtime.removeChannel(supabase.realtime.subscriptions[name]!!)
-            }
-
-            val timestamp = System.currentTimeMillis()
-
-            // ─── WISHES CHANNEL ───
-            val wishChannel = supabase.realtime.channel("wishlist-items-$timestamp")
-            val wishFlow = wishChannel.postgresChangeFlow<PostgresAction>(
-                schema = "public"
-            ) {
-                table = "wishlist_items"
-            }
-            scope.launch {
+        scope.launch {
+            var retryDelay = 1000L
+            while (isActive) {
                 try {
-                    wishFlow.collect { action ->
-                        Log.d(TAG, "Realtime wish action: ${action::class.simpleName}")
-                        handleWishChange(action)
+                    Log.d(TAG, "Connecting to Supabase realtime")
+                    supabase.realtime.connect()
+
+                    val channelsToRemove = supabase.realtime.subscriptions.keys.toList()
+                    channelsToRemove.forEach { name ->
+                        Log.d(TAG, "Removing old channel: $name")
+                        supabase.realtime.removeChannel(supabase.realtime.subscriptions[name]!!)
                     }
+
+                    val timestamp = System.currentTimeMillis()
+
+                    // ─── WISHES CHANNEL ───
+                    val wishChannel = supabase.realtime.channel("wishlist-items-$timestamp")
+                    val wishFlow = wishChannel.postgresChangeFlow<PostgresAction>(
+                        schema = "public"
+                    ) {
+                        table = "wishlist_items"
+                    }
+                    scope.launch {
+                        try {
+                            wishFlow.collect { action ->
+                                Log.d(TAG, "Realtime wish action: ${action::class.simpleName}")
+                                handleWishChange(action)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Wish flow collection error: ${e.message}", e)
+                        }
+                    }
+                    wishChannel.subscribe()
+                    Log.d(TAG, "Subscribed to wishlist_items channel")
+
+                    // ─── REACTIONS CHANNEL ───
+                    val rxChannel = supabase.realtime.channel("reactions-$timestamp")
+                    val reactionFlow = rxChannel.postgresChangeFlow<PostgresAction>(
+                        schema = "public"
+                    ) {
+                        table = "wishlist_reactions"
+                    }
+                    scope.launch {
+                        try {
+                            reactionFlow.collect { action ->
+                                Log.d(TAG, "Realtime reaction action: ${action::class.simpleName}")
+                                handleReactionChange(action)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Reaction flow collection error: ${e.message}", e)
+                        }
+                    }
+                    rxChannel.subscribe()
+                    Log.d(TAG, "Subscribed to reactions channel")
+
+                    // ─── RATINGS CHANNEL ───
+                    val ratChannel = supabase.realtime.channel("ratings-$timestamp")
+                    val ratingFlow = ratChannel.postgresChangeFlow<PostgresAction>(
+                        schema = "public"
+                    ) {
+                        table = "wishlist_ratings"
+                    }
+                    scope.launch {
+                        try {
+                            ratingFlow.collect { action ->
+                                Log.d(TAG, "Realtime rating action: ${action::class.simpleName}")
+                                handleRatingChange(action)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Rating flow collection error: ${e.message}", e)
+                        }
+                    }
+                    ratChannel.subscribe()
+                    Log.d(TAG, "Subscribed to ratings channel")
+
+                    isSubscribed = true
+                    Log.d(TAG, "All realtime channels subscribed successfully")
+                    retryDelay = 1000L // Reset on success
+
+                    // Break the loop once successfully subscribed.
+                    // Supabase-kt's internal mechanisms handle reconnection of individual channels.
+                    // If the entire connection is lost and cannot be recovered, this coroutine can be restarted.
+                    break
                 } catch (e: Exception) {
-                    Log.e(TAG, "Wish flow collection error: ${e.message}", e)
+                    isSubscribed = false
+                    Log.e(TAG, "Realtime subscription error: ${e.message}. Retrying in ${retryDelay}ms")
+                    delay(retryDelay)
+                    retryDelay = (retryDelay * 2).coerceAtMost(30000L)
                 }
             }
-            wishChannel.subscribe()
-            Log.d(TAG, "Subscribed to wishlist_items channel")
-
-            // ─── REACTIONS CHANNEL ───
-            val rxChannel = supabase.realtime.channel("reactions-$timestamp")
-            val reactionFlow = rxChannel.postgresChangeFlow<PostgresAction>(
-                schema = "public"
-            ) {
-                table = "wishlist_reactions"
-            }
-            scope.launch {
-                try {
-                    reactionFlow.collect { action ->
-                        Log.d(TAG, "Realtime reaction action: ${action::class.simpleName}")
-                        handleReactionChange(action)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Reaction flow collection error: ${e.message}", e)
-                }
-            }
-            rxChannel.subscribe()
-            Log.d(TAG, "Subscribed to reactions channel")
-
-            // ─── RATINGS CHANNEL ───
-            val ratChannel = supabase.realtime.channel("ratings-$timestamp")
-            val ratingFlow = ratChannel.postgresChangeFlow<PostgresAction>(
-                schema = "public"
-            ) {
-                table = "wishlist_ratings"
-            }
-            scope.launch {
-                try {
-                    ratingFlow.collect { action ->
-                        Log.d(TAG, "Realtime rating action: ${action::class.simpleName}")
-                        handleRatingChange(action)
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Rating flow collection error: ${e.message}", e)
-                }
-            }
-            ratChannel.subscribe()
-            Log.d(TAG, "Subscribed to ratings channel")
-
-            isSubscribed = true
-            Log.d(TAG, "All realtime channels subscribed successfully")
-
-        } catch (e: Exception) {
-            Log.e(TAG, "Realtime subscription error: ${e.message}", e)
-            isSubscribed = false
         }
     }
 
@@ -254,6 +330,26 @@ class WishlistRepository(context: Context) {
                     val updatedAtStr = record["updated_at"]?.jsonPrimitive?.content
 
                     Log.d(TAG, "Realtime wish change: id=$id, status=$status, creator=$creatorId")
+
+                    val currentPersonaId = storageManager.getString("currentPersonaId")
+                    Log.d(TAG, "Comparing creatorId=$creatorId with currentPersonaId=$currentPersonaId")
+                    
+                    if (action is PostgresAction.Insert && creatorId != currentPersonaId) {
+                        Log.d(TAG, "Triggering in-app notification for new wish from $creatorId")
+                        val senderProfile = _profiles.value[creatorId]
+                        val senderName = senderProfile?.displayName ?: "Someone"
+                        val senderAvatar = senderProfile?.avatarUrl
+
+                        notificationViewModel?.showInAppNotification(
+                            NotificationData(
+                                title = "$senderName added a new wish",
+                                body = text,
+                                avatarUrl = senderAvatar,
+                                featureType = "wishlist",
+                                route = "Wishlist"
+                            )
+                        )
+                    }
 
                     val entity = WishEntity(
                         id = id,

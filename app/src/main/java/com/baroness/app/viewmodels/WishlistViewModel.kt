@@ -14,7 +14,7 @@ import androidx.compose.ui.geometry.Offset
 
 class WishlistViewModel(context: Context) : ViewModel() {
 
-    private val repository = WishlistRepository(context.applicationContext)
+    private val repository = WishlistRepository.getInstance(context.applicationContext)
     private val storageManager = StorageManager(context.applicationContext)
 
     val wishes: StateFlow<List<Wish>> = repository.getAllWishes()
@@ -33,6 +33,9 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     private val _isInitialLoading = MutableStateFlow(true)
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     // Modal States
     private val _selectedDate = MutableStateFlow<String?>(null)
@@ -159,6 +162,32 @@ class WishlistViewModel(context: Context) : ViewModel() {
                 createdAt = System.currentTimeMillis()
             )
             repository.insertWish(newWish)
+        }
+    }
+
+    fun refreshWishes() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                repository.fetchRemoteWishes()
+            } catch (e: Exception) {
+                Log.e("WishlistVM", "Refresh failed: ${e.message}")
+            } finally {
+                _isRefreshing.value = false
+                _isInitialLoading.value = false
+            }
+        }
+    }
+
+    fun syncInBackground() {
+        viewModelScope.launch {
+            try {
+                repository.fetchRemoteWishes()
+            } catch (e: Exception) {
+                Log.e("WishlistVM", "Background sync failed: ${e.message}")
+            } finally {
+                _isInitialLoading.value = false
+            }
         }
     }
 

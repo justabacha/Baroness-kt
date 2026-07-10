@@ -21,6 +21,29 @@ object ProfileManager {
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    suspend fun updateFcmToken(id: String, token: String) {
+        val jsonBody = JSONObject().apply {
+            put("fcm_token", token)
+            put("updated_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }.format(java.util.Date()))
+        }.toString()
+
+        val request = Request.Builder()
+            .url("$SUPABASE_URL/rest/v1/profiles?id=eq.$id")
+            .header("apikey", SUPABASE_KEY)
+            .header("Authorization", "Bearer $SUPABASE_KEY")
+            .header("Content-Type", "application/json")
+            .patch(jsonBody.toRequestBody("application/json".toMediaType()))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw Exception("Failed to update FCM token: ${response.code}")
+            }
+        }
+    }
+
     data class ProfileResult(
         val displayName: String,
         val avatar: String?,

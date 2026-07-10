@@ -91,7 +91,7 @@ class SyncManager(context: Context) {
     private suspend fun processWishItem(item: SyncQueueItem): Boolean {
         return when (item.operation) {
             "create" -> {
-                Log.d(TAG, "Processing CREATE for wish")
+                Log.d(TAG, "Processing CREATE for wish. Payload: ${item.payload}")
                 val json = JSONObject(item.payload)
                 val text = json.getString("text")
                 val wishDate = json.getString("wish_date")
@@ -108,21 +108,22 @@ class SyncManager(context: Context) {
                 )
 
                 if (result != null && result.id != null) {
+                    Log.d(TAG, "Wish created successfully on server with ID: ${result.id}")
                     val tempId = item.localTempId
                     val serverId = result.id
                     if (tempId != null && tempId < 0) {
-                        Log.d(TAG, "ID swap: $tempId -> $serverId")
+                        Log.d(TAG, "Performing ID swap in Room: $tempId -> $serverId")
                         try {
                             wishDao.updateWishId(oldTempId = tempId, newServerId = serverId)
                             Log.d(TAG, "ID swap complete")
                         } catch (e: SQLiteConstraintException) {
-                            Log.w(TAG, "ID swap failed: Server ID $serverId already exists. Deleting temp record $tempId.")
+                            Log.w(TAG, "ID swap failed: Server ID $serverId already exists in Room. Deleting temp record $tempId.")
                             wishDao.deleteWish(tempId)
                         }
                     }
                     true
                 } else {
-                    Log.e(TAG, "Create returned null or no ID")
+                    Log.e(TAG, "Create failed: result is null or missing server ID")
                     false
                 }
             }
