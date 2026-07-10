@@ -29,8 +29,13 @@ object ProfileManager {
             }.format(java.util.Date()))
         }.toString()
 
+        val url = "$SUPABASE_URL/rest/v1/profiles?id=eq.$id"
+        android.util.Log.d("ProfileManager", "Updating FCM Token for $id")
+        android.util.Log.d("ProfileManager", "URL: $url")
+        android.util.Log.d("ProfileManager", "Payload: $jsonBody")
+
         val request = Request.Builder()
-            .url("$SUPABASE_URL/rest/v1/profiles?id=eq.$id")
+            .url(url)
             .header("apikey", SUPABASE_KEY)
             .header("Authorization", "Bearer $SUPABASE_KEY")
             .header("Content-Type", "application/json")
@@ -38,8 +43,12 @@ object ProfileManager {
             .build()
 
         client.newCall(request).execute().use { response ->
+            val responseBody = response.peekBody(Long.MAX_VALUE).string()
+            android.util.Log.d("ProfileManager", "Response Code: ${response.code}")
+            android.util.Log.d("ProfileManager", "Response Body: $responseBody")
+
             if (!response.isSuccessful) {
-                throw Exception("Failed to update FCM token: ${response.code}")
+                throw Exception("Failed to update FCM token: ${response.code} - $responseBody")
             }
         }
     }

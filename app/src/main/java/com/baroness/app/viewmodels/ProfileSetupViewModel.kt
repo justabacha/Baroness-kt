@@ -121,6 +121,19 @@ class ProfileSetupViewModel(
                 )
                 val jsonString = json.encodeToString(userProfile)
                 storageManager.saveString("userProfile", jsonString)
+
+                // Sync FCM Token after profile update
+                val fcmToken = storageManager.getString("fcm_token")
+                if (!fcmToken.isNullOrBlank()) {
+                    viewModelScope.launch {
+                        try {
+                            ProfileManager.updateFcmToken(currentPersonaId, fcmToken)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+
                 callback(true, result)
             } catch (e: Exception) {
                 errorMessage.value = e.message ?: "Failed to save profile"

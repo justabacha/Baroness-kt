@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.modules.AuthManager
+import com.baroness.app.modules.ProfileManager
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -48,6 +49,19 @@ class GateViewModel(private val context: Context) : ViewModel() {
                             e.printStackTrace()
                         }
                     }
+
+                    // Sync FCM Token immediately after login
+                    val fcmToken = storage.getString("fcm_token")
+                    if (!fcmToken.isNullOrBlank()) {
+                        viewModelScope.launch {
+                            try {
+                                ProfileManager.updateFcmToken(result.currentPersonaId, fcmToken)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+
                     onSuccess(result.userProfile?.id, result.currentPersonaId)
                 }
                 is AuthManager.GateResult.Error -> {

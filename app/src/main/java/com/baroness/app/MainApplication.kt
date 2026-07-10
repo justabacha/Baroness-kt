@@ -40,7 +40,7 @@ class MainApplication : Application() {
             scope.launch {
                 storageManager.saveString("fcm_token", token)
                 
-                val personaId = storageManager.getString("vibe_persona")
+                val personaId = storageManager.getString("currentPersonaId")
                 if (!personaId.isNullOrBlank()) {
                     try {
                         ProfileManager.updateFcmToken(personaId, token)

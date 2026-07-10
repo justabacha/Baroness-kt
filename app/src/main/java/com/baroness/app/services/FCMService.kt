@@ -34,7 +34,7 @@ class FCMService : FirebaseMessagingService() {
             storageManager.saveString("fcm_token", token)
 
             // Sync with Supabase if persona is set
-            val personaId = storageManager.getString("vibe_persona")
+            val personaId = storageManager.getString("currentPersonaId")
             if (!personaId.isNullOrBlank()) {
                 try {
                     ProfileManager.updateFcmToken(personaId, token)
