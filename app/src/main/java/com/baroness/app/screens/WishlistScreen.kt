@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -14,7 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -22,7 +25,10 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.baroness.app.R
+import com.baroness.app.components.EdgeGlowEffect
 import com.baroness.app.components.EmojiPicker
+import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.components.wishlist.*
 import com.baroness.app.viewmodels.WishlistViewModel
 
@@ -53,6 +59,14 @@ fun WishlistScreen(
     val userNames by viewModel.userNames.collectAsStateWithLifecycle()
     val userAvatars by viewModel.userAvatars.collectAsStateWithLifecycle()
     val calendarAnchor by viewModel.calendarAnchor.collectAsStateWithLifecycle()
+    val warningState by viewModel.warningState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(warningState.isActive) {
+        if (warningState.isActive) {
+            kotlinx.coroutines.delay(2500)
+            viewModel.dismissWarning()
+        }
+    }
 
     var inputText by remember { mutableStateOf("") }
 
@@ -70,6 +84,8 @@ fun WishlistScreen(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+
+        EdgeGlowEffect(visible = warningState.isActive)
 
         AnimatedVisibility(
             visible = isInitialLoading,
@@ -125,10 +141,14 @@ fun WishlistScreen(
                             viewModel.setCalendarAnchor(position)
                         },
                         onCast = {
-                            if (inputText.isNotBlank() && selectedDate != null) {
-                                viewModel.createWish(inputText.trim(), selectedDate!!)
-                                inputText = ""
-                                viewModel.setSelectedDate(null)
+                            if (inputText.isNotBlank()) {
+                                viewModel.createWish(inputText.trim(), selectedDate ?: "")
+                                if (selectedDate != null) {
+                                    inputText = ""
+                                    viewModel.setSelectedDate(null)
+                                }
+                            } else {
+                                viewModel.triggerWarning("Please enter a wish first")
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -172,7 +192,8 @@ fun WishlistScreen(
                     viewModel.setSelectedDate(date)
                     viewModel.toggleCalendar(false)
                 },
-                onDismiss = { viewModel.toggleCalendar(false) }
+                onDismiss = { viewModel.toggleCalendar(false) },
+                onWarning = { viewModel.triggerWarning(it) }
             )
         }
 
@@ -222,6 +243,12 @@ fun WishlistScreen(
                 singleButton = true
             )
         }
+
+        TopWarningBanner(
+            visible = warningState.isActive,
+            message = warningState.message ?: "",
+            onDismiss = { viewModel.dismissWarning() }
+        )
     }
 }
 

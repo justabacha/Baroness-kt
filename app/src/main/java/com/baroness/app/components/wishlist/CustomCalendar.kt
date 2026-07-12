@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,7 +43,8 @@ fun CustomCalendar(
     anchorPosition: Offset?,
     selectedDate: String?,
     onSelectDate: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onWarning: (String) -> Unit
 ) {
     var currentDate by remember { mutableStateOf(Calendar.getInstance()) }
     val scale = remember { Animatable(0.8f) }
@@ -235,7 +237,18 @@ fun CustomCalendar(
                                                             },
                                                             CircleShape
                                                         )
-                                                        .clickable { if (dateStr != null) onSelectDate(dateStr) }
+                                                        .clickable(
+                                                            interactionSource = remember { MutableInteractionSource() },
+                                                            indication = null
+                                                        ) {
+                                                            if (dateStr != null) {
+                                                                if (dateStr < todayStr) {
+                                                                    onWarning("You can only cast wishes for today or future dates")
+                                                                } else {
+                                                                    onSelectDate(dateStr)
+                                                                }
+                                                            }
+                                                        }
                                                 } else Modifier
                                             ),
                                         contentAlignment = Alignment.Center

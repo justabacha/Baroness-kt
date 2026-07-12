@@ -8,14 +8,22 @@ import com.baroness.app.repository.WishlistRepository
 import com.baroness.app.models.Wish
 import com.baroness.app.models.WishStats
 import com.baroness.app.utils.StorageManager
+import com.baroness.app.utils.VibrationHelper
+import com.baroness.app.utils.formatDateLabel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Offset
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+data class WarningState(val message: String? = null, val isActive: Boolean = false)
 
 class WishlistViewModel(context: Context) : ViewModel() {
 
-    private val repository = WishlistRepository.getInstance(context.applicationContext)
-    private val storageManager = StorageManager(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val repository = WishlistRepository.getInstance(appContext)
+    private val storageManager = StorageManager(appContext)
 
     val wishes: StateFlow<List<Wish>> = repository.getAllWishes()
         .stateIn(
@@ -67,6 +75,9 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     private val _photoModalVisible = MutableStateFlow(false)
     val photoModalVisible: StateFlow<Boolean> = _photoModalVisible.asStateFlow()
+
+    private val _warningState = MutableStateFlow(WarningState())
+    val warningState: StateFlow<WarningState> = _warningState.asStateFlow()
 
     private val _currentUserKey = MutableStateFlow("P")
     val currentUserKey: StateFlow<String> = _currentUserKey.asStateFlow()
@@ -143,7 +154,31 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
 
+    fun triggerWarning(message: String) {
+        _warningState.value = WarningState(message, true)
+        VibrationHelper.vibrate(appContext)
+    }
+
+    fun dismissWarning() {
+        _warningState.value = _warningState.value.copy(isActive = false)
+    }
+
+    private fun getTodayDate(): String {
+        return SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+    }
+
     fun createWish(text: String, date: String) {
+        if (date.isEmpty()) {
+            triggerWarning("Pick a date for your wish first")
+            return
+        }
+
+        val today = getTodayDate()
+        if (date < today) {
+            triggerWarning("You can only cast wishes for today or future dates")
+            return
+        }
+
         viewModelScope.launch {
             val tempId = -System.currentTimeMillis()
             val userId = _currentUserId.value
@@ -198,6 +233,14 @@ class WishlistViewModel(context: Context) : ViewModel() {
     }
 
     fun dustWish(wishId: Long) {
+        val wish = wishes.value.find { it.id == wishId } ?: return
+        val today = getTodayDate()
+        
+        if (wish.date > today) {
+            triggerWarning("This wish can only be dusted on or after ${formatDateLabel(wish.date)}")
+            return
+        }
+
         viewModelScope.launch {
             repository.updateWishStatus(wishId, "dusted")
         }
