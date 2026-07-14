@@ -59,7 +59,7 @@ private val SIDE_KEY = stringPreferencesKey("floating_menu_side")
 val Context.menuStore: DataStore<Preferences> by preferencesDataStore("floating_menu")
 
 val menuItems = listOf(
-    MenuItem("MESSAGES", "https://img.icons8.com/color/48/imessage.png", "Messages", "#00ff4c"),
+    MenuItem("MESSAGES", "https://img.icons8.com/color/48/imessage.png", "chat_list", "#00ff4c"),
     MenuItem("J.A.R.V.I.S", "https://img.icons8.com/fluency/48/artificial-intelligence.png", "Friday", "#aa00ff"),
     MenuItem("PHOTOS", "https://img.icons8.com/color/48/google-photos-new.png", "Photos", "#ff5050"),
     MenuItem("WISHLIST", "https://img.icons8.com/fluency/48/star.png", "Wishlist", "#ffc800")

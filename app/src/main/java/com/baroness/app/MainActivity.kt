@@ -44,6 +44,7 @@ import com.baroness.app.screens.ProfileSetupScreen
 import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.screens.MessagesScreen
+import com.baroness.app.screens.ChatListScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
@@ -183,6 +184,9 @@ fun AppNavigation(startDestination: String, navController: androidx.navigation.N
         }
         composable("Messages") {
             MessagesScreen(navController)
+        }
+        composable("chat_list") {
+            ChatListScreen(navController)
         }
         composable("Friday") {
             PlaceholderScreen(navController, "Friday (AI Companion)")

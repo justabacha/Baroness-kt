@@ -45,11 +45,11 @@ object SignatureLoops {
         VibeQuote(
             part1 = "am lucky to have a best friend like you",
             part2 = "always better together :)",
-            photo1 = "$BASE_URL/bucket/Image-7.JPG",
-            photo2 = "$BASE_URL/bucket/Image-8.JPG"
+            photo1 = "$BASE_URL/bucket/Image-7.jpg",
+            photo2 = "$BASE_URL/bucket/Image-8.jpg"
         ),
         VibeQuote(
-            part1 = "Life is hard, but at least I have a pretty best-friend",
+            part1 = "Life is hard, but at least I have a cute best-friend",
             part2 = "I got the prettiest bestie :)",
             photo1 = "$BASE_URL/bucket/Image-9.jpg",
             photo2 = "$BASE_URL/bucket/Image-10.jpg"
@@ -74,7 +74,7 @@ object SignatureLoops {
         ),
         VibeQuote(
             part1 = "Dear Best friend, I Love You 😉",
-            part2 = "I like you because you're weird like me 😂",
+            part2 = "Dear Best friend, I Adore You 🙂‍↕️",
             photo1 = "$BASE_URL/bucket/Image-17.jpg",
             photo2 = "$BASE_URL/bucket/Image-18.jpg"
         ),
@@ -253,7 +253,7 @@ object SignatureLoops {
             photo2 = "$BASE_URL/bucket/Image-76.jpg"
         ),
         VibeQuote(
-            part1 = "Don't believe everything you think",
+            part1 = "Don't believe everything you hear",
             part2 = "RULE NUMBER 1: fuck what they think",
             photo1 = "$BASE_URL/bucket/Image-77.jpg",
             photo2 = "$BASE_URL/bucket/Image-78.jpg"
@@ -275,6 +275,18 @@ object SignatureLoops {
             part2 = "tout pour toi..",
             photo1 = "$BASE_URL/bucket/Image-83.jpg",
             photo2 = "$BASE_URL/bucket/Image-84.jpg"
+        ),
+        VibeQuote(
+            part1 = "...but u can call me love",
+            part2 = "I call you shawty",
+            photo1 = "$BASE_URL/bucket/Image-85.jpg",
+            photo2 = "$BASE_URL/bucket/Image-86.jpg"
+        ),
+        VibeQuote(
+            part1 = "you are my euphoria",
+            part2 = "more than a wife u are my best friend",
+            photo1 = "$BASE_URL/bucket/Image-87.jpg",
+            photo2 = "$BASE_URL/bucket/Image-88.jpg"
         )
 
     )
