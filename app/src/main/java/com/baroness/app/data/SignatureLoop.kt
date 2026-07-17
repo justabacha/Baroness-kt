@@ -287,6 +287,30 @@ object SignatureLoops {
             part2 = "more than a wife u are my best friend",
             photo1 = "$BASE_URL/bucket/Image-87.jpg",
             photo2 = "$BASE_URL/bucket/Image-88.jpg"
+        ),
+        VibeQuote(
+            part1 = "No-one can be 'you' to me :)",
+            part2 = "a mess of gorgeous chaos",
+            photo1 = "$BASE_URL/bucket/Image-89.jpg",
+            photo2 = "$BASE_URL/bucket/Image-90.jpg"
+        ),
+        VibeQuote(
+            part1 = "That's him:\nMy Moonbeam",
+            part2 = "That's her:\nlady of the moon",
+            photo1 = "$BASE_URL/bucket/Image-91.jpg",
+            photo2 = "$BASE_URL/bucket/Image-92.jpg"
+        ),
+        VibeQuote(
+            part1 = "To Infinity and Beyond",
+            part2 = "...to ∞ & →",
+            photo1 = "$BASE_URL/bucket/Image-93.jpg",
+            photo2 = "$BASE_URL/bucket/Image-94.jpg"
+        ),
+        VibeQuote(
+            part1 = "pure & raw",
+            part2 = "boom ShaKaLaka",
+            photo1 = "$BASE_URL/bucket/Image-95.jpg",
+            photo2 = "$BASE_URL/bucket/Image-96.jpg"
         )
 
     )

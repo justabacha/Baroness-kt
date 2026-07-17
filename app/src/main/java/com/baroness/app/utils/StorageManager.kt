@@ -27,6 +27,12 @@ class StorageManager(private val context: Context) {
             .first()
     }
 
+    fun getStringFlow(key: String): kotlinx.coroutines.flow.Flow<String?> {
+        val prefKey = stringPreferencesKey(key)
+        return context.dataStore.data
+            .map { preferences -> preferences[prefKey] }
+    }
+
     suspend fun saveObject(key: String, value: Any) {
         saveString(key, value.toString())
     }

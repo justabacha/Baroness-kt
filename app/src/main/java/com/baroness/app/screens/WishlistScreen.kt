@@ -1,6 +1,7 @@
 package com.baroness.app.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -32,7 +33,7 @@ import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.components.wishlist.*
 import com.baroness.app.viewmodels.WishlistViewModel
 
-private const val BACKGROUND_IMAGE = "https://baroness-test.vercel.app/bucket/Image-15.jpg"
+private val BACKGROUND_IMAGE = R.drawable.image_15
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,8 +79,8 @@ fun WishlistScreen(
     val pullToRefreshState = rememberPullToRefreshState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
-            model = BACKGROUND_IMAGE,
+        Image(
+            painter = painterResource(id = BACKGROUND_IMAGE),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop

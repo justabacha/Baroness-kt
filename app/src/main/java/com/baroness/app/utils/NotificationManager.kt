@@ -50,7 +50,7 @@ class NotificationManager(private val context: Context) {
         )
 
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.mipmap.ic_launcher) // TODO: Use a proper silhouette icon
+            .setSmallIcon(R.drawable.icon) // TODO: Use a proper silhouette icon
             .setContentTitle(data.title)
             .setContentText(data.body)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

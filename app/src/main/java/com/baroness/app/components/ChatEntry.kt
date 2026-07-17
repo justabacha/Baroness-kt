@@ -17,34 +17,40 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.baroness.app.models.Conversation
-import java.text.SimpleDateFormat
-import java.util.*
+import com.baroness.app.ui.theme.Colors
 
+/**
+ * Fallback typography using system sans-serif since Inter is not yet in assets.
+ */
 object ChatTypography {
-    val Inter = FontFamily.SansSerif // Fallback to SansSerif as .ttf cannot be added via agent
+    val Inter = FontFamily.SansSerif
 
-    val nameStyle = TextStyle(
+    val title = TextStyle(
         fontFamily = Inter,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        letterSpacing = 0.5.sp
+        fontWeight = FontWeight.Bold,
+        fontSize = 17.sp,
+        letterSpacing = (-0.4).sp
     )
-    val messageStyle = TextStyle(
+
+    val subtitle = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        color = Color(0xFF8E8E93)
+        color = Color.White.copy(alpha = 0.6f),
+        lineHeight = 20.sp
     )
-    val timeStyle = TextStyle(
+
+    val meta = TextStyle(
         fontFamily = Inter,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        color = Color(0xFF8E8E93)
+        color = Color.White.copy(alpha = 0.4f)
     )
 }
 
@@ -53,63 +59,85 @@ fun ChatEntry(
     conversation: Conversation,
     onClick: () -> Unit
 ) {
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .shadow(2.dp, RoundedCornerShape(16.dp))
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp),
+                ambientColor = Color.Black.copy(alpha = 0.5f),
+                spotColor = Color.Black.copy(alpha = 0.5f)
+            )
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1C1C1E))
+            .background(Color.White.copy(alpha = 0.05f))
+            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(16.dp)
     ) {
-        AsyncImage(
-            model = conversation.avatarUrl,
-            contentDescription = "Avatar",
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .border(0.5.dp, Color.White.copy(alpha = 0.1f), CircleShape),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.width(14.dp))
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Avatar with accent border and fallback
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
+                    .border(1.5.dp, Colors.accent, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = conversation.displayName,
-                    color = Color.White,
-                    style = ChatTypography.nameStyle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                conversation.lastMessageTimestamp?.let { timestamp ->
-                    val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                if (!conversation.avatarUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = conversation.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initial = conversation.displayName.take(1).uppercase()
                     Text(
-                        text = sdf.format(Date(timestamp)),
-                        style = ChatTypography.timeStyle
+                        text = initial,
+                        color = Color.White,
+                        style = ChatTypography.title,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = conversation.lastMessage ?: "",
-                style = ChatTypography.messageStyle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = conversation.displayName,
+                        style = ChatTypography.title,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    
+                    Text(
+                        text = conversation.timestamp,
+                        style = ChatTypography.meta
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = conversation.lastMessage,
+                    style = ChatTypography.subtitle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

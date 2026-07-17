@@ -188,6 +188,13 @@ fun AppNavigation(startDestination: String, navController: androidx.navigation.N
         composable("chat_list") {
             ChatListScreen(navController)
         }
+        composable(
+            "chat_room/{conversationId}",
+            arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("conversationId") ?: ""
+            PlaceholderScreen(navController, "Chat Room: $id")
+        }
         composable("Friday") {
             PlaceholderScreen(navController, "Friday (AI Companion)")
         }
