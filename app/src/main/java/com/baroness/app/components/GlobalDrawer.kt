@@ -112,7 +112,7 @@ fun GlobalDrawer(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Appearance",
+                            text = "SETTINGS",
                             color = Color.White,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
@@ -189,7 +189,7 @@ fun GlassCategoryBox(
             .clip(RoundedCornerShape(24.dp))
             .hazeEffect(state = hazeState) {
                 blurEffect {
-                    blurRadius = 20.dp
+                    blurRadius = 10.dp
                     colorEffects = listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.08f)))
                 }
             }
@@ -326,7 +326,12 @@ fun ThemeCategoryBox(
                             onRevert = {
                                 viewModel.revertTheme()
                                 onStateChange(ThemeBoxState.Expanded)
-                            }
+                            },
+                            onRevertToDefault = {
+                                viewModel.revertToDefault()
+                                onStateChange(ThemeBoxState.Expanded)
+                            },
+                            showWarning = { viewModel.showWarning(it) }
                         )
                     }
                 }
@@ -444,7 +449,9 @@ fun ThemePreviewChat(
     theme: ThemeOption,
     isActive: Boolean,
     onApply: () -> Unit,
-    onRevert: () -> Unit
+    onRevert: () -> Unit,
+    onRevertToDefault: () -> Unit,
+    showWarning: (String) -> Unit
 ) {
     Column {
         // Mock Chat
@@ -491,25 +498,40 @@ fun ThemePreviewChat(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = onRevert,
-                enabled = !isActive,
+            // REVERT Button
+            Button(
+                onClick = {
+                    if (isActive) {
+                        onRevertToDefault()
+                        showWarning("Reverted to default theme")
+                    } else {
+                        showWarning("Nothing to revert")
+                    }
+                },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = if (!isActive) 0.5f else 0.1f)),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isActive) Color.Red.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.05f),
+                    contentColor = if (isActive) Color.White else Color.White.copy(alpha = 0.2f)
+                ),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text("REVERT", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
             }
+
+            // APPLY Button
             Button(
-                onClick = onApply,
-                enabled = !isActive,
+                onClick = {
+                    if (isActive) {
+                        showWarning("This theme is already in use")
+                    } else {
+                        onApply()
+                        showWarning("Theme applied successfully")
+                    }
+                },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = theme.primaryColor,
-                    contentColor = if (theme.id == "golden") Color.Black else Color.White,
-                    disabledContainerColor = Color.White.copy(alpha = 0.05f),
-                    disabledContentColor = Color.White.copy(alpha = 0.2f)
+                    containerColor = if (isActive) Color.White.copy(alpha = 0.05f) else theme.primaryColor,
+                    contentColor = if (isActive) Color.White.copy(alpha = 0.2f) else if (theme.id == "golden") Color.Black else Color.White
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {

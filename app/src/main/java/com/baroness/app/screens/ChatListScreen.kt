@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.baroness.app.components.ChatEntry
 import com.baroness.app.components.ChatTypography
 import com.baroness.app.components.GlobalDrawer
+import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.models.PersonaType
 import com.baroness.app.viewmodels.ChatListViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
@@ -42,6 +43,16 @@ fun ChatListScreen(
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
     var isDrawerVisible by remember { mutableStateOf(false) }
+
+    val warningMessage by settingsViewModel.warningMessage.collectAsStateWithLifecycle()
+    val isWarningVisible by settingsViewModel.isWarningVisible.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isWarningVisible) {
+        if (isWarningVisible) {
+            kotlinx.coroutines.delay(2500)
+            settingsViewModel.dismissWarning()
+        }
+    }
 
     BackHandler(enabled = isDrawerVisible) {
         isDrawerVisible = false
@@ -119,6 +130,12 @@ fun ChatListScreen(
             isVisible = isDrawerVisible,
             onDismiss = { isDrawerVisible = false },
             viewModel = settingsViewModel
+        )
+
+        TopWarningBanner(
+            visible = isWarningVisible,
+            message = warningMessage ?: "",
+            onDismiss = { settingsViewModel.dismissWarning() }
         )
     }
 }

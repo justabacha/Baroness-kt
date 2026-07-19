@@ -10,6 +10,13 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(context: Context) : ViewModel() {
     private val repository = SettingsRepository(context.applicationContext)
 
+    // Warning State
+    private val _warningMessage = MutableStateFlow<String?>(null)
+    val warningMessage: StateFlow<String?> = _warningMessage.asStateFlow()
+    
+    private val _isWarningVisible = MutableStateFlow(false)
+    val isWarningVisible: StateFlow<Boolean> = _isWarningVisible.asStateFlow()
+
     // THEME
     val activeTheme: StateFlow<String> = repository.getThemeFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, "lavender")
@@ -44,7 +51,20 @@ class SettingsViewModel(context: Context) : ViewModel() {
         }
     }
 
+    fun showWarning(message: String) {
+        _warningMessage.value = message
+        _isWarningVisible.value = true
+    }
+
+    fun dismissWarning() {
+        _isWarningVisible.value = false
+    }
+
     // THEME Actions
+    companion object {
+        const val DEFAULT_THEME = "lavender"
+    }
+
     fun previewTheme(id: String) { _previewTheme.value = id }
     fun applyTheme() {
         viewModelScope.launch {
@@ -52,6 +72,13 @@ class SettingsViewModel(context: Context) : ViewModel() {
         }
     }
     fun revertTheme() { _previewTheme.value = activeTheme.value }
+
+    fun revertToDefault() {
+        viewModelScope.launch {
+            repository.saveTheme(DEFAULT_THEME)
+            _previewTheme.value = DEFAULT_THEME
+        }
+    }
 
     // FONT Actions
     fun previewFont(id: String) { _previewFont.value = id }
