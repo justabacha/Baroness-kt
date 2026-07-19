@@ -5,7 +5,9 @@ import androidx.compose.ui.graphics.Color
 data class ThemeOption(
     val id: String,
     val name: String,
-    val primaryColor: Color
+    val primaryColor: Color,
+    val bubbleColor: Color,
+    val textColor: Color
 )
 
 data class FontOption(
@@ -21,11 +23,11 @@ data class WallpaperOption(
 
 object SettingsOptions {
     val themes = listOf(
-        ThemeOption("lavender", "Lavender", Color(0xFFE6E6FA)),
-        ThemeOption("moonlight", "Moonlight", Color(0xFFB0C4DE)),
-        ThemeOption("golden", "Golden", Color(0xFFFFD700)),
-        ThemeOption("rose", "Rose", Color(0xFFFFB6C1)),
-        ThemeOption("ocean", "Ocean", Color(0xFF87CEEB))
+        ThemeOption("lavender", "Lavender", Color(0xFFE6E6FA), Color(0xFF9575CD), Color.White),
+        ThemeOption("moonlight", "Moonlight", Color(0xFFB0C4DE), Color(0xFF546E7A), Color.White),
+        ThemeOption("golden", "Golden", Color(0xFFFFD700), Color(0xFFFFA000), Color.Black),
+        ThemeOption("rose", "Rose", Color(0xFFFFB6C1), Color(0xFFF06292), Color.White),
+        ThemeOption("ocean", "Ocean", Color(0xFF87CEEB), Color(0xFF0288D1), Color.White)
     )
 
     val fonts = listOf(

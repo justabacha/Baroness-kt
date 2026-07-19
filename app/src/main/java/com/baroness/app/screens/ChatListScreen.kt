@@ -1,5 +1,6 @@
 package com.baroness.app.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +42,10 @@ fun ChatListScreen(
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
     var isDrawerVisible by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isDrawerVisible) {
+        isDrawerVisible = false
+    }
 
     if (isInitialLoading && conversations.isEmpty()) {
         Box(

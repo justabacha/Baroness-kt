@@ -3,43 +3,71 @@ package com.baroness.app.viewmodels
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.baroness.app.utils.StorageManager
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
+import com.baroness.app.repository.SettingsRepository
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(context: Context) : ViewModel() {
-    private val storageManager = StorageManager(context.applicationContext)
+    private val repository = SettingsRepository(context.applicationContext)
 
-    val selectedTheme: StateFlow<String> = storageManager.getStringFlow("selected_theme")
-        .map { it ?: "lavender" }
+    // THEME
+    val activeTheme: StateFlow<String> = repository.getThemeFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, "lavender")
+    
+    private val _previewTheme = MutableStateFlow("lavender")
+    val previewTheme: StateFlow<String> = _previewTheme.asStateFlow()
 
-    val selectedFont: StateFlow<String> = storageManager.getStringFlow("selected_font")
-        .map { it ?: "system" }
+    // FONT
+    val activeFont: StateFlow<String> = repository.getFontFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, "system")
+    
+    private val _previewFont = MutableStateFlow("system")
+    val previewFont: StateFlow<String> = _previewFont.asStateFlow()
 
-    val selectedWallpaper: StateFlow<String> = storageManager.getStringFlow("selected_wallpaper")
-        .map { it ?: "default" }
+    // WALLPAPER
+    val activeWallpaper: StateFlow<String> = repository.getWallpaperFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, "default")
+    
+    private val _previewWallpaper = MutableStateFlow("default")
+    val previewWallpaper: StateFlow<String> = _previewWallpaper.asStateFlow()
 
-    fun setTheme(themeId: String) {
+    init {
+        // Initialize preview states with active values when they are first loaded
         viewModelScope.launch {
-            storageManager.saveString("selected_theme", themeId)
+            activeTheme.collectLatest { _previewTheme.value = it }
+        }
+        viewModelScope.launch {
+            activeFont.collectLatest { _previewFont.value = it }
+        }
+        viewModelScope.launch {
+            activeWallpaper.collectLatest { _previewWallpaper.value = it }
         }
     }
 
-    fun setFont(fontId: String) {
+    // THEME Actions
+    fun previewTheme(id: String) { _previewTheme.value = id }
+    fun applyTheme() {
         viewModelScope.launch {
-            storageManager.saveString("selected_font", fontId)
+            repository.saveTheme(_previewTheme.value)
         }
     }
+    fun revertTheme() { _previewTheme.value = activeTheme.value }
 
-    fun setWallpaper(wallpaperId: String) {
+    // FONT Actions
+    fun previewFont(id: String) { _previewFont.value = id }
+    fun applyFont() {
         viewModelScope.launch {
-            storageManager.saveString("selected_wallpaper", wallpaperId)
+            repository.saveFont(_previewFont.value)
         }
     }
+    fun revertFont() { _previewFont.value = activeFont.value }
+
+    // WALLPAPER Actions
+    fun previewWallpaper(id: String) { _previewWallpaper.value = id }
+    fun applyWallpaper() {
+        viewModelScope.launch {
+            repository.saveWallpaper(_previewWallpaper.value)
+        }
+    }
+    fun revertWallpaper() { _previewWallpaper.value = activeWallpaper.value }
 }
