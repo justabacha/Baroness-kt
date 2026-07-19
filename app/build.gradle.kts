@@ -105,4 +105,8 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
     implementation("com.google.firebase:firebase-messaging-ktx")
+
+    // Haze (Glassmorphism)
+    implementation("dev.chrisbanes.haze:haze:2.0.0-alpha01")
+    implementation("dev.chrisbanes.haze:haze-blur:2.0.0-alpha01")
 }
