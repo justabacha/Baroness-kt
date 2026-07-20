@@ -26,8 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.R
+import com.baroness.app.models.AppColors
+import com.baroness.app.models.AppTheme
 import com.baroness.app.models.SettingsOptions
-import com.baroness.app.models.ThemeOption
+import com.baroness.app.ui.theme.AppFonts
 import com.baroness.app.viewmodels.SettingsViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
@@ -114,8 +116,9 @@ fun GlobalDrawer(
                         Text(
                             text = "SETTINGS",
                             color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
+                            fontFamily = AppFonts.Gamaamli,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 22.sp
                         )
                         IconButton(onClick = onDismiss) {
                             Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
@@ -209,8 +212,9 @@ fun GlassCategoryBox(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = AppFonts.PlayfairDisplay,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
                     letterSpacing = 1.sp
                 )
                 Icon(
@@ -278,8 +282,9 @@ fun ThemeCategoryBox(
                 Text(
                     text = title,
                     color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = AppFonts.PlayfairDisplay,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
                     letterSpacing = 1.sp
                 )
                 Icon(
@@ -361,7 +366,7 @@ fun ThemeCollapsedList(activeId: String, onExpand: (String) -> Unit) {
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .background(theme.primaryColor)
+                        .background(theme.glowColor)
                         .border(
                             if (activeId == theme.id) 1.5.dp else 0.dp,
                             Color.White,
@@ -372,12 +377,18 @@ fun ThemeCollapsedList(activeId: String, onExpand: (String) -> Unit) {
                 Text(
                     text = theme.name,
                     color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = if (activeId == theme.id) FontWeight.Bold else FontWeight.Normal
+                    fontFamily = AppFonts.Lifesavers,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
                 if (activeId == theme.id) {
                     Spacer(modifier = Modifier.weight(1f))
-                    Icon(Icons.Default.Check, contentDescription = null, tint = Color.White.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -407,24 +418,30 @@ fun ThemeExpandedGrid(activeId: String, onReview: (String) -> Unit) {
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(theme.primaryColor)
+                        .background(theme.glowColor)
                         .border(
-                            width = if (activeId == theme.id) 3.dp else 0.dp,
-                            color = Color.White,
+                            width = if (activeId == theme.id) 2.dp else 0.dp,
+                            color = theme.glowColor,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (activeId == theme.id) {
-                        Icon(Icons.Default.Check, contentDescription = null, tint = if (theme.id == "golden") Color.Black else Color.White, modifier = Modifier.size(24.dp))
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (theme.id == "golden") Color.Black else Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = theme.name,
                     color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = if (activeId == theme.id) FontWeight.Bold else FontWeight.Normal
+                    fontFamily = AppFonts.Lifesavers,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
@@ -446,7 +463,7 @@ fun ThemeExpandedGrid(activeId: String, onReview: (String) -> Unit) {
 
 @Composable
 fun ThemePreviewChat(
-    theme: ThemeOption,
+    theme: AppTheme,
     isActive: Boolean,
     onApply: () -> Unit,
     onRevert: () -> Unit,
@@ -466,28 +483,26 @@ fun ThemePreviewChat(
             ChatBubble(
                 text = "hello, good morning",
                 alignLeft = true,
-                bubbleColor = theme.primaryColor,
-                textColor = if (theme.id == "golden") Color.Black else Color.White
+                bubbleColor = theme.bubbleUserColor, // Sender (Left/Own)
+                textColor = AppColors.textPrimary
             )
             ChatBubble(
                 text = "how are you today",
                 alignLeft = false,
-                bubbleColor = Color.White.copy(alpha = 0.1f),
-                textColor = Color.White,
-                isGlass = true
+                bubbleColor = theme.bubbleFridayColor, // Receiver (Right/Other)
+                textColor = AppColors.textPrimary
             )
             ChatBubble(
                 text = "am alright, you?",
                 alignLeft = true,
-                bubbleColor = theme.primaryColor,
-                textColor = if (theme.id == "golden") Color.Black else Color.White
+                bubbleColor = theme.bubbleUserColor,
+                textColor = AppColors.textPrimary
             )
             ChatBubble(
                 text = "thats great catch up",
                 alignLeft = false,
-                bubbleColor = Color.White.copy(alpha = 0.1f),
-                textColor = Color.White,
-                isGlass = true
+                bubbleColor = theme.bubbleFridayColor,
+                textColor = AppColors.textPrimary
             )
         }
 
@@ -510,8 +525,8 @@ fun ThemePreviewChat(
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isActive) Color.Red.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.05f),
-                    contentColor = if (isActive) Color.White else Color.White.copy(alpha = 0.2f)
+                    containerColor = if (isActive) Color(0xFFFF453A) else Color.White.copy(alpha = 0.05f),
+                    contentColor = Color.White.copy(alpha = if (isActive) 1f else 0.2f)
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -530,8 +545,8 @@ fun ThemePreviewChat(
                 },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isActive) Color.White.copy(alpha = 0.05f) else theme.primaryColor,
-                    contentColor = if (isActive) Color.White.copy(alpha = 0.2f) else if (theme.id == "golden") Color.Black else Color.White
+                    containerColor = if (isActive) Color.White.copy(alpha = 0.05f) else theme.glowColor,
+                    contentColor = if (isActive) Color.White.copy(alpha = 0.2f) else AppColors.textPrimary
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
