@@ -116,6 +116,39 @@ object AppFonts {
         "shadowsintolight" -> ShadowsIntoLight
         else -> null
     }
+
+    /**
+     * Resolves a font ID (with optional weight) to FontFamily and FontWeight.
+     *
+     * @param fontId Format: "familyId" or "familyId_weightId" or "system"
+     * @return Pair of FontFamily and FontWeight, or null if not found
+     */
+    fun resolve(fontId: String): Pair<FontFamily, FontWeight>? {
+        if (fontId == "system") {
+            return Pair(FontFamily.Default, FontWeight.Normal)
+        }
+
+        val familyId = if (fontId.contains("_")) fontId.substringBefore("_") else fontId
+        val weightId = if (fontId.contains("_")) fontId.substringAfter("_") else null
+
+        val fontFamily = byName(familyId) ?: return null
+
+        val fontWeight = when (weightId) {
+            "regular", null -> FontWeight.Normal
+            "italic" -> FontWeight.Normal
+            "medium" -> FontWeight.Medium
+            "semibold" -> FontWeight.SemiBold
+            "bold" -> FontWeight.Bold
+            "extrabold" -> FontWeight.ExtraBold
+            "black", "blackitalic" -> FontWeight.Black
+            "thin" -> FontWeight.Thin
+            "light" -> FontWeight.Light
+            "extralight" -> FontWeight.ExtraLight
+            else -> FontWeight.Normal
+        }
+
+        return Pair(fontFamily, fontWeight)
+    }
 }
 
 // Set of Material typography styles to start with

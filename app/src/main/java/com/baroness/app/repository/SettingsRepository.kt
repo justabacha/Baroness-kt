@@ -17,9 +17,9 @@ class SettingsRepository(context: Context) {
     fun getThemeFlow(): Flow<String> = storageManager.getStringFlow(KEY_THEME).map { it ?: "lavender" }
     suspend fun saveTheme(id: String) = storageManager.saveString(KEY_THEME, id)
 
-    fun getFontFlow(): Flow<String> = storageManager.getStringFlow(KEY_FONT).map { it ?: "system" }
+    fun getFontFlow(): Flow<String> = storageManager.getStringFlow(KEY_FONT).map { it ?: "playfairdisplay_regular" }
     suspend fun saveFont(id: String) = storageManager.saveString(KEY_FONT, id)
 
-    fun getWallpaperFlow(): Flow<String> = storageManager.getStringFlow(KEY_WALLPAPER).map { it ?: "default" }
+    fun getWallpaperFlow(): Flow<String> = storageManager.getStringFlow(KEY_WALLPAPER).map { it ?: "sunrise" }
     suspend fun saveWallpaper(id: String) = storageManager.saveString(KEY_WALLPAPER, id)
 }

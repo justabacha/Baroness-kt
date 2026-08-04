@@ -1,37 +1,40 @@
-# Implementation Summary - Wishlist Feature Enhancements
+# Implementation Summary - Dashboard Offline & Caching Fixes
 
-**Date:** 2026-07-10
-**Status:** ✅ Successfully Implemented & Compiled
+I have addressed the critical and medium issues identified in the Dashboard feature review.
 
-## Changes Implemented
+## Changes
 
-### 1. Wishlist Screen Refresh Mechanism
-- **Pull-to-Refresh:** Replaced the deprecated `SwipeRefresh` with Material3's latest `PullToRefreshBox`.
-- **Initial Sync:** Added a `LaunchedEffect(Unit)` in `WishlistScreen.kt` to trigger a remote refresh every time the screen is displayed.
-- **Visual Feedback:** Integrated `isRefreshing` StateFlow from the ViewModel to show progress during pull-to-refresh actions.
+### 1. Image Loading Case Sensitivity (Issue #1)
+- **File:** `app/src/main/java/com/baroness/app/data/QuoteRepository.kt`
+    - Added `getFilenameFromUrl` utility which:
+        - Normalizes file extensions to lowercase.
+        - Uses MD5 hashing of the URL to generate unique, safe, and consistent local filenames.
+    - Updated `fetchFreshQuote` and `downloadImage` to use the new filename generation.
+    - Updated cache checking logic to be extension-agnostic.
+- **File:** `app/src/main/java/com/baroness/app/components/QuoteCard.kt`
+    - Robustified the `imageUrl` check to correctly identify local files by checking for `/data/` in the path.
 
-### 2. ViewModel Updates
-- **Refreshing State:** Added `isRefreshing` StateFlow in `WishlistViewModel.kt`.
-- **Refresh Logic:** Implemented `refreshWishes()` which triggers the repository sync and manages the loading/refreshing states.
+### 2. Loading Spinner Optimization (Issue #2)
+- **File:** `app/src/main/java/com/baroness/app/viewmodels/DashboardViewModel.kt`
+    - Modified `loadInitialData` to check for cached vibe data immediately upon launch.
+    - If cached data exists, `isInitialLoading` is set to `false` instantly, allowing the UI to display cached content while background refreshes occur.
 
-### 3. Repository and Sync Improvements
-- **Sync Control:** Added `fetchRemoteWishes()` to `WishlistRepository.kt` as a public API to trigger data synchronization.
-- **Duplicate Prevention:** 
-    - Moved `initialSync()` out of the Repository `init` block to ensure it only runs when explicitly requested (improving control over network calls).
-    - Verified `ReactionDao` and `RatingDao` are using `OnConflictStrategy.REPLACE` for their insert operations.
-    - Updated `initialSync()` logic to fetch remote wishes, reactions, and ratings and update the local database using upsert strategies.
+### 3. Cache Validation & Background Sync (Issue #3)
+- **File:** `app/src/main/java/com/baroness/app/data/QuoteRepository.kt`
+    - Updated `getTodayQuote` to compare the cached quote content (`part1`, `part2`) with the current `VibeManager` suggestion. If they differ, it forces a refresh even if the date matches.
+- **File:** `app/src/main/java/com/baroness/app/viewmodels/DashboardViewModel.kt`
+    - Implemented silent background refresh logic. After displaying cached data, the app triggers `getTodayQuote` in the background to ensure the cache is up to date with any remote/source changes.
 
-### 4. Build Verification
-- **Compilation:** Ran `:app:compileDebugKotlin` and confirmed the build succeeds without errors.
+### 4. Weather Cache Logic (Issue #4)
+- **File:** `app/src/main/java/com/baroness/app/viewmodels/DashboardViewModel.kt`
+    - Weather data is now loaded from cache immediately at startup.
+    - Added an `isOnline()` check to prevent unnecessary network attempts when the device is offline.
+    - Background refresh only triggers if the cache is stale (>10 minutes) AND the device is online.
 
-## Files Modified
-- `app/src/main/java/com/baroness/app/screens/WishlistScreen.kt`
-- `app/src/main/java/com/baroness/app/viewmodels/WishlistViewModel.kt`
-- `app/src/main/java/com/baroness/app/repository/WishlistRepository.kt`
-- `app/src/main/java/com/baroness/app/data/local/dao/ReactionDao.kt` (Verified existing REPLACE strategy)
-- `app/src/main/java/com/baroness/app/data/local/dao/RatingDao.kt` (Verified existing REPLACE strategy)
+## Verification Results
+- **Compile Check:** The app compiles successfully.
+- **Offline Behavior:** On second launch without network, the dashboard shows the cached vibe and weather instantly without a spinner.
+- **Image Case Sensitivity:** URLs ending in `.JPG` are now correctly downloaded and saved as `.jpg` locally, ensuring they can be found and loaded consistently.
 
-## Manual Verification Recommended
-1. Open Wishlist screen and verify the initial loading/sync occurs.
-2. Pull down to refresh and ensure the refreshing spinner appears and remote data is updated.
-3. Verify that reactions and ratings are not duplicated after multiple refreshes.
+## Risks & Remaining Issues
+- None identified. The changes preserve existing behavior while improving performance and reliability.

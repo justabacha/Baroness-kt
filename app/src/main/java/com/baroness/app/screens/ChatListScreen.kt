@@ -23,10 +23,11 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baroness.app.components.ChatEntry
-import com.baroness.app.components.ChatTypography
+import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.components.GlobalDrawer
 import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.models.PersonaType
+import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.ChatListViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
 
@@ -44,8 +45,11 @@ fun ChatListScreen(
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
     var isDrawerVisible by remember { mutableStateOf(false) }
 
+    val chatTypography = rememberChatTypography(settingsViewModel)
+
     val warningMessage by settingsViewModel.warningMessage.collectAsStateWithLifecycle()
     val isWarningVisible by settingsViewModel.isWarningVisible.collectAsStateWithLifecycle()
+    val showWarningIcon by settingsViewModel.showWarningIcon.collectAsStateWithLifecycle()
 
     LaunchedEffect(isWarningVisible) {
         if (isWarningVisible) {
@@ -88,15 +92,12 @@ fun ChatListScreen(
                 Column {
                     Text(
                         text = "Inbox",
-                        style = ChatTypography.title.copy(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
+                        style = chatTypography.header,
                         color = Color.White
                     )
                     Text(
                         text = "Connect with your favorites",
-                        style = ChatTypography.subtitle,
+                        style = chatTypography.subtitle,
                         color = Color.White.copy(alpha = 0.5f)
                     )
                 }
@@ -120,7 +121,8 @@ fun ChatListScreen(
                                                 else if (conversation.id == "baroness_official") "baroness" 
                                                 else "phesty"
                             navController.navigate("chat_room/$conversationId")
-                        }
+                        },
+                        chatTypography = chatTypography
                     )
                 }
             }
@@ -135,6 +137,7 @@ fun ChatListScreen(
         TopWarningBanner(
             visible = isWarningVisible,
             message = warningMessage ?: "",
+            showIcon = showWarningIcon,
             onDismiss = { settingsViewModel.dismissWarning() }
         )
     }

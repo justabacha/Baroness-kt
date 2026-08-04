@@ -100,7 +100,7 @@ class ChatListViewModel(context: Context) : ViewModel() {
                 id = otherId,
                 displayName = humanName,
                 avatarUrl = humanAvatar,
-                lastMessage = "Can't wait to see you later! ❤️",
+                lastMessage = "Can't wait to see you later!🤞❤️‍🩹",
                 timestamp = "14:20",
                 isOnline = true,
                 personaType = PersonaType.HUMAN
@@ -109,7 +109,7 @@ class ChatListViewModel(context: Context) : ViewModel() {
                 id = "friday",
                 displayName = "Friday",
                 avatarUrl = "https://img.icons8.com/fluency/96/artificial-intelligence.png",
-                lastMessage = "I'm ready when you are. How can I help today?",
+                lastMessage = "I'm ready when you are🫡. How can I help today?",
                 timestamp = "Yesterday",
                 isOnline = true,
                 personaType = PersonaType.AI

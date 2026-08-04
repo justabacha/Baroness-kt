@@ -248,6 +248,7 @@ fun WishlistScreen(
         TopWarningBanner(
             visible = warningState.isActive,
             message = warningState.message ?: "",
+            showIcon = warningState.showIcon,
             onDismiss = { viewModel.dismissWarning() }
         )
     }

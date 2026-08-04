@@ -37,7 +37,7 @@ class QuoteRepository(context: Context) {
         val today = dateFormat.format(Date())
         val cachedDate = storage.getString(cacheDateKey)
 
-        println("QuoteRepository today: $today, cachedDate: $cachedDate")
+        println("QuoteRepository today: $today, cachedDate: $cachedDate, forceRefresh: $forceRefresh")
 
         if (!forceRefresh && cachedDate == today) {
             val cachedJson = storage.getString(quoteDataKey)
@@ -45,17 +45,20 @@ class QuoteRepository(context: Context) {
 
             cachedJson?.let {
                 try {
-                    val quote = json.decodeFromString<VibeQuote>(it)
-                    println("QuoteRepository cached photo1: ${quote.photo1}")
-                    println("QuoteRepository cached photo2: ${quote.photo2}")
+                    val cachedQuote = json.decodeFromString<VibeQuote>(it)
+                    val currentVibe = VibeManager.getVibeOfTheDay()
 
-                    val image1Exists = quote.photo1.let { path -> File(path).exists() }
-                    val image2Exists = quote.photo2.let { path -> File(path).exists() }
+                    // Check if the vibe content itself has changed (Issue #3)
+                    if (cachedQuote.part1 == currentVibe.part1 && cachedQuote.part2 == currentVibe.part2) {
+                        println("QuoteRepository cache matches current vibe content")
+                        val image1Exists = cachedQuote.photo1.let { path -> File(path).exists() }
+                        val image2Exists = cachedQuote.photo2.let { path -> File(path).exists() }
 
-                    println("QuoteRepository image1Exists: $image1Exists, image2Exists: $image2Exists")
-
-                    if (image1Exists && image2Exists) {
-                        return quote
+                        if (image1Exists && image2Exists) {
+                            return cachedQuote
+                        }
+                    } else {
+                        println("QuoteRepository cache content mismatch, forcing refresh")
                     }
                 } catch (e: Exception) {
                     println("QuoteRepository cache parse error: ${e.message}")
@@ -92,21 +95,24 @@ class QuoteRepository(context: Context) {
         println("QuoteRepository vibe photo2: ${vibe.photo2}")
 
         val uniqueId = today.hashCode().toString()
-        val image1 = downloadImage(vibe.photo1, "quote_1_$uniqueId.jpg")
-        val image2 = downloadImage(vibe.photo2, "quote_2_$uniqueId.jpg")
+        val name1 = getFilenameFromUrl(vibe.photo1, "quote_1_$uniqueId")
+        val name2 = getFilenameFromUrl(vibe.photo2, "quote_2_$uniqueId")
+
+        val image1 = downloadImage(vibe.photo1, name1)
+        val image2 = downloadImage(vibe.photo2, name2)
 
         println("QuoteRepository downloaded image1: ${image1?.absolutePath}")
         println("QuoteRepository downloaded image2: ${image2?.absolutePath}")
 
         val finalImage1 = when {
             image1 != null -> image1.absolutePath
-            getExistingImage("quote_1_$uniqueId.jpg") != null -> getExistingImage("quote_1_$uniqueId.jpg")!!
+            getExistingImage(name1) != null -> getExistingImage(name1)!!
             else -> vibe.photo1
         }
 
         val finalImage2 = when {
             image2 != null -> image2.absolutePath
-            getExistingImage("quote_2_$uniqueId.jpg") != null -> getExistingImage("quote_2_$uniqueId.jpg")!!
+            getExistingImage(name2) != null -> getExistingImage(name2)!!
             else -> vibe.photo2
         }
 
@@ -176,5 +182,17 @@ class QuoteRepository(context: Context) {
             println("QuoteRepository existing image found: ${file.absolutePath}")
             file.absolutePath
         } else null
+    }
+
+    private fun getFilenameFromUrl(url: String, prefix: String): String {
+        val extension = url.substringAfterLast(".", "jpg").lowercase()
+        val hash = try {
+            val md = java.security.MessageDigest.getInstance("MD5")
+            val digest = md.digest(url.toByteArray())
+            digest.joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            url.hashCode().toString()
+        }
+        return "${prefix}_$hash.$extension"
     }
 }

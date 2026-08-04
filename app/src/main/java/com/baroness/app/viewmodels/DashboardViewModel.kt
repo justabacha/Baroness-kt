@@ -1,6 +1,9 @@
 package com.baroness.app.viewmodels
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.utils.LocationHelper
@@ -75,25 +78,53 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
             _userProfile.value = updatedProfile
 
-            val todaysVibe = quoteRepository.getTodayQuote(forceRefresh = false)
-            _vibe.value = todaysVibe
-
-            _todayDate.value = VibeManager.getFormattedDate()
-            _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
-
+            // Issue #4: Load cached weather immediately
             val cachedWeather = loadCachedWeather()
             if (cachedWeather != null) {
                 _weather.value = cachedWeather.data
             }
 
-            _isInitialLoading.value = false
+            // Issue #2: Load any cached vibe to hide spinner immediately
+            val cachedVibeJson = storage.getString("quote_data")
+            val cachedVibe = cachedVibeJson?.let {
+                try { json.decodeFromString<VibeQuote>(it) } catch (_: Exception) { null }
+            }
 
-            triggerAnnouncement(profile, _weather.value?.suggestion, isManual = false)
+            if (cachedVibe != null) {
+                _vibe.value = cachedVibe
+                _isInitialLoading.value = false
+                _todayDate.value = VibeManager.getFormattedDate()
+                _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
+                triggerAnnouncement(profile, _weather.value?.suggestion, isManual = false)
+            }
 
-            if (cachedWeather == null || System.currentTimeMillis() - cachedWeather.timestamp >= 10 * 60 * 1000) {
-                refreshWeatherInBackground()
+            // Perform background refresh/sync (Issue #3)
+            launch {
+                val todaysVibe = quoteRepository.getTodayQuote(forceRefresh = false)
+                _vibe.value = todaysVibe
+
+                _todayDate.value = VibeManager.getFormattedDate()
+                _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
+
+                if (_isInitialLoading.value) {
+                    _isInitialLoading.value = false
+                    triggerAnnouncement(profile, _weather.value?.suggestion, isManual = false)
+                }
+
+                // Check if weather is stale and we are online (Issue #4)
+                if (cachedWeather == null || System.currentTimeMillis() - cachedWeather.timestamp >= 10 * 60 * 1000) {
+                    if (isOnline()) {
+                        refreshWeatherInBackground()
+                    }
+                }
             }
         }
+    }
+
+    private fun isOnline(): Boolean {
+        val connectivityManager = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+        return capabilities != null && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     fun reloadProfile() {

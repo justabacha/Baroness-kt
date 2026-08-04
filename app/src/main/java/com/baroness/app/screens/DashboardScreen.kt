@@ -333,7 +333,7 @@ fun DashboardScreen(navController: NavController) {
                             OutlinedButton(
                                 onClick = {
                                     coroutineScope.launch {
-                                        captureManager.captureAndShare(card1Layer, "baroness_card.png")
+                                        captureManager.captureAndSave(card1Layer, "baroness_card.png")
                                     }
                                 },
                                 contentPadding = PaddingValues(
@@ -360,7 +360,7 @@ fun DashboardScreen(navController: NavController) {
                             OutlinedButton(
                                 onClick = {
                                     coroutineScope.launch {
-                                        captureManager.captureAndShare(card2Layer, "phesty_card.png")
+                                        captureManager.captureAndSave(card2Layer, "phesty_card.png")
                                     }
                                 },
                                 contentPadding = PaddingValues(

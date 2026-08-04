@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 fun TopWarningBanner(
     visible: Boolean,
     message: String,
+    showIcon: Boolean = true,
     onDismiss: () -> Unit
 ) {
     Box(
@@ -64,14 +65,16 @@ fun TopWarningBanner(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = if (showIcon) Arrangement.spacedBy(12.dp) else Arrangement.Start
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Warning",
-                        tint = Color(0xFFFF6B6B),
-                        modifier = Modifier.size(24.dp)
-                    )
+                    if (showIcon) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = Color(0xFFFF6B6B),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                     BasicText(
                         text = message,
                         style = TextStyle(

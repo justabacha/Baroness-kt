@@ -14,50 +14,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.baroness.app.models.Conversation
+import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.ui.theme.Colors
-
-/**
- * Fallback typography using system sans-serif since Inter is not yet in assets.
- */
-object ChatTypography {
-    val Inter = FontFamily.SansSerif
-
-    val title = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.Bold,
-        fontSize = 17.sp,
-        letterSpacing = (-0.4).sp
-    )
-
-    val subtitle = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        color = Color.White.copy(alpha = 0.6f),
-        lineHeight = 20.sp
-    )
-
-    val meta = TextStyle(
-        fontFamily = Inter,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        color = Color.White.copy(alpha = 0.4f)
-    )
-}
+import com.baroness.app.ui.theme.rememberChatTypography
 
 @Composable
 fun ChatEntry(
     conversation: Conversation,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    chatTypography: ChatTypography = rememberChatTypography()
 ) {
     Box(
         modifier = Modifier
@@ -96,10 +66,11 @@ fun ChatEntry(
                     )
                 } else {
                     val initial = conversation.displayName.take(1).uppercase()
-                    Text(
+                    PhestyText(
                         text = initial,
+                        style = chatTypography.title,
                         color = Color.White,
-                        style = ChatTypography.title,
+                        fontFamily = chatTypography.title.fontFamily,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -115,25 +86,27 @@ fun ChatEntry(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
+                    PhestyText(
                         text = conversation.displayName,
-                        style = ChatTypography.title,
+                        style = chatTypography.title,
                         color = Color.White,
+                        fontFamily = chatTypography.title.fontFamily,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     
                     Text(
                         text = conversation.timestamp,
-                        style = ChatTypography.meta
+                        style = chatTypography.meta
                     )
                 }
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                Text(
+                PhestyText(
                     text = conversation.lastMessage,
-                    style = ChatTypography.subtitle,
+                    style = chatTypography.subtitle,
+                    fontFamily = chatTypography.subtitle.fontFamily,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

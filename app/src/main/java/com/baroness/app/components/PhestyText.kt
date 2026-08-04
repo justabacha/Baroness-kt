@@ -14,7 +14,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.baroness.app.data.EmojiMap
 
@@ -24,7 +27,9 @@ fun PhestyText(
     modifier: Modifier = Modifier,
     style: TextStyle = TextStyle.Default,
     color: Color = Color.Unspecified,
-    fontSize: androidx.compose.ui.unit.TextUnit = 16.sp,
+    fontSize: TextUnit = 16.sp,
+    fontFamily: FontFamily? = null,
+    textAlign: TextAlign? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip
 ) {
@@ -80,6 +85,8 @@ fun PhestyText(
         style = style,
         color = color,
         fontSize = fontSize,
+        fontFamily = fontFamily ?: style.fontFamily,
+        textAlign = textAlign ?: style.textAlign,
         modifier = modifier,
         maxLines = maxLines,
         overflow = overflow,

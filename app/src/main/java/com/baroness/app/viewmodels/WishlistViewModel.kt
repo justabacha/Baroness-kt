@@ -17,7 +17,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-data class WarningState(val message: String? = null, val isActive: Boolean = false)
+data class WarningState(
+    val message: String? = null,
+    val isActive: Boolean = false,
+    val showIcon: Boolean = true
+)
 
 class WishlistViewModel(context: Context) : ViewModel() {
 
@@ -154,9 +158,9 @@ class WishlistViewModel(context: Context) : ViewModel() {
 
     fun togglePhotoModal(visible: Boolean) { _photoModalVisible.value = visible }
 
-    fun triggerWarning(message: String) {
-        _warningState.value = WarningState(message, true)
-        VibrationHelper.vibrate(appContext)
+    fun triggerWarning(message: String, showIcon: Boolean = true) {
+        _warningState.value = WarningState(message, true, showIcon)
+        if (showIcon) VibrationHelper.vibrate(appContext)
     }
 
     fun dismissWarning() {

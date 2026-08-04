@@ -6,47 +6,35 @@ object SignatureLoops {
     private const val BASE_URL = "https://baroness-test.vercel.app"
 
     val quotes = listOf(
-        VibeQuote(
+        /*VibeQuote(
             part1 = "its not that easy\n am gonna keep u.", //Baroness Quote
             part2 = "You're exactly where you need to be.", //My Quote
             photo1 = "$BASE_URL/bucket/Image-18.jpg",
             photo2 = "$BASE_URL/bucket/Image-24.jpg"
-        ),
-        VibeQuote(
-            part1 = "I don't really do 'ordinary'.",
-            part2 = "We're on a completely different wave.",
-            photo1 = "$BASE_URL/bucket/Image-43.jpg",
-            photo2 = "$BASE_URL/bucket/Image-44.jpg"
-        ),
-        VibeQuote(
-            part1 = "Everything feels a lot quieter now.",
-            part2 = "I finally found a place that feels like home.",
-            photo1 = "$BASE_URL/bucket/Image-70.jpg",
-            photo2 = "$BASE_URL/bucket/Image-69.jpg"
-        ),
+        ),*/
         VibeQuote(
             part1 = "admire me and inspire me",
-            part2 = "I do the same thing for that's the irony",
+            part2 = "I do the same thing for you that's the irony",
             photo1 = "$BASE_URL/bucket/Image-1.jpg",
-            photo2 = "$BASE_URL/bucket/Image-2.jpg"
+            photo2 = "$BASE_URL/bucket/Image-2.JPG"
         ),
         VibeQuote(
             part1 = "You My Fighter U Mah Best friend",
             part2 = "its an understatement calling u mah girlfriend :)",
             photo1 = "$BASE_URL/bucket/Image-3.jpg",
-            photo2 = "$BASE_URL/bucket/Image-4.jpg"
+            photo2 = "$BASE_URL/bucket/Image-4.JPG"
         ),
         VibeQuote(
             part1 = "You always make me feel butterflies when u come around :)",
             part2 = "you make me know LOVE is not the answer",
-            photo1 = "$BASE_URL/bucket/Image-5.jpg",
+            photo1 = "$BASE_URL/bucket/Image-5.JPG",
             photo2 = "$BASE_URL/bucket/Image-6.jpg"
         ),
         VibeQuote(
             part1 = "am lucky to have a best friend like you",
             part2 = "always better together :)",
-            photo1 = "$BASE_URL/bucket/Image-7.jpg",
-            photo2 = "$BASE_URL/bucket/Image-8.jpg"
+            photo1 = "$BASE_URL/bucket/Image-7.JPG",
+            photo2 = "$BASE_URL/bucket/Image-8.JPG"
         ),
         VibeQuote(
             part1 = "Life is hard, but at least I have a cute best-friend",
@@ -54,11 +42,11 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-9.jpg",
             photo2 = "$BASE_URL/bucket/Image-10.jpg"
         ),
-        VibeQuote(
+        VibeQuote(//dusted
             part1 = "Best Friend Forever",
             part2 = "2.2.4 yeah Today, Tomorrow and Forever",
-            photo1 = "$BASE_URL/bucket/Image-11.jpg",
-            photo2 = "$BASE_URL/bucket/Image-12.jpg"
+            photo1 = "$BASE_URL/bucket/Image-11.JPG",
+            photo2 = "$BASE_URL/bucket/Image-12.JPG"
         ),
         VibeQuote(
             part1 = "Best friends are hard to find :(",
@@ -108,7 +96,7 @@ object SignatureLoops {
            photo1 = "$BASE_URL/bucket/Image-27.jpg",
            photo2 = "$BASE_URL/bucket/Image-28.jpg"
        ),
-        VibeQuote(
+        VibeQuote(//Dusted
             part1 = "Souls don't meet by accident..❤️!",
             part2 = "I Love You, idiot.✿..!",
             photo1 = "$BASE_URL/bucket/Image-29.jpg",
@@ -132,7 +120,7 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-35.jpg",
             photo2 = "$BASE_URL/bucket/Image-36.jpg"
         ),
-        VibeQuote(
+        VibeQuote(//Dusted
            part1 = "for the highs and lows and moments between",
            part2 = "the right people stay<3",
            photo1 = "$BASE_URL/bucket/Image-37.jpg",

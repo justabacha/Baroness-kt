@@ -78,7 +78,7 @@ fun QuoteCard(
         ) {
             // Handle null/empty imageUrl
             if (!imageUrl.isNullOrBlank()) {
-                val imageSource = if (imageUrl.startsWith("/") || imageUrl.contains("/data/user/")) {
+                val imageSource = if (imageUrl.startsWith("/") || imageUrl.contains("/data/")) {
                     File(imageUrl)
                 } else {
                     imageUrl // Web URL fallback
