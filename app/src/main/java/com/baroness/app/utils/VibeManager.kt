@@ -56,7 +56,7 @@ object VibeManager {
 
     fun getVibeOfTheDay(): com.baroness.app.models.VibeQuote {
         val launchDate = Calendar.getInstance().apply {
-            set(2026, 3, 11) // April 11, 2026
+            set(2026, 7, 9) // August 9, 2026 (0-indexed: 7 = August)
         }.timeInMillis
         val today = System.currentTimeMillis()
         val daysSinceLaunch = ((today - launchDate) / (1000 * 60 * 60 * 24)).toInt()
@@ -76,22 +76,23 @@ object VibeManager {
 
     suspend fun fetchWeather(lat: Double, lon: Double): WeatherData {
         return withContext(Dispatchers.IO) {
+            var city = "Nairobi"
             try {
-                // Reverse geocoding
+                // 1. Reverse geocoding
                 val geoUrl = "$GEO_API?latitude=$lat&longitude=$lon&localityLanguage=en"
                 val geoRequest = Request.Builder().url(geoUrl).build()
                 val geoResponse = client.newCall(geoRequest).execute()
                 val geoJson = JSONObject(geoResponse.body?.string() ?: "{}")
-                val city = geoJson.optString("city", "").takeIf { it.isNotEmpty() }
+                city = geoJson.optString("city", "").takeIf { it.isNotEmpty() }
                     ?: geoJson.optString("locality", "Eldoret")
 
-                // Weather with current endpoint (includes humidity)
+                // 2. Weather with current endpoint
                 val weatherUrl = "$WEATHER_API?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m"
                 val weatherRequest = Request.Builder().url(weatherUrl).build()
                 val weatherResponse = client.newCall(weatherRequest).execute()
                 val weatherJson = JSONObject(weatherResponse.body?.string() ?: "{}")
                 val current = weatherJson.optJSONObject("current")
-                if (current == null) throw Exception("No current weather data")
+                    ?: throw Exception("No current weather data")
 
                 val temp = current.optDouble("temperature_2m").toInt()
                 val humidity = current.optInt("relative_humidity_2m", 0)
@@ -104,7 +105,8 @@ object VibeManager {
                 WeatherData(temp, humidity, suggestion, city)
             } catch (e: Exception) {
                 e.printStackTrace()
-              WeatherData(22, 65, "Nairobi is chill, enjoy the vibe. 🍃", "Nairobi")
+                // Return fallback using the most specific city found or default
+                WeatherData(22, 65, "$city is chill, enjoy the vibe. 🍃", city)
             }
         }
     }

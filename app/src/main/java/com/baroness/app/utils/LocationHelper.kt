@@ -6,6 +6,8 @@ import android.content.pm.PackageManager
 import android.location.Location
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.tasks.await
 
 class LocationHelper(private val context: Context) {
@@ -25,8 +27,14 @@ class LocationHelper(private val context: Context) {
         }
 
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        val cts = CancellationTokenSource()
+        
         return try {
-            fusedLocationClient.lastLocation.await()
+            // First attempt to get a fresh location fix
+            fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                cts.token
+            ).await() ?: fusedLocationClient.lastLocation.await()
         } catch (_: Exception) {
             null
         }

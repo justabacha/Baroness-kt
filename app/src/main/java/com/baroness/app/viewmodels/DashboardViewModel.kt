@@ -78,13 +78,11 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
             _userProfile.value = updatedProfile
 
-            // Issue #4: Load cached weather immediately
             val cachedWeather = loadCachedWeather()
             if (cachedWeather != null) {
                 _weather.value = cachedWeather.data
             }
 
-            // Issue #2: Load any cached vibe to hide spinner immediately
             val cachedVibeJson = storage.getString("quote_data")
             val cachedVibe = cachedVibeJson?.let {
                 try { json.decodeFromString<VibeQuote>(it) } catch (_: Exception) { null }
@@ -98,7 +96,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                 triggerAnnouncement(profile, _weather.value?.suggestion, isManual = false)
             }
 
-            // Perform background refresh/sync (Issue #3)
             launch {
                 val todaysVibe = quoteRepository.getTodayQuote(forceRefresh = false)
                 _vibe.value = todaysVibe
@@ -111,7 +108,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     triggerAnnouncement(profile, _weather.value?.suggestion, isManual = false)
                 }
 
-                // Check if weather is stale and we are online (Issue #4)
                 if (cachedWeather == null || System.currentTimeMillis() - cachedWeather.timestamp >= 10 * 60 * 1000) {
                     if (isOnline()) {
                         refreshWeatherInBackground()
@@ -166,6 +162,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val freshWeather = VibeManager.fetchWeather(lat, lon)
             _weather.value = freshWeather
             saveCachedWeather(freshWeather)
+
+            triggerAnnouncement(_userProfile.value, freshWeather.suggestion, isManual = false)
         }
     }
 
