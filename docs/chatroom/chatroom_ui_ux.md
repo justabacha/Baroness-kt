@@ -44,8 +44,8 @@ A single `MessageBubble.kt` component renders messages with conditional styling 
         - Friday: Single check (`✓`) or none.
 - **Reactions**: 
     - Floating row slightly overlapping the bottom of the bubble.
-    - Human: Persistent and synced.
-    - Friday: Purely visual (ephemeral) decoration.
+    - Human: Persistent and synced via `chat_sync_pipe`.
+    - Friday: Persistent locally in Room (`MessageEntity.reactions`), but flagged to skip Supabase transport/sync.
 
 ---
 

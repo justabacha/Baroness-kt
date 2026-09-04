@@ -1,0 +1,31 @@
+{
+  "name": "baroness-kt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dump_schema.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:dump": "node supabase/scripts/db_dump.js",
+    "db:apply": "node supabase/scripts/db_apply.js",
+    "db:migrate": "node supabase/scripts/db_migrate.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/justabacha/Baroness-kt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/justabacha/Baroness-kt/issues"
+  },
+  "homepage": "https://github.com/justabacha/Baroness-kt#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "postgres": "^3.4.9"
+  }
+}

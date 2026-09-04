@@ -23,7 +23,11 @@ This document outlines the exact file tree and responsibilities for the ChatRoom
 - `app/src/main/java/com/baroness/app/viewmodels/FridayChatViewModel.kt`
 - `app/src/main/java/com/baroness/app/viewmodels/ChatRoomViewModelFactory.kt`
 
-### Data & Models
+### Data & Remote (AI)
+- `app/src/main/java/com/baroness/app/data/remote/groq/GroqApiService.kt`
+- `app/src/main/java/com/baroness/app/data/remote/groq/GroqModels.kt`
+
+### Data & Models (Local)
 - `app/src/main/java/com/baroness/app/models/Message.kt`
 - `app/src/main/java/com/baroness/app/models/Participant.kt`
 - `app/src/main/java/com/baroness/app/models/ChatRoomUiState.kt`
@@ -56,6 +60,8 @@ This document outlines the exact file tree and responsibilities for the ChatRoom
 - **`ChatRoomViewModelFactory.kt`**: Instantiates the correct ViewModel implementation based on the `conversationId`.
 
 ### Data & Models
+- **`GroqApiService.kt`**: Handles network requests to the Groq Chat Completions API using Ktor.
+- **`GroqModels.kt`**: Serializable data classes for Groq request and response payloads.
 - **`Message.kt`**: The domain-level data class used within the UI layer.
 - **`Participant.kt`**: Data model representing a chat user (Human or Friday).
 - **`ChatRoomUiState.kt`**: Sealed class defining the various UI states (Loading, Success, Error) for the ChatRoom screen.
@@ -70,7 +76,7 @@ This document outlines the exact file tree and responsibilities for the ChatRoom
 
 ## 3. Existing Files to Reuse/Modify
 
-- **`app/src/main/java/com/baroness/app/data/local/database/AppDatabase.kt`**: Update to include `MessageEntity` and increment database version.
+- **`app/src/main/java/com/baroness/app/data/local/database/AppDatabase.kt`**: Update to include `MessageEntity` and implement `MIGRATION_3_4` to preserve production data.
 - **`app/src/main/java/com/baroness/app/MainActivity.kt`**: Update navigation graph to route `chat_room/{conversationId}` to `ChatRoomScreen`.
 - **`app/src/main/java/com/baroness/app/components/PhestyText.kt`**: Used for custom font rendering within message bubbles.
 - **`app/src/main/java/com/baroness/app/components/EmojiPicker.kt`**: Reused within the `ChatContextMenu` for full emoji selection.

@@ -11,7 +11,8 @@ All chat data resides permanently in the local Room database. Supabase is used s
     - `conversationId`: `String` - Indexed (`friday`, `baroness`, `phesty`)
     - `senderId`: `String` (`user`, `friday`, `baroness_official`, `phesty_official`)
     - `content`: `String` - Message body
-    - `timestamp`: `Long` - Local creation time (epoch ms) - Indexed
+    - `timestamp`: `Long` - Local creation time (epoch ms) - Indexed. **Immutable** to preserve order.
+    - `editedAt`: `Long?` - Nullable, last modified timestamp.
     - `serverTimestamp`: `Long?` - Populated from the sync pipe metadata upon delivery
     - `status`: `String` - (`PENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`)
     - `isDeleted`: `Boolean` - Soft delete flag
@@ -22,9 +23,28 @@ All chat data resides permanently in the local Room database. Supabase is used s
     - `index_messages_timestamp` on `timestamp`
 
 ### AppDatabase Update
-- **Version**: `4` (Destructive migration from `3`)
+- **Version**: `4`
+- **Migration Strategy**: Use `MIGRATION_3_4` to prevent data loss for existing production tables (Wishlist, etc.).
 - **Entities**: Add `MessageEntity::class`
 - **DAO**: Add `MessageDao`
+
+#### Room Migration SQL (3 -> 4)
+```sql
+CREATE TABLE IF NOT EXISTS `messages` (
+    `id` TEXT NOT NULL PRIMARY KEY,
+    `conversationId` TEXT NOT NULL,
+    `senderId` TEXT NOT NULL,
+    `content` TEXT NOT NULL,
+    `timestamp` INTEGER NOT NULL,
+    `editedAt` INTEGER,
+    `serverTimestamp` INTEGER,
+    `status` TEXT NOT NULL,
+    `isDeleted` INTEGER NOT NULL,
+    `reactions` TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS `index_messages_conversationId` ON `messages` (`conversationId`);
+CREATE INDEX IF NOT EXISTS `index_messages_timestamp` ON `messages` (`timestamp`);
+```
 
 ---
 
@@ -32,10 +52,10 @@ All chat data resides permanently in the local Room database. Supabase is used s
 
 Supabase does **NOT** persist messages in database tables. It facilitates delivery and stores historical backups.
 
-### Real-Time Sync Pipe: `sync_queue` (Ephemeral)
+### Real-Time Sync Pipe: `chat_sync_pipe` (Ephemeral)
 For delivery to partners who are offline when a message is sent. 
 - **Purpose**: Acts as a "mailbox" that is purged immediately after the recipient consumes the message.
-- **Table**: `sync_queue`
+- **Table**: `chat_sync_pipe`
 - **Columns**:
     - `id`: `uuid` (PRIMARY KEY, DEFAULT gen_random_uuid())
     - `recipient_id`: `text` (NOT NULL) - Persona ID of the receiver
@@ -71,9 +91,9 @@ For delivery to partners who are offline when a message is sent.
 
 ### Ephemeral Delivery (Partner Offline)
 1. User writes `MessageEntity` to Room (status: `PENDING`).
-2. App attempts broadcast (fails/no ack) -> Inserts payload into Supabase `sync_queue` table.
-3. Partner comes online -> Polls/Subscribes to `sync_queue` -> Downloads payload -> Writes to Room.
-4. Partner deletes consumed records from `sync_queue`.
+2. App attempts broadcast (fails/no ack) -> Inserts payload into Supabase `chat_sync_pipe` table.
+3. Partner comes online -> Polls/Subscribes to `chat_sync_pipe` -> Downloads payload -> Writes to Room.
+4. Partner deletes consumed records from `chat_sync_pipe`.
 
 ### Backup Flow
 1. App detects background state or trigger condition (>50 new messages).
@@ -103,10 +123,10 @@ CREATE TABLE public.backup_log (
     CONSTRAINT backup_log_pkey PRIMARY KEY (persona_id)
 );
 
--- RLS for Sync Pipe
+-- RLS for Sync Pipe (Persona-based)
 ALTER TABLE public.chat_sync_pipe ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can only see and delete their own mail" ON public.chat_sync_pipe
-    FOR ALL USING (recipient_id = auth.uid());
+    FOR ALL USING (recipient_id = (auth.jwt() ->> 'persona_id'));
 ```
 
 ---
@@ -115,9 +135,9 @@ CREATE POLICY "Users can only see and delete their own mail" ON public.chat_sync
 
 | Item | Status | Notes |
 | :--- | :--- | :--- |
-| `MessageEntity.kt` | Needs Building | Local Room storage |
+| `MessageEntity.kt` | Needs Building | Local Room storage with `editedAt` |
 | `MessageDao.kt` | Needs Building | Local lookups |
-| `AppDatabase.kt` | Needs Update | Bump version and add entity |
+| `AppDatabase.kt` | Needs Update | Add `MIGRATION_3_4` |
 | Supabase `chat_sync_pipe` | Needs Building | Ephemeral transport |
 | Supabase `backup_log` | Needs Building | Tracking for Storage backups |
 | Supabase Storage Bucket | Needs Creation | `chat_backups` |

@@ -7,21 +7,21 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 ## 1. MASTER CHECKLIST
 
 ### Database & Models
-- [ ] **MessageEntity** — Define Room entity with UUID PK and JSON reactions (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/database/MessageEntity.kt`)
+- [ ] **MessageEntity** — Define Room entity with UUID PK, `editedAt`, and JSON reactions (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/database/MessageEntity.kt`)
 - [ ] **MessageDao** — Implement queries for Flow lookups, PENDING sync, and CRUD (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/dao/MessageDao.kt`)
-- [ ] **AppDatabase Update** — Add `MessageEntity`, `MessageDao`, and bump to version 4 with destructive migration (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/database/AppDatabase.kt`)
+- [ ] **AppDatabase Update** — Add `MessageEntity`, `MessageDao`, and implement `MIGRATION_3_4` to prevent data loss (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/database/AppDatabase.kt`)
 - [ ] **Domain Models** — Create `Message.kt`, `Participant.kt`, and `ChatRoomUiState.kt` (Reference: `architecture.md` Section 4 / `file_structure.md`)
 - [ ] **Supabase DDL** — Execute SQL to create `chat_sync_pipe` and `backup_log` tables (Reference: `database.md` Section 4)
 
 ### Repository & Sync
-- [ ] **ChatRepository** — Implement local/remote coordination, Realtime broadcast, and sync pipe logic (Reference: `architecture.md` Section 2 / `file_structure.md` File: `app/src/main/java/com/baroness/app/repository/ChatRepository.kt`)
+- [ ] **ChatRepository** — Implement local/remote coordination, Realtime broadcast, and `chat_sync_pipe` logic (Reference: `architecture.md` Section 2 / `file_structure.md` File: `app/src/main/java/com/baroness/app/repository/ChatRepository.kt`)
 - [ ] **ChatSyncWorker** — Implement background synchronization for `PENDING` messages with exponential backoff (Reference: `architecture.md` Section 5 / `file_structure.md` File: `app/src/main/java/com/baroness/app/workers/ChatSyncWorker.kt`)
 - [ ] **Backup/Restore Logic** — Implement JSON backup to Supabase Storage and restore trigger (Reference: `architecture.md` Section 3 / `database.md` Section 3)
 
 ### ViewModels
 - [ ] **ChatRoomViewModel (Base)** — Define abstract base class and common contract (Reference: `architecture.md` Section 8 / `file_structure.md`)
 - [ ] **HumanChatViewModel** — Implement human-to-human specific logic and typing broadcast (Reference: `architecture.md` Section 8 / `file_structure.md`)
-- [ ] **FridayChatViewModel** — Implement AI interaction, Groq API, and simulated typing (Reference: `architecture.md` Section 6 & 8 / `file_structure.md`)
+- [ ] **FridayChatViewModel** — Implement AI interaction, `GroqApiService`, and simulated typing (Reference: `architecture.md` Section 6 & 8 / `file_structure.md`)
 - [ ] **ChatRoomViewModelFactory** — Implement the factory to instantiate the correct implementation (Reference: `architecture.md` Section 8 / `file_structure.md`)
 
 ### UI Components
@@ -41,7 +41,7 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 - [ ] **ChatList Entry update** — Connect `ChatListScreen` items to the new route (Reference: `file_structure.md`)
 
 ### Testing & Polish
-- [ ] **Groq AI Flow** — Verify send/reply and simulated delay for Friday (Reference: `architecture.md` Section 6)
+- [ ] **Groq AI Flow** — Verify send/reply and simulated delay for Friday via `GroqApiService` (Reference: `architecture.md` Section 6)
 - [ ] **Obsolete File Removal** — Delete `MessagesScreen.kt` and `PlaceholderScreen` references (Reference: `file_structure.md` Section 4)
 - [ ] **Optimistic Update Verification** — Ensure instant local delivery and background sync (Reference: `architecture.md` Section 2)
 
@@ -51,8 +51,8 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ### WP-1: Database Foundation
 - **Entry Criteria**: Read `database.md`, `architecture.md` Section 4.
-- **Tasks**: Create `MessageEntity`, `MessageDao`, Update `AppDatabase`, execute Supabase DDL.
-- **Exit Criteria**: Room version 4 compiled; Supabase tables exist.
+- **Tasks**: Create `MessageEntity`, `MessageDao`, Update `AppDatabase` with safe migration, execute Supabase DDL.
+- **Exit Criteria**: Room version 4 compiled with `MIGRATION_3_4`; Supabase tables exist.
 - **Complexity**: Small
 - **Files**: `MessageEntity.kt`, `MessageDao.kt`, `AppDatabase.kt`.
 
@@ -93,10 +93,10 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ### WP-7: Friday AI & Realtime Polish
 - **Entry Criteria**: WP-6 Complete. Read `architecture.md` Section 6.
-- **Tasks**: Groq API integration, simulated typing, human typing broadcast.
+- **Tasks**: `GroqApiService` setup, Groq API integration, simulated typing, human typing broadcast.
 - **Exit Criteria**: End-to-end Friday chat functional; human typing works.
 - **Complexity**: Large
-- **Files**: `FridayChatViewModel.kt`, `ChatRepository.kt`.
+- **Files**: `FridayChatViewModel.kt`, `ChatRepository.kt`, `GroqApiService.kt`, `GroqModels.kt`.
 
 ### WP-8: Polish & Cleanup
 - **Entry Criteria**: All WPs Complete.
@@ -120,7 +120,7 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ## 4. RISK FLAGS
 
-- 🚩 **Room Destructive Migration**: Version 4 bump will wipe existing Wishlist data. This is acceptable for v1 as per architecture, but must be communicated.
+- 🚩 **Room Migration**: Ensure `MIGRATION_3_4` is correctly implemented to avoid wiping production data.
 - 🚩 **Groq API Key**: Currently stored in `BuildConfig`. Ensure it's not committed to public repositories.
 - 🚩 **Supabase Storage**: Requires manual creation of the `chat_backups` bucket before backup logic will work.
 - 🚩 **Realtime Collisions**: Ensure chat channels use a unique naming scheme to avoid interference with Wishlist subscriptions.

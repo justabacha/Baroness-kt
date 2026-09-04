@@ -15,3 +15,8 @@
 local.properties
 .aider*
 .idea/ 
+
+# Supabase & Environment Secrets
+.env
+supabase/.temp/
+supabase/.env
