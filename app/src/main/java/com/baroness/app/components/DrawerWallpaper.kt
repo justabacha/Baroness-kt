@@ -45,27 +45,6 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
 import java.io.File
 import kotlin.math.absoluteValue
 
-enum class WallpaperSource { PREBUNDLED, USER_GALLERY }
-
-data class WallpaperOption(
-    val id: String,
-    val name: String,
-    val source: WallpaperSource,
-    val resId: Int? = null,
-    val filePath: String? = null
-)
-
-val prebundledWallpapers = listOf(
-    WallpaperOption("sunrise", "Sunrise", WallpaperSource.PREBUNDLED, R.drawable.image_39),
-    WallpaperOption("light_hours", "Light Hours", WallpaperSource.PREBUNDLED, R.drawable.light_hours),
-    WallpaperOption("accent_bulb", "Accent Bulb", WallpaperSource.PREBUNDLED, R.drawable.accent_bulb),
-    WallpaperOption("green_street", "Green Street", WallpaperSource.PREBUNDLED, R.drawable.green_street),
-    WallpaperOption("sky_street", "Sky Street", WallpaperSource.PREBUNDLED, R.drawable.sky_street),
-    WallpaperOption("beautiful_skies", "Beautiful Skies", WallpaperSource.PREBUNDLED, R.drawable.beautiful_skies),
-    WallpaperOption("mountain_view", "Mountain View", WallpaperSource.PREBUNDLED, R.drawable.mountain_view),
-    WallpaperOption("phesty_point", "Phesty Point", WallpaperSource.PREBUNDLED, R.drawable.phesty_point)
-)
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DrawerWallpaper(

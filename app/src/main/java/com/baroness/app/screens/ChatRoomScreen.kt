@@ -43,17 +43,17 @@ import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.ChatRoomViewModel
 import com.baroness.app.viewmodels.ChatRoomViewModelFactory
 import com.baroness.app.viewmodels.SettingsViewModel
-import com.baroness.app.viewmodels.SettingsViewModelFactory
 import java.io.File
-import kotlinx.coroutines.flow.map
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.blur.blurEffect
 
 @Composable
 fun ChatRoomScreen(
     navController: NavController,
     conversationId: String,
-    settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(LocalContext.current)
-    )
+    settingsViewModel: SettingsViewModel
 ) {
     val context = LocalContext.current
     val viewModel: ChatRoomViewModel = viewModel(
@@ -63,14 +63,16 @@ fun ChatRoomScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otherParticipant by viewModel.otherParticipant.collectAsStateWithLifecycle()
     val isOtherTyping by viewModel.isTyping.collectAsStateWithLifecycle()
-    val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
     val activeThemeId by settingsViewModel.activeTheme.collectAsStateWithLifecycle()
     
-    // In a real app, this would be fetched from a UserSessionManager or AuthRepository
-    val currentPersonaId = "phesty_official" 
+    val storageManager = remember { com.baroness.app.utils.StorageManager(context) }
+    val currentPersonaId by produceState(initialValue = "phesty_official") {
+        value = storageManager.getString("currentPersonaId") ?: "phesty_official"
+    }
 
     val chatTypography = rememberChatTypography(settingsViewModel)
     val clipboardManager = LocalClipboardManager.current
+    val hazeState = remember { HazeState() }
     
     var contextMenuMessage by remember { mutableStateOf<Message?>(null) }
     var contextMenuOffset by remember { mutableStateOf(IntOffset.Zero) }
@@ -90,25 +92,42 @@ fun ChatRoomScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        DynamicBackground(activeWallpaperId = activeWallpaperId)
-
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                ChatTopBar(
-                    participant = otherParticipant,
-                    onBack = { navController.popBackStack() },
-                    typography = chatTypography
-                )
+                Box {
+                    // Dissolve effect at the top
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .hazeEffect(state = hazeState) {
+                                blurEffect {
+                                    blurRadius = 15.dp
+                                }
+                            }
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
+                                )
+                            )
+                    )
+                    ChatTopBar(
+                        participant = otherParticipant,
+                        onBack = { navController.popBackStack() },
+                        typography = chatTypography
+                    )
+                }
             },
             bottomBar = {
                 Column {
                     if (isOtherTyping && otherParticipant != null) {
-                        TypingIndicator(displayName = otherParticipant!!.displayName)
+                        TypingIndicator(displayName = otherParticipant!!.displayName, settingsViewModel = settingsViewModel)
                     }
                     ChatInput(
                         onSendMessage = { viewModel.onSendMessage(it) },
-                        onAttachmentClick = { /* Coming Soon */ }
+                        onAttachmentClick = { /* Coming Soon */ },
+                        settingsViewModel = settingsViewModel
                     )
                 }
             }
@@ -117,6 +136,7 @@ fun ChatRoomScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .hazeSource(state = hazeState) // Messages blur as they approach the hazeEffect at the top
             ) {
                 when (val state = uiState) {
                     is ChatRoomUiState.Loading -> {
@@ -134,6 +154,7 @@ fun ChatRoomScreen(
                             MessageList(
                                 messages = state.messages,
                                 currentPersonaId = currentPersonaId,
+                                settingsViewModel = settingsViewModel,
                                 activeThemeId = activeThemeId,
                                 onLongPress = { msg, offset ->
                                     contextMenuMessage = msg
@@ -165,6 +186,7 @@ fun ChatRoomScreen(
                 isOwn = message.senderId == currentPersonaId,
                 offset = contextMenuOffset,
                 activeThemeId = activeThemeId,
+                settingsViewModel = settingsViewModel,
                 onDismiss = { contextMenuMessage = null },
                 onReact = { emoji ->
                     viewModel.onReactToMessage(message, emoji)
@@ -301,7 +323,7 @@ fun ChatTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Black.copy(alpha = 0.2f),
+            containerColor = Color.Transparent, // Let the hazeEffect handle background
             titleContentColor = Color.White
         )
     )

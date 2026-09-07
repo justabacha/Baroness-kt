@@ -1,16 +1,16 @@
 package com.baroness.app.viewmodels
 
-import android.content.Context
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.repository.SettingsRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
 
-class SettingsViewModel(context: Context) : ViewModel() {
-    private val appContext = context.applicationContext
+class SettingsViewModel(application: Application) : AndroidViewModel(application) {
+    private val appContext = application.applicationContext
     private val repository = SettingsRepository(appContext)
 
     // Warning State
@@ -157,6 +157,6 @@ class SettingsViewModel(context: Context) : ViewModel() {
 class SettingsViewModelFactory(private val context: android.content.Context) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         @Suppress("UNCHECKED_CAST")
-        return SettingsViewModel(context) as T
+        return SettingsViewModel(context.applicationContext as Application) as T
     }
 }

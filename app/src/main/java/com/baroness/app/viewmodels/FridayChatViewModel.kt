@@ -65,23 +65,22 @@ class FridayChatViewModel(
             delay(800) // Small natural delay before "typing" starts
             _isTyping.value = true
             
-            // Get conversation history for context
-            val history = (uiState.value as? ChatRoomUiState.Success)?.messages?.takeLast(10) ?: emptyList()
+            // Get conversation history for context (Limited to 5 for stability)
+            val history = (uiState.value as? ChatRoomUiState.Success)?.messages?.take(5)?.reversed() ?: emptyList()
             val groqMessages = mutableListOf<GroqMessage>()
             
             // System Prompt
             groqMessages.add(GroqMessage(
                 role = "system",
-                content = "You are FRIDAY, a highly intelligent, witty, and slightly protective AI companion. " +
-                        "Your tone is modern, supportive, and occasionally playful. " +
-                        "Keep responses relatively concise (under 3 sentences) unless asked for more. " +
-                        "You care deeply about the user's wellbeing and growth."
+                content = "You are FRIDAY, a highly intelligent and witty lady. Keep responses concise (under 3 sentences)."
             ))
             
-            // History
+            // History with size safety
             history.forEach { msg ->
                 val role = if (msg.senderId == "friday") "assistant" else "user"
-                groqMessages.add(GroqMessage(role = role, content = msg.content))
+                // Trim message if it's somehow massive to avoid 413
+                val safeContent = if (msg.content.length > 500) msg.content.take(500) + "..." else msg.content
+                groqMessages.add(GroqMessage(role = role, content = safeContent))
             }
             
             Log.d(TAG, "Calling Groq API with ${groqMessages.size} messages in history")
@@ -92,8 +91,14 @@ class FridayChatViewModel(
             _isTyping.value = false
             
             if (response != null) {
-                Log.d(TAG, "Received response from Friday: ${response.take(30)}...")
-                saveFridayMessage(response)
+                // CLEANUP: Remove "Thinking" blocks or reasoning chains
+                val cleanResponse = response
+                    .replace(Regex("<think>.*?</think>", RegexOption.DOT_MATCHES_ALL), "")
+                    .replace(Regex("\\(Thinking:.*?\\)", RegexOption.DOT_MATCHES_ALL), "")
+                    .trim()
+
+                Log.d(TAG, "Received response from Friday: ${cleanResponse.take(30)}...")
+                saveFridayMessage(cleanResponse)
             } else {
                 Log.e(TAG, "Friday response was NULL")
                 saveFridayMessage("Friday is currently resting... please try again in a bit.")

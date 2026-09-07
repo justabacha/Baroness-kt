@@ -15,12 +15,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.ui.theme.rememberChatTypography
 
+import com.baroness.app.viewmodels.SettingsViewModel
+
 @Composable
 fun TypingIndicator(
     displayName: String,
+    settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
-    val typography = rememberChatTypography()
+    val typography = rememberChatTypography(settingsViewModel)
     
     Row(
         modifier = modifier
@@ -99,5 +102,5 @@ private fun Dot(offset: Float) {
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun PreviewTypingIndicator() {
-    TypingIndicator(displayName = "Friday")
+    TypingIndicator(displayName = "Friday", settingsViewModel = null)
 }

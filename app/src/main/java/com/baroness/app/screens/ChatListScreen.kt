@@ -66,8 +66,7 @@ fun ChatListScreen(
     if (isInitialLoading && conversations.isEmpty()) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF0F0F12)),
+                .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator(color = Color.White)
@@ -75,11 +74,10 @@ fun ChatListScreen(
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F12))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0F0F12))
                 .statusBarsPadding()
         ) {
             // Header
@@ -123,7 +121,7 @@ fun ChatListScreen(
                                                 else "phesty"
                             navController.navigate("chat_room/$conversationId")
                         },
-                        chatTypography = chatTypography
+                        settingsViewModel = settingsViewModel
                     )
                 }
             }

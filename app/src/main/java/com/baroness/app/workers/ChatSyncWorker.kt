@@ -89,10 +89,11 @@ class ChatSyncWorker(
     }
 
     private suspend fun syncFridayMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
+        val currentPersonaId = storageManager.getString("currentPersonaId") ?: return false
         val dto = FridayMessageDto(
             id = message.id,
-            ownerId = message.senderId, // For Friday, sender is owner
-            sender = message.senderId,
+            ownerId = currentPersonaId, // User who owns the conversation
+            sender = message.senderId,   // Either user's ID or "friday"
             message = message.content,
             createdAt = formatLongToIso(message.timestamp)
         )

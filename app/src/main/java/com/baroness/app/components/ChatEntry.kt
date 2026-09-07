@@ -27,8 +27,9 @@ import com.baroness.app.ui.theme.rememberChatTypography
 fun ChatEntry(
     conversation: Conversation,
     onClick: () -> Unit,
-    chatTypography: ChatTypography = rememberChatTypography()
+    settingsViewModel: com.baroness.app.viewmodels.SettingsViewModel? = null
 ) {
+    val chatTypography: ChatTypography = rememberChatTypography(settingsViewModel)
     Box(
         modifier = Modifier
             .fillMaxWidth()

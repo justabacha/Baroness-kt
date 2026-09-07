@@ -1,6 +1,7 @@
 package com.baroness.app.components.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -26,6 +28,7 @@ import com.baroness.app.components.PhestyText
 import com.baroness.app.models.Message
 import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.rememberChatTypography
+import com.baroness.app.viewmodels.SettingsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,15 +36,17 @@ import java.util.*
 fun MessageBubble(
     message: Message,
     isOwn: Boolean,
+    settingsViewModel: SettingsViewModel? = null,
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset) -> Unit)? = null
 ) {
-    val typography = rememberChatTypography()
+    val typography = rememberChatTypography(settingsViewModel)
     val haptic = LocalHapticFeedback.current
     var bubblePosition = IntOffset.Zero
 
     val theme = SettingsOptions.themes.find { it.id == activeThemeId } ?: SettingsOptions.LavenderTheme
+    val isFriday = message.senderId == "friday"
 
     val bubbleShape = if (isOwn) {
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
@@ -49,11 +54,14 @@ fun MessageBubble(
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
     }
 
-    val backgroundColor = if (isOwn) {
-        theme.glowColor.copy(alpha = 0.9f)
-    } else {
-        Color.White.copy(alpha = 0.1f)
+    val backgroundColor = when {
+        isOwn -> theme.glowColor.copy(alpha = 0.9f)
+        isFriday -> Color.Black.copy(alpha = 0.25f)
+        else -> Color.White.copy(alpha = 0.1f)
     }
+
+    val shadowColor = if (isOwn) theme.glowColor else if (isFriday) Color.White.copy(alpha = 0.2f) else Color.Transparent
+    val shadowElevation = if (isOwn || isFriday) 8.dp else 0.dp
 
     val horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
 
@@ -70,6 +78,19 @@ fun MessageBubble(
                     val pos = coordinates.positionInRoot()
                     bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
                 }
+                .shadow(
+                    elevation = shadowElevation,
+                    shape = bubbleShape,
+                    ambientColor = shadowColor,
+                    spotColor = shadowColor
+                )
+                .then(
+                    if (!isOwn && !isFriday) Modifier.border(
+                        width = 0.5.dp,
+                        color = Color.White.copy(alpha = 0.15f),
+                        shape = bubbleShape
+                    ) else Modifier
+                )
                 .combinedClickable(
                     onClick = { /* Handle click if needed */ },
                     onLongClick = {
@@ -167,7 +188,8 @@ fun PreviewMessageBubbleOwn() {
             timestamp = System.currentTimeMillis(),
             status = "READ"
         ),
-        isOwn = true
+        isOwn = true,
+        settingsViewModel = null
     )
 }
 
@@ -183,6 +205,7 @@ fun PreviewMessageBubbleOther() {
             timestamp = System.currentTimeMillis(),
             status = "SENT"
         ),
-        isOwn = false
+        isOwn = false,
+        settingsViewModel = null
     )
 }

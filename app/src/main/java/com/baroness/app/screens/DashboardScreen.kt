@@ -46,6 +46,7 @@ import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.components.QuoteCard
 import com.baroness.app.components.FloatingMenu
+import com.baroness.app.components.DynamicBackground
 import com.baroness.app.ui.theme.Colors
 import com.baroness.app.utils.rememberCaptureManager
 import com.baroness.app.viewmodels.DashboardViewModel
@@ -57,16 +58,25 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.isGranted
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.viewmodels.SettingsViewModelFactory
 
 private fun clamp(minVal: Float, value: Float, maxVal: Float): Float = min(maxVal, max(minVal, value))
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
-fun DashboardScreen(navController: NavController) {
+fun DashboardScreen(
+    navController: NavController,
+    settingsViewModel: SettingsViewModel = viewModel(
+        factory = SettingsViewModelFactory(LocalContext.current)
+    )
+) {
     val context = LocalContext.current
     val viewModel: DashboardViewModel = viewModel(
         factory = DashboardViewModelFactory(context.applicationContext as Application)
     )
+    
+    val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsState()
 
     val containerSize = LocalWindowInfo.current.containerSize
     val screenWidth = with(androidx.compose.ui.platform.LocalDensity.current) { containerSize.width.toDp().value }
@@ -137,6 +147,8 @@ fun DashboardScreen(navController: NavController) {
             .fillMaxSize()
             .background(Colors.bg)
     ) {
+        DynamicBackground(activeWallpaperId = activeWallpaperId)
+
         PullToRefreshBox(
             isRefreshing = isRefreshing,
             onRefresh = { viewModel.refresh() },

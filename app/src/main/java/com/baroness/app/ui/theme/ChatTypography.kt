@@ -8,12 +8,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.baroness.app.viewmodels.SettingsViewModel
 
 @Composable
-fun rememberChatTypography(settingsViewModel: SettingsViewModel = viewModel()): ChatTypography {
-    val activeFontId by settingsViewModel.activeFont.collectAsStateWithLifecycle()
+fun rememberChatTypography(settingsViewModel: SettingsViewModel? = null): ChatTypography {
+    val activeFontId = settingsViewModel?.activeFont?.collectAsStateWithLifecycle()?.value ?: "system"
     val (fontFamily, fontWeight) = AppFonts.resolve(activeFontId)
         ?: Pair(FontFamily.Default, FontWeight.Normal)
 
@@ -29,7 +28,7 @@ class ChatTypography(
 ) {
     val title = TextStyle(
         fontFamily = fontFamily,
-        fontWeight = baseWeight, // Uniform weight — hierarchy from size, not weight
+        fontWeight = baseWeight,
         fontSize = 17.sp,
         letterSpacing = (-0.4).sp
     )

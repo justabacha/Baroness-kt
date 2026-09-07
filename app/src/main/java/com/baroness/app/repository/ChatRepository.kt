@@ -175,14 +175,12 @@ class ChatRepository private constructor(context: Context) {
             senderId = actualSenderId,
             content = content,
             timestamp = timestamp,
-            status = if (actualSenderId == "friday") "SENT" else "PENDING"
+            status = "PENDING"
         )
         messageDao.insertMessage(entity)
 
-        // 2. Trigger Sync (Only for user messages, Friday messages are already "remote" in spirit)
-        if (actualSenderId != "friday") {
-            triggerSync()
-        }
+        // 2. Trigger Sync
+        triggerSync()
 
         // 3. Realtime Broadcast (Optional for human chats)
         if (conversationId != "friday") {

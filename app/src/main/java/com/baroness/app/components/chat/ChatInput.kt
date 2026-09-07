@@ -33,15 +33,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.ui.theme.Colors
 import com.baroness.app.ui.theme.rememberChatTypography
+import com.baroness.app.viewmodels.SettingsViewModel
 
 @Composable
 fun ChatInput(
     onSendMessage: (String) -> Unit,
     onAttachmentClick: () -> Unit,
+    settingsViewModel: SettingsViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
-    val typography = rememberChatTypography()
+    val typography = rememberChatTypography(settingsViewModel)
     
     val isSendEnabled = text.isNotBlank()
     val sendButtonColor by animateColorAsState(
@@ -182,5 +184,5 @@ fun ChatInput(
 @Preview(showBackground = true, backgroundColor = 0xFF000000)
 @Composable
 fun PreviewChatInput() {
-    ChatInput(onSendMessage = {}, onAttachmentClick = {})
+    ChatInput(onSendMessage = {}, onAttachmentClick = {}, settingsViewModel = null)
 }

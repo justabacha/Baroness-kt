@@ -48,6 +48,9 @@ import com.baroness.app.screens.ChatRoomScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
+import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.viewmodels.SettingsViewModelFactory
+import com.baroness.app.components.DynamicBackground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -64,7 +67,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             BaronessAppTheme {
                 val notificationViewModel: NotificationViewModel = viewModel()
+                val settingsViewModel: SettingsViewModel = viewModel(
+                    factory = SettingsViewModelFactory(this)
+                )
+                
                 val currentNotification by notificationViewModel.currentNotification.collectAsStateWithLifecycle()
+                val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
                 val navController = rememberNavController()
 
                 val context = androidx.compose.ui.platform.LocalContext.current
@@ -77,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        AppEntryPoint(navController)
+                        AppEntryPoint(navController, settingsViewModel)
 
                         // In-App Notification Overlay
                         currentNotification?.let { data ->
@@ -131,7 +139,10 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppEntryPoint(navController: androidx.navigation.NavHostController) {
+fun AppEntryPoint(
+    navController: androidx.navigation.NavHostController,
+    settingsViewModel: SettingsViewModel
+) {
     var startDestination by remember { mutableStateOf<String?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val sessionManager = SessionManager(context)
@@ -162,12 +173,20 @@ fun AppEntryPoint(navController: androidx.navigation.NavHostController) {
             CircularProgressIndicator()
         }
     } else {
-        AppNavigation(startDestination = startDestination!!, navController = navController)
+        AppNavigation(
+            startDestination = startDestination!!,
+            navController = navController,
+            settingsViewModel = settingsViewModel
+        )
     }
 }
 
 @Composable
-fun AppNavigation(startDestination: String, navController: androidx.navigation.NavHostController) {
+fun AppNavigation(
+    startDestination: String,
+    navController: androidx.navigation.NavHostController,
+    settingsViewModel: SettingsViewModel
+) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("gate") {
             GateScreen(navController)
@@ -183,43 +202,23 @@ fun AppNavigation(startDestination: String, navController: androidx.navigation.N
             ProfileSetupScreen(navController, personaId)
         }
         composable("chat_list") {
-            ChatListScreen(navController)
+            ChatListScreen(navController, settingsViewModel = settingsViewModel)
         }
         composable(
             "chat_room/{conversationId}",
             arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("conversationId") ?: ""
-            ChatRoomScreen(navController, id)
+            ChatRoomScreen(navController, id, settingsViewModel = settingsViewModel)
         }
         composable("Friday") {
-            ChatRoomScreen(navController, "friday")
+            ChatRoomScreen(navController, "friday", settingsViewModel = settingsViewModel)
         }
         composable("Photos") {
             PhotosScreen(navController)
         }
         composable("Wishlist") {
             WishlistScreen(navController)
-        }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(navController: NavController, title: String) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = title, style = MaterialTheme.typography.headlineMedium)
-            Button(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.padding(top = 24.dp)
-            ) {
-                Text("Go Back")
-            }
         }
     }
 }

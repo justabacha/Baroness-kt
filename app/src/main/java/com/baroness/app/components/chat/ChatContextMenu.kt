@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.baroness.app.models.Message
 import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.ui.theme.rememberChatTypography
+import com.baroness.app.viewmodels.SettingsViewModel
 
 @Composable
 fun ChatContextMenu(
@@ -42,6 +43,7 @@ fun ChatContextMenu(
     isOwn: Boolean,
     offset: IntOffset,
     activeThemeId: String,
+    settingsViewModel: SettingsViewModel? = null,
     onDismiss: () -> Unit,
     onReact: (String) -> Unit,
     onCopy: () -> Unit,
@@ -49,7 +51,7 @@ fun ChatContextMenu(
     onDelete: () -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
-    val typography = rememberChatTypography()
+    val typography = rememberChatTypography(settingsViewModel)
     
     // Scale animation for the bubble lift
     val scale by animateFloatAsState(
@@ -104,6 +106,7 @@ fun ChatContextMenu(
                     MessageBubble(
                         message = message,
                         isOwn = isOwn,
+                        settingsViewModel = settingsViewModel,
                         activeThemeId = activeThemeId,
                         modifier = Modifier.padding(horizontal = 0.dp) // Reset padding for clone
                     )
@@ -111,6 +114,7 @@ fun ChatContextMenu(
                     // 3. Action Menu
                     ActionMenu(
                         isOwn = isOwn,
+                        settingsViewModel = settingsViewModel,
                         onCopy = onCopy,
                         onEdit = onEdit,
                         onDelete = onDelete,
@@ -166,12 +170,13 @@ private fun TapbackBar(
 @Composable
 private fun ActionMenu(
     isOwn: Boolean,
+    settingsViewModel: SettingsViewModel? = null,
     onCopy: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val typography = rememberChatTypography()
+    val typography = rememberChatTypography(settingsViewModel)
     
     Column(
         modifier = modifier
