@@ -6,6 +6,15 @@ This document outlines the exact file tree and responsibilities for the ChatRoom
 
 ## 1. File Tree (New Files)
 
+### Docs (ChatRoom Specific)
+- `docs/chatroom/chatroom_architecture.md`
+- `docs/chatroom/chatroom_database.md`
+- `docs/chatroom/chatroom_ui_ux.md`
+- `docs/chatroom/chatroom_file_structure.md`
+- `docs/chatroom/chatroom_implementation.md`
+- `docs/chatroom/work-packages/` (Work Package blueprints)
+- `docs/chatroom/reports/` (Execution reports)
+
 ### Screens
 - `app/src/main/java/com/baroness/app/screens/ChatRoomScreen.kt`
 
@@ -41,6 +50,10 @@ This document outlines the exact file tree and responsibilities for the ChatRoom
 ---
 
 ## 2. File Responsibilities
+
+### Docs
+- **`work-packages/`**: Directory for WP blueprints.
+- **`reports/`**: Directory for WP execution reports.
 
 ### Screens
 - **`ChatRoomScreen.kt`**: The main container for the chat UI, observing ViewModel states and handling navigation events.

@@ -43,8 +43,8 @@ import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
 import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.screens.PhotosScreen
-import com.baroness.app.screens.MessagesScreen
 import com.baroness.app.screens.ChatListScreen
+import com.baroness.app.screens.ChatRoomScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
@@ -182,9 +182,6 @@ fun AppNavigation(startDestination: String, navController: androidx.navigation.N
             val personaId = backStackEntry.arguments?.getString("personaId") ?: ""
             ProfileSetupScreen(navController, personaId)
         }
-        composable("Messages") {
-            MessagesScreen(navController)
-        }
         composable("chat_list") {
             ChatListScreen(navController)
         }
@@ -193,10 +190,10 @@ fun AppNavigation(startDestination: String, navController: androidx.navigation.N
             arguments = listOf(navArgument("conversationId") { type = NavType.StringType })
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString("conversationId") ?: ""
-            PlaceholderScreen(navController, "Chat Room: $id")
+            ChatRoomScreen(navController, id)
         }
         composable("Friday") {
-            PlaceholderScreen(navController, "Friday (AI Companion)")
+            ChatRoomScreen(navController, "friday")
         }
         composable("Photos") {
             PhotosScreen(navController)

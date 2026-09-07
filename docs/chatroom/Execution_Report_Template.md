@@ -1,5 +1,7 @@
 # WP-{N}_{NAME}_EXECUTION_REPORT.md
 
+> 📂 **Location**: `docs/chatroom/reports/WP-{N}_{NAME}_EXECUTION_REPORT.md`
+
 ## Execution Report: WP-{N} — {Name}
 
 ### Status

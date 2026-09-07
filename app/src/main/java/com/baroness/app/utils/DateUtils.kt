@@ -42,3 +42,20 @@ fun formatDateLabel(dateStr: String?): String? {
         null
     }
 }
+
+fun formatChatTimestamp(timestamp: Long): String {
+    val now = Calendar.getInstance()
+    val msgTime = Calendar.getInstance().apply { timeInMillis = timestamp }
+
+    return if (now.get(Calendar.YEAR) == msgTime.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) == msgTime.get(Calendar.DAY_OF_YEAR)
+    ) {
+        SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
+    } else if (now.get(Calendar.YEAR) == msgTime.get(Calendar.YEAR) &&
+        now.get(Calendar.DAY_OF_YEAR) - msgTime.get(Calendar.DAY_OF_YEAR) == 1
+    ) {
+        "Yesterday"
+    } else {
+        SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date(timestamp))
+    }
+}

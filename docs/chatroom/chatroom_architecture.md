@@ -17,15 +17,15 @@ This document formalizes the architectural decisions for the Baroness ChatRoom f
 ## 2. Data Persistence (Offline-First)
 - **Source of Truth**: Room (SQLite) database.
 - **UI Layer**: Reads directly from Room using `Flow<List<MessageEntity>>`.
-- **Supabase**: Sync pipe and remote backup store.
+- **Supabase**: Acts as the remote sync store and real-time transport layer. 
 - **Optimistic Updates**: 
     - Messages assigned a temporary UUID locally.
     - Instantly written to Room with status `PENDING`.
     - UI updates immediately via Flow.
-    - Background sync via `ChatSyncWorker` handles the remote push.
+    - Background sync via `ChatSyncWorker` handles the remote push to Supabase.
 
 ## 3. Remote Backup & Restore
-- **Storage**: Supabase Storage bucket.
+- **Storage**: Supabase Storage bucket (`chat_backups`).
 - **Path**: `backups/{persona}_official_backup.json`.
 - **Strategy**: Overwrite-only, triggered on backgrounding (>50 new messages), user request, or weekly fallback.
 - **JSON Structure**:
@@ -48,7 +48,7 @@ Same fields as `MessageEntity` but without Room annotations.
     - `conversationId`: String
     - `senderId`: String
     - `content`: String
-    - `timestamp`: Long (Local creation) - **Immutable**.
+    - `timestamp`: Long (Local creation) - **Immutable** to preserve chronological order.
     - `editedAt`: Long? (Last modified time).
     - `serverTimestamp`: Long? (Synced time)
     - `status`: String (`PENDING`, `SENT`, `DELIVERED`, `READ`, `FAILED`)
@@ -71,7 +71,7 @@ Same fields as `MessageEntity` but without Room annotations.
 - **Integration**: Groq API via dedicated `GroqApiService`.
 - **API Key**: Stored as a `BuildConfig` field for v1.
 - **Flow**: User sends -> Show "Friday is typing..." indicator -> Friday's response generated -> Saved to Room.
-- **Reactions**: Persistent locally in Room (`MessageEntity.reactions`), but flagged to skip Supabase transport/sync. This ensures a consistent UI while minimizing network traffic.
+- **Reactions**: Persistent locally in Room (`MessageEntity.reactions`), but flagged to skip Supabase transport/sync to minimize network traffic.
 - **Receipts**: Single checkmark (`✓`) for Friday responses.
 
 ## 7. UI Components & UX
@@ -80,7 +80,7 @@ Same fields as `MessageEntity` but without Room annotations.
 - **Typing Indicators**: Realtime broadcast for humans; simulated delay for Friday.
 - **Context Menu**: Long-press triggers a blur overlay with a bubble clone.
     - **Actions**: React (Emoji bar), Reply (stub), Copy, Delete, Edit (own only).
-- **Edit Logic**: Editing a message sets status back to `PENDING`, updates `editedAt` (keeps `timestamp` immutable to preserve order), and triggers a re-sync.
+- **Edit Logic**: Editing a message sets status back to `PENDING`, updates `editedAt` (original `timestamp` remains unchanged), and triggers a re-sync.
 - **Attachments**: "Coming soon" placeholder modal via paperclip button.
 
 ---
@@ -122,7 +122,7 @@ Aligned with existing project conventions.
 - `app/src/main/java/com/baroness/app/components/chat/`
     - `MessageList.kt`: The inverted list container.
     - `MessageBubble.kt`: Unified bubble component.
-    - `ChatInput.kt`: Glassmorphic input field (local `inputText` state).
+    - `ChatInput.kt`: Glassmorphic input field.
     - `TypingIndicator.kt`: Animated dots.
     - `ChatContextMenu.kt`: Overlay for long-press actions.
     - `ReactionRow.kt`: Small row for reactions under bubbles.
@@ -134,9 +134,8 @@ Aligned with existing project conventions.
 - `app/src/main/java/com/baroness/app/viewmodels/ChatRoomViewModelFactory.kt`
 
 ### Data & Remote
-- `app/src/main/java/com/baroness/app/data/remote/groq/`
-    - `GroqApiService.kt`: Networking client for AI completions.
-    - `GroqModels.kt`: Request/Response DTOs for Groq.
+- `app/src/main/java/com/baroness/app/data/remote/groq/GroqApiService.kt`
+- `app/src/main/java/com/baroness/app/data/remote/groq/GroqModels.kt`
 
 ### Data & Models (Local)
 - `app/src/main/java/com/baroness/app/models/Message.kt`
@@ -153,7 +152,7 @@ Aligned with existing project conventions.
 - **Typography**: `ChatTypography.kt` and `rememberChatTypography()`.
 - **Fonts**: `PhestyText.kt`.
 - **Themes**: `SettingsViewModel.kt` for `activeTheme` and `activeWallpaper`.
-- **UI Elements**: `EmojiPicker.kt`, `TopWarningBanner.kt`, `WishlistInput.kt` (visual reference).
+- **UI Elements**: `EmojiPicker.kt`, `TopWarningBanner.kt`, `WishlistInput.kt`.
 
 ---
 
@@ -161,7 +160,7 @@ Aligned with existing project conventions.
 
 ### Room Migration
 - **Status**: Adding `MessageEntity` requires a schema update. 
-- **Recommendation**: Use an explicit `Migration(3, 4)` as defined in `chatroom_database.md` to preserve existing production data (Wishlist, etc.).
+- **Recommendation**: Use an explicit `Migration(3, 4)` to preserve existing Wishlist items.
 
 ### Realtime Coordination
 - Use a dedicated Realtime channel for Chat to avoid collision with Wishlist sync logic.

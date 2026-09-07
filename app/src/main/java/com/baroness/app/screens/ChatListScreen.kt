@@ -30,6 +30,7 @@ import com.baroness.app.models.PersonaType
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.ChatListViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.viewmodels.SettingsViewModelFactory
 
 @Composable
 fun ChatListScreen(
@@ -147,12 +148,5 @@ class ChatListViewModelFactory(private val context: android.content.Context) : V
     override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
         @Suppress("UNCHECKED_CAST")
         return ChatListViewModel(context) as T
-    }
-}
-
-class SettingsViewModelFactory(private val context: android.content.Context) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
-        @Suppress("UNCHECKED_CAST")
-        return SettingsViewModel(context) as T
     }
 }

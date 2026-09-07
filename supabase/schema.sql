@@ -1,14 +1,15 @@
 -- Baroness-kt Supabase Schema (Generated via Node Bridge)
 
 
--- Table: access_keys
---   id: text (NOT NULL)
---   secret_key: text (NOT NULL)
---   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+-- Table: backup_log
+--   persona_id: text (NOT NULL)
+--   last_backup_at: timestamp with time zone (NULLABLE, DEFAULT now())
+--   message_count_at_backup: integer (NULLABLE, DEFAULT 0)
 
--- Table: agent_test_table
---   id: integer (NOT NULL, DEFAULT nextval('agent_test_table_id_seq'::regclass))
---   test_value: text (NOT NULL)
+-- Table: chat_sync_pipe
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   recipient_id: text (NOT NULL)
+--   payload: jsonb (NOT NULL)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
 -- Table: friday_memories
@@ -20,11 +21,10 @@
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
 -- Table: friday_messages
---   id: bigint (NOT NULL)
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
 --   owner_id: text (NOT NULL)
 --   sender: text (NOT NULL)
 --   message: text (NOT NULL)
---   message_type: text (NULLABLE, DEFAULT 'text'::text)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
 -- Table: gallery_items
@@ -35,15 +35,15 @@
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
 -- Table: messages
---   id: integer (NOT NULL, DEFAULT nextval('messages_id_seq'::regclass))
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   conversation_id: text (NOT NULL)
 --   sender_id: text (NOT NULL)
 --   receiver_id: text (NOT NULL)
---   message: text (NOT NULL)
---   read_at: timestamp without time zone (NULLABLE)
---   created_at: timestamp without time zone (NULLABLE, DEFAULT now())
---   updated_at: timestamp without time zone (NULLABLE, DEFAULT now())
---   attachment_url: text (NULLABLE)
---   attachment_type: text (NULLABLE)
+--   content: text (NOT NULL)
+--   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+--   read_at: timestamp with time zone (NULLABLE)
+--   is_deleted: boolean (NULLABLE, DEFAULT false)
+--   reactions: jsonb (NULLABLE, DEFAULT '{}'::jsonb)
 
 -- Table: migration_history
 --   id: integer (NOT NULL, DEFAULT nextval('migration_history_id_seq'::regclass))
@@ -57,13 +57,6 @@
 --   updated_at: timestamp with time zone (NULLABLE, DEFAULT now())
 --   avatar_url: text (NULLABLE)
 --   fcm_token: text (NULLABLE)
-
--- Table: reactions
---   id: integer (NOT NULL, DEFAULT nextval('reactions_id_seq'::regclass))
---   message_id: integer (NULLABLE)
---   user_id: text (NOT NULL)
---   reaction: text (NOT NULL)
---   created_at: timestamp without time zone (NULLABLE, DEFAULT now())
 
 -- Table: typing_status
 --   user_id: text (NOT NULL)
@@ -98,7 +91,6 @@
 -- RLS Policies
 -- Policy: Allow public access to profiles on profiles (ALL)
 -- Policy: Enable all for current_user on profiles (ALL)
--- Policy: Allow public to read access keys on access_keys (SELECT)
 -- Policy: Public profiles are viewable by everyone on profiles (SELECT)
 -- Policy: Users can insert or update their own profile on profiles (ALL)
 -- Policy: wishlist_items_select on wishlist_items (SELECT)
@@ -117,17 +109,12 @@
 -- Policy: gallery_items_insert on gallery_items (INSERT)
 -- Policy: gallery_items_update on gallery_items (UPDATE)
 -- Policy: gallery_items_delete on gallery_items (DELETE)
--- Policy: Allow read messages on friday_messages (SELECT)
--- Policy: Allow insert messages on friday_messages (INSERT)
--- Policy: Allow update messages on friday_messages (UPDATE)
--- Policy: Allow delete messages on friday_messages (DELETE)
 -- Policy: Allow read memories on friday_memories (SELECT)
 -- Policy: Allow insert memories on friday_memories (INSERT)
 -- Policy: Allow update memories on friday_memories (UPDATE)
 -- Policy: Allow delete memories on friday_memories (DELETE)
--- Policy: Users can send messages as themselves on messages (INSERT)
--- Policy: Users can see their own conversations on messages (SELECT)
--- Policy: Users can mark messages as read on messages (UPDATE)
--- Policy: Users can delete their own messages on messages (DELETE)
 -- Policy: Allow all operations on typing_status on typing_status (ALL)
--- Policy: Enable all for authenticated users on reactions (ALL)
+-- Policy: Users can access their own messages on messages (ALL)
+-- Policy: Users can access their AI messages on friday_messages (ALL)
+-- Policy: Users can only see their own mailbox on chat_sync_pipe (ALL)
+-- Policy: Users can manage their own backup log on backup_log (ALL)

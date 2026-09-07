@@ -11,7 +11,7 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 - [ ] **MessageDao** — Implement queries for Flow lookups, PENDING sync, and CRUD (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/dao/MessageDao.kt`)
 - [ ] **AppDatabase Update** — Add `MessageEntity`, `MessageDao`, and implement `MIGRATION_3_4` to prevent data loss (Reference: `database.md` Section 1 / `file_structure.md` File: `app/src/main/java/com/baroness/app/data/local/database/AppDatabase.kt`)
 - [ ] **Domain Models** — Create `Message.kt`, `Participant.kt`, and `ChatRoomUiState.kt` (Reference: `architecture.md` Section 4 / `file_structure.md`)
-- [ ] **Supabase DDL** — Execute SQL to create `chat_sync_pipe` and `backup_log` tables (Reference: `database.md` Section 4)
+- [ ] **Supabase Fresh Start** — Legacy tables dropped. Run migration 002 to create new tables and RLS (Reference: `database.md` Section 4)
 
 ### Repository & Sync
 - [ ] **ChatRepository** — Implement local/remote coordination, Realtime broadcast, and `chat_sync_pipe` logic (Reference: `architecture.md` Section 2 / `file_structure.md` File: `app/src/main/java/com/baroness/app/repository/ChatRepository.kt`)
@@ -41,7 +41,7 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 - [ ] **ChatList Entry update** — Connect `ChatListScreen` items to the new route (Reference: `file_structure.md`)
 
 ### Testing & Polish
-- [ ] **Groq AI Flow** — Verify send/reply and simulated delay for Friday via `GroqApiService` (Reference: `architecture.md` Section 6)
+- [ ] **Groq AI Flow** — Verify send/reply and simulated delay for Friday (Reference: `architecture.md` Section 6)
 - [ ] **Obsolete File Removal** — Delete `MessagesScreen.kt` and `PlaceholderScreen` references (Reference: `file_structure.md` Section 4)
 - [ ] **Optimistic Update Verification** — Ensure instant local delivery and background sync (Reference: `architecture.md` Section 2)
 
@@ -49,9 +49,11 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ## 2. WORK PACKAGES
 
+> 💡 **Note**: Each Work Package blueprint is stored at `docs/chatroom/work-packages/WP-{N}_{NAME}.md`.
+
 ### WP-1: Database Foundation
 - **Entry Criteria**: Read `database.md`, `architecture.md` Section 4.
-- **Tasks**: Create `MessageEntity`, `MessageDao`, Update `AppDatabase` with safe migration, execute Supabase DDL.
+- **Tasks**: Create `MessageEntity`, `MessageDao`, Update `AppDatabase` with safe migration, execute Supabase 002.
 - **Exit Criteria**: Room version 4 compiled with `MIGRATION_3_4`; Supabase tables exist.
 - **Complexity**: Small
 - **Files**: `MessageEntity.kt`, `MessageDao.kt`, `AppDatabase.kt`.
@@ -109,6 +111,8 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ## 3. DEPENDENCIES BETWEEN WPs
 
+> 💡 **Note**: Execution reports for each WP are stored at `docs/chatroom/reports/WP-{N}_{NAME}_EXECUTION_REPORT.md`.
+
 - **WP-1** is the hard blocker for **WP-2**.
 - **WP-2** is the hard blocker for **WP-3**.
 - **WP-4** can be developed in parallel with **WP-3** but relies on the Models from **WP-1**.
@@ -120,7 +124,7 @@ This document serves as the master blueprint for executing the ChatRoom feature,
 
 ## 4. RISK FLAGS
 
-- 🚩 **Room Migration**: Ensure `MIGRATION_3_4` is correctly implemented to avoid wiping production data.
+- 🚩 **Room Migration**: Ensure `MIGRATION_3_4` is correctly implemented to avoid wiping production data (Wishlist).
 - 🚩 **Groq API Key**: Currently stored in `BuildConfig`. Ensure it's not committed to public repositories.
 - 🚩 **Supabase Storage**: Requires manual creation of the `chat_backups` bucket before backup logic will work.
 - 🚩 **Realtime Collisions**: Ensure chat channels use a unique naming scheme to avoid interference with Wishlist subscriptions.
