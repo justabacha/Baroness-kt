@@ -22,6 +22,7 @@ fun MessageList(
     hazeState: HazeState? = null,
     activeThemeId: String = "lavender",
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(bottom = 16.dp, top = 8.dp),
     onLongPress: (Message, IntOffset) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -37,7 +38,7 @@ fun MessageList(
         modifier = modifier.fillMaxSize(),
         state = listState,
         reverseLayout = true,
-        contentPadding = PaddingValues(bottom = 16.dp, top = 8.dp)
+        contentPadding = contentPadding
     ) {
         items(
             items = messages,

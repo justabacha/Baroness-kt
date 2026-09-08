@@ -114,24 +114,13 @@ fun ChatRoomScreen(
             containerColor = Color.Transparent,
             topBar = {
                 // Empty topBar to allow unbounded content
-            },
-            bottomBar = {
-                Column {
-                    if (isOtherTyping && otherParticipant != null) {
-                        TypingIndicator(displayName = otherParticipant!!.displayName, settingsViewModel = settingsViewModel)
-                    }
-                    ChatInput(
-                        onSendMessage = { viewModel.onSendMessage(it) },
-                        onAttachmentClick = { /* Coming Soon */ },
-                        settingsViewModel = settingsViewModel
-                    )
-                }
             }
         ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .imePadding() // Resizes content area for keyboard
                     .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
                     .drawWithContent {
                         drawContent()
@@ -167,6 +156,7 @@ fun ChatRoomScreen(
                                 settingsViewModel = settingsViewModel,
                                 hazeState = hazeState,
                                 activeThemeId = activeThemeId,
+                                contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
                                 onLongPress = { msg, offset ->
                                     contextMenuMessage = msg
                                     contextMenuOffset = offset
@@ -179,6 +169,25 @@ fun ChatRoomScreen(
                             Text(text = state.message, color = Color.Red)
                         }
                     }
+                }
+
+                // Floating Dynamic Island (Input Bar)
+                Column(
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                ) {
+                    if (isOtherTyping && otherParticipant != null) {
+                        TypingIndicator(
+                            displayName = otherParticipant!!.displayName,
+                            settingsViewModel = settingsViewModel
+                        )
+                    }
+                    ChatInput(
+                        onSendMessage = { viewModel.onSendMessage(it) },
+                        onAttachmentClick = { /* Coming Soon */ },
+                        settingsViewModel = settingsViewModel,
+                        hazeState = hazeState,
+                        activeThemeId = activeThemeId
+                    )
                 }
             }
         }
