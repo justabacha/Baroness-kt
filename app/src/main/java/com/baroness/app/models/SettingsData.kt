@@ -39,7 +39,7 @@ object SettingsOptions {
         name = "Lavender",
         bgStart = Color(0xFF211D40),
         bgEnd = Color(0xFF2E2A5A),
-        glowColor = Color(0xFFC6ABFF),
+        glowColor = Color(0xABC6ABFF),
         bubbleFridayColor = Color(0x80BDA8FF),
         bubbleUserColor = Color(0x1AFFFFFF),
         label = "💜 Lavender Dream"
@@ -52,9 +52,9 @@ object SettingsOptions {
             name = "Lavender",
             bgStart = Color(0xFF211D40),
             bgEnd = Color(0xFF2E2A5A),
-            glowColor = Color(0xA8C6ABFF),        
+                glowColor = Color(0xABC6ABFF),        
             bubbleFridayColor = Color(0x80BDA8FF),
-            bubbleUserColor = Color(0x1AFFFFFF),
+                bubbleUserColor = Color(0x1AFFFFFF),
             label = "💜 Lavender Dream"
         ),
         AppTheme(
@@ -64,7 +64,7 @@ object SettingsOptions {
             bgEnd = Color(0xFF1A1F2E),
             glowColor = Color(0x8786A0DD),        
             bubbleFridayColor = Color(0x806C81B5),
-            bubbleUserColor = Color(0x1AFFFFFF),
+                bubbleUserColor = Color(0x1AFFFFFF),
             label = "🌙 Moonlight"
         ),
         AppTheme(
@@ -72,9 +72,9 @@ object SettingsOptions {
             name = "Golden",
             bgStart = Color(0xFF2F241B),
             bgEnd = Color(0xFF4A3727),
-            glowColor = Color(0xAAF7CD7E),        
+                glowColor = Color(0xABF7CD7E),        
             bubbleFridayColor = Color(0x80EFC48C),
-            bubbleUserColor = Color(0x1AFFFFFF),
+                bubbleUserColor = Color(0x1AFFFFFF),
             label = "🌅 Golden Hour"
         ),
         AppTheme(
@@ -82,9 +82,9 @@ object SettingsOptions {
             name = "Rose",
             bgStart = Color(0xFF3F1E2E),
             bgEnd = Color(0xFF2F1423),
-            glowColor = Color(0xAAFFB7D0),        
-            bubbleFridayColor = Color(0x80F5ADCA),
-            bubbleUserColor = Color(0x1AFFFFFF),
+                glowColor = Color(0xABFFB7D0),        
+            bubbleFridayColor = Color(0x7AF6A3C4),
+                bubbleUserColor = Color(0x1AFFFFFF),
             label = "🌹 Rose Glass"
         ),
         AppTheme(
@@ -92,9 +92,9 @@ object SettingsOptions {
             name = "Ocean",
             bgStart = Color(0xFF0A2A2F),
             bgEnd = Color(0xFF0A1D28),
-            glowColor = Color(0xAA70D0DD),        
+                glowColor = Color(0xAB70D0DD),        
             bubbleFridayColor = Color(0x8063BFC7),
-            bubbleUserColor = Color(0x1AFFFFFF),
+                bubbleUserColor = Color(0x1AFFFFFF),
             label = "🌊 Deep Ocean"
         )
     )

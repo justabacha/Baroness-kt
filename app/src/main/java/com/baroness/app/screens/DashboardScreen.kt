@@ -67,9 +67,7 @@ private fun clamp(minVal: Float, value: Float, maxVal: Float): Float = min(maxVa
 @Composable
 fun DashboardScreen(
     navController: NavController,
-    settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(LocalContext.current)
-    )
+    settingsViewModel: SettingsViewModel
 ) {
     val context = LocalContext.current
     val viewModel: DashboardViewModel = viewModel(
@@ -147,7 +145,7 @@ fun DashboardScreen(
             .fillMaxSize()
             .background(Colors.bg)
     ) {
-        DynamicBackground(activeWallpaperId = activeWallpaperId)
+        DynamicBackground(activeWallpaperId = activeWallpaperId, dimmed = true)
 
         PullToRefreshBox(
             isRefreshing = isRefreshing,

@@ -76,6 +76,18 @@ class HumanChatViewModel(
         }
     }
 
+    // Temporary Test Hack: Inject message as if from the other person
+    fun onInjectTestMessage(content: String) {
+        viewModelScope.launch {
+            val otherId = when (conversationId) {
+                "baroness" -> "baroness_official"
+                "phesty" -> "phesty_official"
+                else -> conversationId
+            }
+            repository.sendMessage(conversationId, content, senderId = otherId)
+        }
+    }
+
     override fun onDeleteMessage(message: Message) {
         viewModelScope.launch {
             repository.deleteMessage(message.id)

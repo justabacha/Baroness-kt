@@ -7,18 +7,28 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.foundation.border
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.IntOffset
@@ -31,6 +41,7 @@ import coil.compose.AsyncImage
 import com.baroness.app.R
 import com.baroness.app.components.EmojiPicker
 import com.baroness.app.components.TopWarningBanner
+import com.baroness.app.components.DynamicBackground
 import com.baroness.app.components.WallpaperOption
 import com.baroness.app.components.WallpaperSource
 import com.baroness.app.components.chat.*
@@ -46,8 +57,8 @@ import com.baroness.app.viewmodels.SettingsViewModel
 import java.io.File
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.HazeColorEffect
 
 @Composable
 fun ChatRoomScreen(
@@ -63,6 +74,7 @@ fun ChatRoomScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otherParticipant by viewModel.otherParticipant.collectAsStateWithLifecycle()
     val isOtherTyping by viewModel.isTyping.collectAsStateWithLifecycle()
+    val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
     val activeThemeId by settingsViewModel.activeTheme.collectAsStateWithLifecycle()
     
     val storageManager = remember { com.baroness.app.utils.StorageManager(context) }
@@ -83,6 +95,10 @@ fun ChatRoomScreen(
     val isWarningVisible by settingsViewModel.isWarningVisible.collectAsStateWithLifecycle()
     val showWarningIcon by settingsViewModel.showWarningIcon.collectAsStateWithLifecycle()
 
+    val density = LocalDensity.current
+    val fadeHorizonHeight = 115.dp
+    val fadeHorizonPx = with(density) { fadeHorizonHeight.toPx() }
+
     LaunchedEffect(isSubscribed) {
         if (!isSubscribed) {
             settingsViewModel.showWarning("Connecting to live chat...")
@@ -92,32 +108,12 @@ fun ChatRoomScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        DynamicBackground(activeWallpaperId = activeWallpaperId, dimmed = false, hazeState = hazeState)
+
         Scaffold(
             containerColor = Color.Transparent,
             topBar = {
-                Box {
-                    // Dissolve effect at the top
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .hazeEffect(state = hazeState) {
-                                blurEffect {
-                                    blurRadius = 15.dp
-                                }
-                            }
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color.Black.copy(alpha = 0.5f), Color.Transparent)
-                                )
-                            )
-                    )
-                    ChatTopBar(
-                        participant = otherParticipant,
-                        onBack = { navController.popBackStack() },
-                        typography = chatTypography
-                    )
-                }
+                // Empty topBar to allow unbounded content
             },
             bottomBar = {
                 Column {
@@ -136,7 +132,21 @@ fun ChatRoomScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .hazeSource(state = hazeState) // Messages blur as they approach the hazeEffect at the top
+                    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                    .drawWithContent {
+                        drawContent()
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                0.0f to Color.Transparent,
+                                0.60f to Color.Transparent, // Vanish point slightly higher for better duration
+                                0.88f to Color.Black.copy(alpha = 0.4f), // Smooth liquid curve
+                                1.0f to Color.Black,
+                                startY = 0f,
+                                endY = fadeHorizonPx
+                            ),
+                            blendMode = BlendMode.DstIn
+                        )
+                    }
             ) {
                 when (val state = uiState) {
                     is ChatRoomUiState.Loading -> {
@@ -155,6 +165,7 @@ fun ChatRoomScreen(
                                 messages = state.messages,
                                 currentPersonaId = currentPersonaId,
                                 settingsViewModel = settingsViewModel,
+                                hazeState = hazeState,
                                 activeThemeId = activeThemeId,
                                 onLongPress = { msg, offset ->
                                     contextMenuMessage = msg
@@ -219,50 +230,19 @@ fun ChatRoomScreen(
                 contextMenuMessage = null
             }
         )
-    }
-}
 
-@Composable
-fun DynamicBackground(activeWallpaperId: String) {
-    val context = LocalContext.current
-    val wallpaper = remember(activeWallpaperId) {
-        val prebundled = prebundledWallpapers.find { it.id == activeWallpaperId }
-        if (prebundled != null) prebundled else {
-            val userFile = File(context.filesDir, "wallpapers/user_wallpaper.jpg")
-            if (userFile.exists() && activeWallpaperId == "user_wallpaper") {
-                WallpaperOption("user_wallpaper", "Custom", WallpaperSource.USER_GALLERY, filePath = userFile.absolutePath)
-            } else {
-                prebundledWallpapers.first()
+        // Floating Ghost Header (Zero-Surface)
+        ChatTopBar(
+            participant = otherParticipant,
+            onBack = { navController.popBackStack() },
+            typography = chatTypography,
+            modifier = Modifier.statusBarsPadding(),
+            onTestInject = {
+                if (viewModel is com.baroness.app.viewmodels.HumanChatViewModel) {
+                    (viewModel as com.baroness.app.viewmodels.HumanChatViewModel)
+                        .onInjectTestMessage("Crystal Glass check! 💎✨")
+                }
             }
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        val painter = when (wallpaper.source) {
-            WallpaperSource.PREBUNDLED -> painterResource(id = wallpaper.resId!!)
-            WallpaperSource.USER_GALLERY -> {
-                val bitmap = BitmapFactory.decodeFile(wallpaper.filePath!!)
-                if (bitmap != null) BitmapPainter(bitmap.asImageBitmap()) else painterResource(id = R.drawable.image_39)
-            }
-        }
-        Image(
-            painter = painter,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        // Dark Overlay Gradient
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.4f),
-                            Color.Black.copy(alpha = 0.7f)
-                        )
-                    )
-                )
         )
     }
 }
@@ -272,16 +252,30 @@ fun DynamicBackground(activeWallpaperId: String) {
 fun ChatTopBar(
     participant: Participant?,
     onBack: () -> Unit,
-    typography: ChatTypography
+    typography: ChatTypography,
+    modifier: Modifier = Modifier,
+    onTestInject: (() -> Unit)? = null
 ) {
+    // Sharp, crisp text outline shadow for localized contrast
+    val textOutlineShadow = Shadow(
+        color = Color.Black,
+        offset = Offset(1f, 2f),
+        blurRadius = 4f
+    )
+
     TopAppBar(
+        modifier = modifier,
+        windowInsets = WindowInsets(0),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // Avatar with crisp dual-border tracing for separation on any wallpaper
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
+                        .border(1.5.dp, Color.Black.copy(alpha = 0.75f), CircleShape)
+                        .padding(0.5.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.1f))
+                        .border(1.dp, Color.White.copy(alpha = 0.9f), CircleShape)
                 ) {
                     if (participant?.avatarUrl != null) {
                         AsyncImage(
@@ -302,13 +296,13 @@ fun ChatTopBar(
                 Column {
                     Text(
                         text = participant?.displayName ?: "Loading...",
-                        style = typography.title,
+                        style = typography.title.copy(shadow = textOutlineShadow),
                         color = Color.White
                     )
                     Text(
                         text = if (participant?.id == "friday") "Friday AI" else "Online",
-                        style = typography.meta,
-                        color = Color.White.copy(alpha = 0.6f)
+                        style = typography.meta.copy(shadow = textOutlineShadow),
+                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
             }
@@ -322,8 +316,19 @@ fun ChatTopBar(
                 )
             }
         },
+        actions = {
+            if (onTestInject != null) {
+                IconButton(onClick = onTestInject) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Inject Mock Message",
+                        tint = Color.White.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent, // Let the hazeEffect handle background
+            containerColor = Color.Transparent,
             titleContentColor = Color.White
         )
     )

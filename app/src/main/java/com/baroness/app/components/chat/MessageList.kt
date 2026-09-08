@@ -12,12 +12,14 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.baroness.app.models.Message
 import com.baroness.app.viewmodels.SettingsViewModel
+import dev.chrisbanes.haze.HazeState
 
 @Composable
 fun MessageList(
     messages: List<Message>,
     currentPersonaId: String,
     settingsViewModel: SettingsViewModel? = null,
+    hazeState: HazeState? = null,
     activeThemeId: String = "lavender",
     modifier: Modifier = Modifier,
     onLongPress: (Message, IntOffset) -> Unit
@@ -45,6 +47,7 @@ fun MessageList(
                 message = message,
                 isOwn = message.senderId == currentPersonaId,
                 settingsViewModel = settingsViewModel,
+                hazeState = hazeState,
                 activeThemeId = activeThemeId,
                 onLongPress = onLongPress
             )

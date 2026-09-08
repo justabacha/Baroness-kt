@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -29,6 +30,10 @@ import com.baroness.app.models.Message
 import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.SettingsViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.blur.blurEffect
+import dev.chrisbanes.haze.blur.HazeColorEffect
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -38,6 +43,7 @@ fun MessageBubble(
     isOwn: Boolean,
     settingsViewModel: SettingsViewModel? = null,
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
+    hazeState: HazeState? = null,
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset) -> Unit)? = null
 ) {
@@ -54,14 +60,20 @@ fun MessageBubble(
         RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
     }
 
+    // Styles for "Standout" on busy HD wallpaper
     val backgroundColor = when {
         isOwn -> theme.glowColor.copy(alpha = 0.9f)
-        isFriday -> Color.Black.copy(alpha = 0.25f)
-        else -> Color.White.copy(alpha = 0.1f)
+        isFriday -> Color.Black.copy(alpha = 0.3f) // Obsidian Smoke
+        else -> Color.White.copy(alpha = 0.12f) // Crystal Glass
     }
 
-    val shadowColor = if (isOwn) theme.glowColor else if (isFriday) Color.White.copy(alpha = 0.2f) else Color.Transparent
-    val shadowElevation = if (isOwn || isFriday) 8.dp else 0.dp
+    val shadowColor = when {
+        isOwn -> theme.glowColor // Color Glow
+        isFriday -> Color.Black.copy(alpha = 0.4f) // Deep shadow for AI weight
+        else -> Color.Black.copy(alpha = 0.2f) // Fine dark drop shadow for Human
+    }
+    
+    val shadowElevation = if (isFriday) 12.dp else 8.dp
 
     val horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
 
@@ -84,12 +96,29 @@ fun MessageBubble(
                     ambientColor = shadowColor,
                     spotColor = shadowColor
                 )
+                .clip(bubbleShape)
                 .then(
-                    if (!isOwn && !isFriday) Modifier.border(
-                        width = 0.5.dp,
-                        color = Color.White.copy(alpha = 0.15f),
-                        shape = bubbleShape
-                    ) else Modifier
+                    // Apply Haze Local Blur for non-user bubbles (Human/Friday)
+                    if (!isOwn && hazeState != null) {
+                        Modifier.hazeEffect(state = hazeState) {
+                            blurEffect {
+                                blurRadius = if (isFriday) 25.dp else 15.dp
+                                colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
+                            }
+                        }
+                    } else {
+                        Modifier.background(backgroundColor, bubbleShape)
+                    }
+                )
+                .then(
+                    // Crisp white border for Human Other only
+                    if (!isOwn && !isFriday) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = bubbleShape
+                        )
+                    } else Modifier
                 )
                 .combinedClickable(
                     onClick = { /* Handle click if needed */ },
@@ -98,7 +127,6 @@ fun MessageBubble(
                         onLongPress?.invoke(message, bubblePosition)
                     }
                 )
-                .background(backgroundColor, bubbleShape)
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             PhestyText(

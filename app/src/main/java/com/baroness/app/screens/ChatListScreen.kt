@@ -35,11 +35,9 @@ import com.baroness.app.viewmodels.SettingsViewModelFactory
 @Composable
 fun ChatListScreen(
     navController: NavController,
+    settingsViewModel: SettingsViewModel,
     viewModel: ChatListViewModel = viewModel(
         factory = ChatListViewModelFactory(LocalContext.current)
-    ),
-    settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(LocalContext.current)
     )
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()

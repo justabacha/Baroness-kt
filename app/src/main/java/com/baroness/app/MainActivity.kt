@@ -50,7 +50,6 @@ import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
 import com.baroness.app.viewmodels.SettingsViewModelFactory
-import com.baroness.app.components.DynamicBackground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -72,7 +71,6 @@ class MainActivity : ComponentActivity() {
                 )
                 
                 val currentNotification by notificationViewModel.currentNotification.collectAsStateWithLifecycle()
-                val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
                 val navController = rememberNavController()
 
                 val context = androidx.compose.ui.platform.LocalContext.current
@@ -192,7 +190,7 @@ fun AppNavigation(
             GateScreen(navController)
         }
         composable("dashboard") {
-            DashboardScreen(navController)
+            DashboardScreen(navController, settingsViewModel = settingsViewModel)
         }
         composable(
             "profile_setup/{personaId}",

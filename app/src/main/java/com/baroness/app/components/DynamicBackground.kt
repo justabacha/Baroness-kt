@@ -16,6 +16,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import com.baroness.app.R
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import java.io.File
 
 enum class WallpaperSource { PREBUNDLED, USER_GALLERY }
@@ -40,7 +42,7 @@ val prebundledWallpapers = listOf(
 )
 
 @Composable
-fun DynamicBackground(activeWallpaperId: String) {
+fun DynamicBackground(activeWallpaperId: String, dimmed: Boolean = true, hazeState: HazeState? = null) {
     val context = LocalContext.current
     val wallpaper = remember(activeWallpaperId) {
         val prebundled = prebundledWallpapers.find { it.id == activeWallpaperId }
@@ -66,20 +68,25 @@ fun DynamicBackground(activeWallpaperId: String) {
             painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-        // Dark Overlay Gradient
-        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.4f),
-                            Color.Black.copy(alpha = 0.7f)
+                .then(if (hazeState != null) Modifier.hazeSource(state = hazeState) else Modifier)
+        )
+
+        // Conditional Dark Overlay Gradient
+        if (dimmed) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.4f),
+                                Color.Black.copy(alpha = 0.7f)
+                            )
                         )
                     )
-                )
-        )
+            )
+        }
     }
 }

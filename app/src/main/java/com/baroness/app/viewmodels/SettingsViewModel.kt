@@ -25,23 +25,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     // THEME
     val activeTheme: StateFlow<String> = repository.getThemeFlow()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "lavender")
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialTheme())
     
-    private val _previewTheme = MutableStateFlow("lavender")
+    private val _previewTheme = MutableStateFlow(repository.getInitialTheme())
     val previewTheme: StateFlow<String> = _previewTheme.asStateFlow()
 
     // FONT
     val activeFont: StateFlow<String> = repository.getFontFlow()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, DEFAULT_FONT)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialFont())
     
-    private val _previewFont = MutableStateFlow(DEFAULT_FONT)
+    private val _previewFont = MutableStateFlow(repository.getInitialFont())
     val previewFont: StateFlow<String> = _previewFont.asStateFlow()
 
     // WALLPAPER
     val activeWallpaper: StateFlow<String> = repository.getWallpaperFlow()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, "sunrise")
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialWallpaper())
     
-    private val _previewWallpaper = MutableStateFlow("sunrise")
+    private val _previewWallpaper = MutableStateFlow(repository.getInitialWallpaper())
     val previewWallpaper: StateFlow<String> = _previewWallpaper.asStateFlow()
 
     init {
