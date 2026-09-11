@@ -324,7 +324,7 @@ fun ChatTextWithMetaLayout(
         val metaWidth = metaPlaceable.width
         val metaHeight = metaPlaceable.height
 
-        val spacing = with(density) { 64.dp.roundToPx() } // The "Naturally Long" gap
+        val spacing = with(density) { 32.dp.roundToPx() } // The "Naturally Long" gap (Reduced from 64)
         val fitsOnSameLine = (textWidth + metaWidth + spacing) <= constraints.maxWidth
 
         val totalWidth: Int
