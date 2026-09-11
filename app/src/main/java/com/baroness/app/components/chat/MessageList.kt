@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.baroness.app.models.Message
+import com.baroness.app.models.Participant
 import com.baroness.app.viewmodels.SettingsViewModel
 import dev.chrisbanes.haze.HazeState
 
@@ -18,6 +19,7 @@ import dev.chrisbanes.haze.HazeState
 fun MessageList(
     messages: List<Message>,
     currentPersonaId: String,
+    otherParticipant: Participant? = null,
     settingsViewModel: SettingsViewModel? = null,
     hazeState: HazeState? = null,
     activeThemeId: String = "lavender",
@@ -47,6 +49,7 @@ fun MessageList(
             MessageBubble(
                 message = message,
                 isOwn = message.senderId == currentPersonaId,
+                participant = otherParticipant,
                 settingsViewModel = settingsViewModel,
                 hazeState = hazeState,
                 activeThemeId = activeThemeId,

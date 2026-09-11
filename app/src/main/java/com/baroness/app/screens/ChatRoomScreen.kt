@@ -153,6 +153,7 @@ fun ChatRoomScreen(
                             MessageList(
                                 messages = state.messages,
                                 currentPersonaId = currentPersonaId,
+                                otherParticipant = otherParticipant,
                                 settingsViewModel = settingsViewModel,
                                 hazeState = hazeState,
                                 activeThemeId = activeThemeId,

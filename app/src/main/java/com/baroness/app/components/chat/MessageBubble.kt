@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Done
@@ -11,22 +13,33 @@ import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.baroness.app.components.PhestyText
 import com.baroness.app.models.Message
+import com.baroness.app.models.Participant
 import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.SettingsViewModel
@@ -34,13 +47,16 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import androidx.compose.ui.layout.ContentScale
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.max
 
 @Composable
 fun MessageBubble(
     message: Message,
     isOwn: Boolean,
+    participant: Participant? = null,
     settingsViewModel: SettingsViewModel? = null,
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
     hazeState: HazeState? = null,
@@ -48,16 +64,75 @@ fun MessageBubble(
     onLongPress: ((Message, IntOffset) -> Unit)? = null
 ) {
     val typography = rememberChatTypography(settingsViewModel)
+    val bubbleTextStyle = typography.body.copy(
+        fontSize = 15.sp,
+        lineHeight = 18.sp,
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both
+        )
+    )
+    val metaTextStyle = typography.meta.copy(
+        fontSize = 11.sp,
+        lineHeight = 11.sp,
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both
+        )
+    )
     val haptic = LocalHapticFeedback.current
     var bubblePosition = IntOffset.Zero
+
+    // Master Style for Metadata (Independent System font for functional clarity)
+    val masterMetaStyle = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+        fontSize = 10.sp,
+        lineHeight = 10.sp,
+        color = Color.White.copy(alpha = 0.7f),
+        lineHeightStyle = LineHeightStyle(
+            alignment = LineHeightStyle.Alignment.Center,
+            trim = LineHeightStyle.Trim.Both
+        )
+    )
 
     val theme = SettingsOptions.themes.find { it.id == activeThemeId } ?: SettingsOptions.LavenderTheme
     val isFriday = message.senderId == "friday"
 
-    val bubbleShape = if (isOwn) {
-        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 4.dp)
-    } else {
-        RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 4.dp, bottomEnd = 20.dp)
+    val density = LocalDensity.current
+    val bubbleShape: Shape = remember(isOwn, density) {
+        val r = with(density) { 20.dp.toPx() }
+        val tw = with(density) { 16.dp.toPx() } // Longer Tail Extension
+        val th = with(density) { 14.dp.toPx() } // Proportional Bend Height
+
+        GenericShape { size, _ ->
+            val w = size.width
+            val h = size.height
+            if (isOwn) {
+                // Own: Symmetric Rounded Rect (20dp all round)
+                moveTo(r, 0f)
+                lineTo(w - r, 0f)
+                arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
+                lineTo(w, h - r)
+                arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
+                lineTo(r, h)
+                arcTo(Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
+                lineTo(0f, r)
+                arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
+            } else {
+                // Other: Beak at bottom-left pointing into avatar
+                moveTo(r + tw, 0f)
+                lineTo(w - r, 0f)
+                arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
+                lineTo(w, h - r)
+                arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
+                lineTo(0f, h) // The Beak Point (Extended bottom line)
+                quadraticTo(tw, h, tw, h - th) // The Bend meeting the vertical wall
+                lineTo(tw, r)
+                arcTo(Rect(tw, 0f, tw + 2 * r, 2 * r), 180f, 90f, false)
+            }
+            close()
+        }
     }
 
     // Styles for "Standout" on busy HD wallpaper
@@ -72,10 +147,12 @@ fun MessageBubble(
         isFriday -> Color.Black.copy(alpha = 0.4f) // Deep shadow for AI weight
         else -> Color.Black.copy(alpha = 0.2f) // Fine dark drop shadow for Human
     }
-    
+
     val shadowElevation = if (isFriday) 12.dp else 8.dp
 
     val horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
+
+    val horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
 
     Column(
         modifier = modifier
@@ -83,78 +160,236 @@ fun MessageBubble(
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalAlignment = horizontalAlignment
     ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .onGloballyPositioned { coordinates ->
-                    val pos = coordinates.positionInRoot()
-                    bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
-                }
-                .shadow(
-                    elevation = shadowElevation,
-                    shape = bubbleShape,
-                    ambientColor = shadowColor,
-                    spotColor = shadowColor
-                )
-                .clip(bubbleShape)
-                .then(
-                    // Apply Haze Local Blur for non-user bubbles (Human/Friday)
-                    if (!isOwn && hazeState != null) {
-                        Modifier.hazeEffect(state = hazeState) {
-                            blurEffect {
-                                blurRadius = if (isFriday) 25.dp else 15.dp
-                                colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = horizontalArrangement
+        ) {
+            if (!isOwn) {
+                Box(contentAlignment = Alignment.BottomStart) {
+                    // 1. The Bubble Column (Drawn first)
+                    Column(
+                        modifier = Modifier
+                            .padding(start = 20.dp) // Offset to align wall (at x=16dp) with avatar edge (at x=36dp)
+                            .widthIn(max = 280.dp)
+                            .onGloballyPositioned { coordinates ->
+                                val pos = coordinates.positionInRoot()
+                                bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                            }
+                            .shadow(
+                                elevation = shadowElevation,
+                                shape = bubbleShape,
+                                ambientColor = shadowColor,
+                                spotColor = shadowColor
+                            )
+                            .clip(bubbleShape)
+                            .then(
+                                if (hazeState != null) {
+                                    Modifier.hazeEffect(state = hazeState) {
+                                        blurEffect {
+                                            blurRadius = if (isFriday) 25.dp else 15.dp
+                                            colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
+                                        }
+                                    }
+                                } else {
+                                    Modifier.background(backgroundColor, bubbleShape)
+                                }
+                            )
+                            .then(
+                                if (!isFriday) {
+                                    Modifier.border(
+                                        width = 1.dp,
+                                        color = Color.White.copy(alpha = 0.2f),
+                                        shape = bubbleShape
+                                    )
+                                } else Modifier
+                            )
+                            .combinedClickable(
+                                onClick = { /* Handle click */ },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongPress?.invoke(message, bubblePosition)
+                                }
+                            )
+                            .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
+                    ) {
+                        Column {
+                            PhestyText(
+                                text = message.content,
+                                style = bubbleTextStyle,
+                                color = Color.White,
+                                fontSize = 15.sp
+                            )
+                            // Shrunken Independent Column with Horizontal Anchor
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier
+                                    .align(Alignment.End)
+                                    .padding(start = 48.dp) // Forces the bubble to be "naturally long"
+                                    .width(IntrinsicSize.Min)
+                            ) {
+                                Text(
+                                    text = formatTime(message.timestamp),
+                                    style = masterMetaStyle
+                                )
                             }
                         }
-                    } else {
-                        Modifier.background(backgroundColor, bubbleShape)
                     }
-                )
-                .then(
-                    // Crisp white border for Human Other only
-                    if (!isOwn && !isFriday) {
-                        Modifier.border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.2f),
-                            shape = bubbleShape
-                        )
-                    } else Modifier
-                )
-                .combinedClickable(
-                    onClick = { /* Handle click if needed */ },
-                    onLongClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onLongPress?.invoke(message, bubblePosition)
+
+                    // 2. The Avatar (Drawn second to sit on top of the tail)
+                    AvatarIsland(
+                        participant = participant,
+                        isFriday = isFriday
+                    )
+                }
+            } else {
+                // Own Message Layout (Symmetric)
+                Column(horizontalAlignment = Alignment.End) {
+                    Column(
+                        modifier = Modifier
+                            .widthIn(max = 280.dp)
+                            .onGloballyPositioned { coordinates ->
+                                val pos = coordinates.positionInRoot()
+                                bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                            }
+                            .shadow(
+                                elevation = shadowElevation,
+                                shape = bubbleShape,
+                                ambientColor = shadowColor,
+                                spotColor = shadowColor
+                            )
+                            .clip(bubbleShape)
+                            .background(backgroundColor, bubbleShape)
+                            .combinedClickable(
+                                onClick = { /* Handle click */ },
+                                onLongClick = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongPress?.invoke(message, bubblePosition)
+                                }
+                            )
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Column {
+                            PhestyText(
+                                text = message.content,
+                                style = bubbleTextStyle,
+                                color = Color.White,
+                                fontSize = 15.sp
+                            )
+                            // Shrunken Independent Column with Horizontal Anchor
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier
+                                    .align(Alignment.End)
+                                    .padding(start = 48.dp) // Forces the bubble to be "naturally long"
+                                    .width(IntrinsicSize.Min)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = formatTime(message.timestamp),
+                                        style = masterMetaStyle
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    StatusIndicator(status = message.status)
+                                }
+                            }
+                        }
                     }
-                )
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-        ) {
-            PhestyText(
-                text = message.content,
-                style = typography.body,
-                color = Color.White
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Row(
-                modifier = Modifier.align(Alignment.End),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = formatTime(message.timestamp),
-                    style = typography.meta,
-                    fontSize = 10.sp
-                )
-                
-                if (isOwn) {
-                    Spacer(modifier = Modifier.width(4.dp))
-                    StatusIndicator(status = message.status)
                 }
             }
         }
-        
-        ReactionRow(reactionsJson = message.reactions)
+
+        // Reactions outside the avatar-bubble box for proper alignment
+        Column(
+            modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp),
+            horizontalAlignment = horizontalAlignment
+        ) {
+            ReactionRow(reactionsJson = message.reactions)
+        }
+    }
+}
+
+@Composable
+fun ChatTextWithMetaLayout(
+    text: @Composable () -> Unit,
+    meta: @Composable () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    Layout(
+        content = {
+            text()
+            meta()
+        },
+        modifier = modifier
+    ) { measurables, constraints ->
+        val textPlaceable = measurables[0].measure(constraints)
+        val metaPlaceable = measurables[1].measure(constraints)
+
+        val textWidth = textPlaceable.width
+        val textHeight = textPlaceable.height
+        val metaWidth = metaPlaceable.width
+        val metaHeight = metaPlaceable.height
+
+        val spacing = with(density) { 8.dp.roundToPx() }
+        val fitsOnSameLine = (textWidth + metaWidth + spacing) <= constraints.maxWidth
+
+        val totalWidth: Int
+        val totalHeight: Int
+
+        if (fitsOnSameLine) {
+            totalWidth = max(textWidth + metaWidth + spacing, constraints.minWidth)
+            totalHeight = textHeight
+        } else {
+            totalWidth = max(textWidth, metaWidth)
+            totalHeight = textHeight + metaHeight
+        }
+
+        layout(totalWidth, totalHeight) {
+            textPlaceable.placeRelative(0, 0)
+
+            if (fitsOnSameLine) {
+                val x = totalWidth - metaWidth
+                val y = textHeight - metaHeight - with(density) { 1.dp.roundToPx() }
+                metaPlaceable.placeRelative(x, y)
+            } else {
+                val x = totalWidth - metaWidth
+                val y = textHeight
+                metaPlaceable.placeRelative(x, y)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AvatarIsland(
+    participant: Participant?,
+    isFriday: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val borderColor = if (isFriday) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.2f)
+    val borderWidth = if (isFriday) 1.5.dp else 1.dp
+
+    Box(
+        modifier = modifier
+            .size(36.dp) // Increased size to match standard header dimensions (36dp)
+            .border(borderWidth, borderColor, CircleShape)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.1f))
+    ) {
+        if (participant?.avatarUrl != null) {
+            AsyncImage(
+                model = participant.avatarUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else if (isFriday) {
+            AsyncImage(
+                model = "https://img.icons8.com/fluency/48/artificial-intelligence.png",
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
