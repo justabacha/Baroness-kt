@@ -72,14 +72,6 @@ fun MessageBubble(
             trim = LineHeightStyle.Trim.Both
         )
     )
-    val metaTextStyle = typography.meta.copy(
-        fontSize = 11.sp,
-        lineHeight = 11.sp,
-        lineHeightStyle = LineHeightStyle(
-            alignment = LineHeightStyle.Alignment.Center,
-            trim = LineHeightStyle.Trim.Both
-        )
-    )
     val haptic = LocalHapticFeedback.current
     var bubblePosition = IntOffset.Zero
 
@@ -212,27 +204,28 @@ fun MessageBubble(
                             )
                             .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
                     ) {
-                        Column {
-                            PhestyText(
-                                text = message.content,
-                                style = bubbleTextStyle,
-                                color = Color.White,
-                                fontSize = 15.sp
-                            )
-                            // Shrunken Independent Column with Horizontal Anchor
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                modifier = Modifier
-                                    .align(Alignment.End)
-                                    .padding(start = 48.dp) // Forces the bubble to be "naturally long"
-                                    .width(IntrinsicSize.Min)
-                            ) {
-                                Text(
-                                    text = formatTime(message.timestamp),
-                                    style = masterMetaStyle
+                        ChatTextWithMetaLayout(
+                            text = {
+                                PhestyText(
+                                    text = message.content,
+                                    style = bubbleTextStyle,
+                                    color = Color.White,
+                                    fontSize = 15.sp
                                 )
+                            },
+                            meta = {
+                                // Shrunken Independent Column
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    modifier = Modifier.width(IntrinsicSize.Min)
+                                ) {
+                                    Text(
+                                        text = formatTime(message.timestamp),
+                                        style = masterMetaStyle
+                                    )
+                                }
                             }
-                        }
+                        )
                     }
 
                     // 2. The Avatar (Drawn second to sit on top of the tail)
@@ -268,31 +261,32 @@ fun MessageBubble(
                             )
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) {
-                        Column {
-                            PhestyText(
-                                text = message.content,
-                                style = bubbleTextStyle,
-                                color = Color.White,
-                                fontSize = 15.sp
-                            )
-                            // Shrunken Independent Column with Horizontal Anchor
-                            Column(
-                                horizontalAlignment = Alignment.End,
-                                modifier = Modifier
-                                    .align(Alignment.End)
-                                    .padding(start = 48.dp) // Forces the bubble to be "naturally long"
-                                    .width(IntrinsicSize.Min)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = formatTime(message.timestamp),
-                                        style = masterMetaStyle
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    StatusIndicator(status = message.status)
+                        ChatTextWithMetaLayout(
+                            text = {
+                                PhestyText(
+                                    text = message.content,
+                                    style = bubbleTextStyle,
+                                    color = Color.White,
+                                    fontSize = 15.sp
+                                )
+                            },
+                            meta = {
+                                // Shrunken Independent Column (Master of its own style)
+                                Column(
+                                    horizontalAlignment = Alignment.End,
+                                    modifier = Modifier.width(IntrinsicSize.Min)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = formatTime(message.timestamp),
+                                            style = masterMetaStyle
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        StatusIndicator(status = message.status)
+                                    }
                                 }
                             }
-                        }
+                        )
                     }
                 }
             }
@@ -330,32 +324,27 @@ fun ChatTextWithMetaLayout(
         val metaWidth = metaPlaceable.width
         val metaHeight = metaPlaceable.height
 
-        val spacing = with(density) { 8.dp.roundToPx() }
+        val spacing = with(density) { 64.dp.roundToPx() } // The "Naturally Long" gap
         val fitsOnSameLine = (textWidth + metaWidth + spacing) <= constraints.maxWidth
 
         val totalWidth: Int
         val totalHeight: Int
 
         if (fitsOnSameLine) {
-            totalWidth = max(textWidth + metaWidth + spacing, constraints.minWidth)
-            totalHeight = textHeight
+            totalWidth = max(textWidth + spacing + metaWidth, constraints.minWidth)
+            totalHeight = textHeight + with(density) { 6.dp.roundToPx() } // Drop Room
         } else {
             totalWidth = max(textWidth, metaWidth)
-            totalHeight = textHeight + metaHeight
+            totalHeight = textHeight + metaHeight - with(density) { 2.dp.roundToPx() } // Tucked Below
         }
 
         layout(totalWidth, totalHeight) {
             textPlaceable.placeRelative(0, 0)
 
-            if (fitsOnSameLine) {
-                val x = totalWidth - metaWidth
-                val y = textHeight - metaHeight - with(density) { 1.dp.roundToPx() }
-                metaPlaceable.placeRelative(x, y)
-            } else {
-                val x = totalWidth - metaWidth
-                val y = textHeight
-                metaPlaceable.placeRelative(x, y)
-            }
+            // The "Pendant Drop": Top of meta sits level with bottom of text
+            val x = totalWidth - metaWidth
+            val y = textHeight - with(density) { 2.dp.roundToPx() }
+            metaPlaceable.placeRelative(x, y)
         }
     }
 }
