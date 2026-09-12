@@ -57,6 +57,7 @@ import com.baroness.app.viewmodels.SettingsViewModel
 import java.io.File
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 
@@ -85,6 +86,7 @@ fun ChatRoomScreen(
     val chatTypography = rememberChatTypography(settingsViewModel)
     val clipboardManager = LocalClipboardManager.current
     val hazeState = remember { HazeState() }
+    val overlayHazeState = remember { HazeState() }
     
     var contextMenuMessage by remember { mutableStateOf<Message?>(null) }
     var contextMenuOffset by remember { mutableStateOf(IntOffset.Zero) }
@@ -108,89 +110,114 @@ fun ChatRoomScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        DynamicBackground(activeWallpaperId = activeWallpaperId, dimmed = false, hazeState = hazeState)
+        // FULL CANVAS CAPTURE: Everything inside this Box blurs when context menu opens
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeSource(state = overlayHazeState) 
+        ) {
+            DynamicBackground(
+                activeWallpaperId = activeWallpaperId,
+                dimmed = false,
+                hazeState = hazeState
+            )
 
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                // Empty topBar to allow unbounded content
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .imePadding() // Resizes content area for keyboard
-                    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                    .drawWithContent {
-                        drawContent()
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                0.0f to Color.Transparent,
-                                0.60f to Color.Transparent, // Vanish point slightly higher for better duration
-                                0.88f to Color.Black.copy(alpha = 0.4f), // Smooth liquid curve
-                                1.0f to Color.Black,
-                                startY = 0f,
-                                endY = fadeHorizonPx
-                            ),
-                            blendMode = BlendMode.DstIn
-                        )
-                    }
-            ) {
-                when (val state = uiState) {
-                    is ChatRoomUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color.White)
-                        }
-                    }
-                    is ChatRoomUiState.Success -> {
-                        if (state.messages.isEmpty()) {
-                            EmptyChatState(
-                                participantName = otherParticipant?.displayName ?: "someone",
-                                typography = chatTypography
-                            )
-                        } else {
-                            MessageList(
-                                messages = state.messages,
-                                currentPersonaId = currentPersonaId,
-                                otherParticipant = otherParticipant,
-                                settingsViewModel = settingsViewModel,
-                                hazeState = hazeState,
-                                activeThemeId = activeThemeId,
-                                contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
-                                onLongPress = { msg, offset ->
-                                    contextMenuMessage = msg
-                                    contextMenuOffset = offset
-                                }
-                            )
-                        }
-                    }
-                    is ChatRoomUiState.Error -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = state.message, color = Color.Red)
-                        }
-                    }
+            Scaffold(
+                containerColor = Color.Transparent,
+                topBar = {
+                    // Empty topBar to allow unbounded content
                 }
-
-                // Floating Dynamic Island (Input Bar)
-                Column(
-                    modifier = Modifier.align(Alignment.BottomCenter)
+            ) { paddingValues ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .imePadding() // Resizes content area for keyboard
+                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                        .drawWithContent {
+                            drawContent()
+                            drawRect(
+                                brush = Brush.verticalGradient(
+                                    0.0f to Color.Transparent,
+                                    0.60f to Color.Transparent, // Vanish point slightly higher for better duration
+                                    0.88f to Color.Black.copy(alpha = 0.4f), // Smooth liquid curve
+                                    1.0f to Color.Black,
+                                    startY = 0f,
+                                    endY = fadeHorizonPx
+                                ),
+                                blendMode = BlendMode.DstIn
+                            )
+                        }
                 ) {
-                    if (isOtherTyping && otherParticipant != null) {
-                        TypingIndicator(
-                            displayName = otherParticipant!!.displayName,
-                            settingsViewModel = settingsViewModel
+                    when (val state = uiState) {
+                        is ChatRoomUiState.Loading -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        }
+                        is ChatRoomUiState.Success -> {
+                            if (state.messages.isEmpty()) {
+                                EmptyChatState(
+                                    participantName = otherParticipant?.displayName ?: "someone",
+                                    typography = chatTypography
+                                )
+                            } else {
+                                MessageList(
+                                    messages = state.messages,
+                                    currentPersonaId = currentPersonaId,
+                                    otherParticipant = otherParticipant,
+                                    settingsViewModel = settingsViewModel,
+                                    hazeState = hazeState,
+                                    activeThemeId = activeThemeId,
+                                    contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
+                                    onLongPress = { msg, offset ->
+                                        contextMenuMessage = msg
+                                        contextMenuOffset = offset
+                                    }
+                                )
+                            }
+                        }
+                        is ChatRoomUiState.Error -> {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(text = state.message, color = Color.Red)
+                            }
+                        }
+                    }
+
+                    // Floating Dynamic Island (Input Bar)
+                    Column(
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    ) {
+                        if (isOtherTyping && otherParticipant != null) {
+                            TypingIndicator(
+                                displayName = otherParticipant!!.displayName,
+                                settingsViewModel = settingsViewModel
+                            )
+                        }
+                        ChatInput(
+                            onSendMessage = { viewModel.onSendMessage(it) },
+                            onAttachmentClick = { /* Coming Soon */ },
+                            settingsViewModel = settingsViewModel,
+                            hazeState = hazeState,
+                            activeThemeId = activeThemeId
                         )
                     }
-                    ChatInput(
-                        onSendMessage = { viewModel.onSendMessage(it) },
-                        onAttachmentClick = { /* Coming Soon */ },
-                        settingsViewModel = settingsViewModel,
-                        hazeState = hazeState,
-                        activeThemeId = activeThemeId
-                    )
                 }
             }
+
+            // Floating Ghost Header (Zero-Surface)
+            ChatTopBar(
+                participant = otherParticipant,
+                onBack = { navController.popBackStack() },
+                typography = chatTypography,
+                modifier = Modifier.statusBarsPadding(),
+                onTestInject = {
+                    if (viewModel is com.baroness.app.viewmodels.HumanChatViewModel) {
+                        (viewModel as com.baroness.app.viewmodels.HumanChatViewModel)
+                            .onInjectTestMessage("Crystal Glass check! 💎✨")
+                    }
+                }
+            )
         }
 
         TopWarningBanner(
@@ -208,6 +235,7 @@ fun ChatRoomScreen(
                 offset = contextMenuOffset,
                 activeThemeId = activeThemeId,
                 settingsViewModel = settingsViewModel,
+                hazeState = overlayHazeState,
                 onDismiss = { contextMenuMessage = null },
                 onReact = { emoji ->
                     viewModel.onReactToMessage(message, emoji)
@@ -238,20 +266,6 @@ fun ChatRoomScreen(
                 contextMenuMessage?.let { viewModel.onReactToMessage(it, emoji) }
                 showEmojiPicker = false
                 contextMenuMessage = null
-            }
-        )
-
-        // Floating Ghost Header (Zero-Surface)
-        ChatTopBar(
-            participant = otherParticipant,
-            onBack = { navController.popBackStack() },
-            typography = chatTypography,
-            modifier = Modifier.statusBarsPadding(),
-            onTestInject = {
-                if (viewModel is com.baroness.app.viewmodels.HumanChatViewModel) {
-                    (viewModel as com.baroness.app.viewmodels.HumanChatViewModel)
-                        .onInjectTestMessage("Crystal Glass check! 💎✨")
-                }
             }
         )
     }
