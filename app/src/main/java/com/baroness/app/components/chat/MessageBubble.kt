@@ -60,6 +60,7 @@ fun MessageBubble(
     settingsViewModel: SettingsViewModel? = null,
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
     hazeState: HazeState? = null,
+    isFocusedMode: Boolean = false,
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset) -> Unit)? = null
 ) {
@@ -146,158 +147,231 @@ fun MessageBubble(
 
     val horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalAlignment = horizontalAlignment
-    ) {
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = horizontalArrangement
-        ) {
-            if (!isOwn) {
-                Box(contentAlignment = Alignment.BottomStart) {
-                    // 1. The Bubble Column (Drawn first)
-                    Column(
-                        modifier = Modifier
-                            .padding(start = 20.dp) // Offset to align wall (at x=16dp) with avatar edge (at x=36dp)
-                            .widthIn(max = 280.dp)
-                            .onGloballyPositioned { coordinates ->
-                                val pos = coordinates.positionInRoot()
-                                bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
-                            }
-                            .shadow(
-                                elevation = shadowElevation,
-                                shape = bubbleShape,
-                                ambientColor = shadowColor,
-                                spotColor = shadowColor
+    if (isFocusedMode) {
+        // Naked Bubble for Context Menu Focus (MATCHING EXACT PADDING OF LIST VERSION)
+        Box(contentAlignment = Alignment.BottomStart) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 280.dp)
+                    .shadow(
+                        elevation = shadowElevation,
+                        shape = bubbleShape,
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
+                    .clip(bubbleShape)
+                    .background(backgroundColor, bubbleShape)
+                    .then(
+                        if (!isFriday) {
+                            Modifier.border(
+                                width = 1.dp,
+                                color = Color.White.copy(alpha = 0.2f),
+                                shape = bubbleShape
                             )
-                            .clip(bubbleShape)
-                            .then(
-                                if (hazeState != null) {
-                                    Modifier.hazeEffect(state = hazeState) {
-                                        blurEffect {
-                                            blurRadius = if (isFriday) 25.dp else 15.dp
-                                            colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
-                                        }
-                                    }
-                                } else {
-                                    Modifier.background(backgroundColor, bubbleShape)
-                                }
-                            )
-                            .then(
-                                if (!isFriday) {
-                                    Modifier.border(
-                                        width = 1.dp,
-                                        color = Color.White.copy(alpha = 0.2f),
-                                        shape = bubbleShape
-                                    )
-                                } else Modifier
-                            )
-                            .combinedClickable(
-                                onClick = { /* Handle click */ },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onLongPress?.invoke(message, bubblePosition)
-                                }
-                            )
-                            .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
-                    ) {
-                        ChatTextWithMetaLayout(
-                            text = {
-                                PhestyText(
-                                    text = message.content,
-                                    style = bubbleTextStyle,
-                                    color = Color.White,
-                                    fontSize = 15.sp
-                                )
-                            },
-                            meta = {
-                                // Shrunken Independent Column
-                                Column(
-                                    horizontalAlignment = Alignment.End,
-                                    modifier = Modifier.width(IntrinsicSize.Min)
-                                ) {
+                        } else Modifier
+                    )
+                    .padding(
+                        start = if (isOwn) 12.dp else 28.dp, 
+                        end = 12.dp, 
+                        top = 6.dp, 
+                        bottom = 6.dp
+                    )
+            ) {
+                ChatTextWithMetaLayout(
+                    text = {
+                        PhestyText(
+                            text = message.content,
+                            style = bubbleTextStyle,
+                            color = Color.White,
+                            fontSize = 15.sp
+                        )
+                    },
+                    meta = {
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier.width(IntrinsicSize.Min)
+                        ) {
+                            if (isOwn) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = formatTime(message.timestamp),
                                         style = masterMetaStyle
                                     )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    StatusIndicator(status = message.status)
                                 }
-                            }
-                        )
-                    }
-
-                    // 2. The Avatar (Drawn second to sit on top of the tail)
-                    AvatarIsland(
-                        participant = participant,
-                        isFriday = isFriday
-                    )
-                }
-            } else {
-                // Own Message Layout (Symmetric)
-                Column(horizontalAlignment = Alignment.End) {
-                    Column(
-                        modifier = Modifier
-                            .widthIn(max = 280.dp)
-                            .onGloballyPositioned { coordinates ->
-                                val pos = coordinates.positionInRoot()
-                                bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
-                            }
-                            .shadow(
-                                elevation = shadowElevation,
-                                shape = bubbleShape,
-                                ambientColor = shadowColor,
-                                spotColor = shadowColor
-                            )
-                            .clip(bubbleShape)
-                            .background(backgroundColor, bubbleShape)
-                            .combinedClickable(
-                                onClick = { /* Handle click */ },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onLongPress?.invoke(message, bubblePosition)
-                                }
-                            )
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        ChatTextWithMetaLayout(
-                            text = {
-                                PhestyText(
-                                    text = message.content,
-                                    style = bubbleTextStyle,
-                                    color = Color.White,
-                                    fontSize = 15.sp
+                            } else {
+                                Text(
+                                    text = formatTime(message.timestamp),
+                                    style = masterMetaStyle
                                 )
-                            },
-                            meta = {
-                                // Shrunken Independent Column (Master of its own style)
-                                Column(
-                                    horizontalAlignment = Alignment.End,
-                                    modifier = Modifier.width(IntrinsicSize.Min)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                            }
+                        }
+                    }
+                )
+            }
+            if (!isOwn) {
+                AvatarIsland(
+                    participant = participant,
+                    isFriday = isFriday,
+                    modifier = Modifier.offset(x = (-20).dp)
+                )
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalAlignment = horizontalAlignment
+        ) {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = horizontalArrangement
+            ) {
+                if (!isOwn) {
+                    Box(contentAlignment = Alignment.BottomStart) {
+                        // 1. The Bubble Column (Drawn first)
+                        Column(
+                            modifier = Modifier
+                                .padding(start = 20.dp) // Offset to align wall (at x=16dp) with avatar edge (at x=36dp)
+                                .widthIn(max = 280.dp)
+                                .onGloballyPositioned { coordinates ->
+                                    val pos = coordinates.positionInRoot()
+                                    bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                                }
+                                .shadow(
+                                    elevation = shadowElevation,
+                                    shape = bubbleShape,
+                                    ambientColor = shadowColor,
+                                    spotColor = shadowColor
+                                )
+                                .clip(bubbleShape)
+                                .then(
+                                    if (hazeState != null) {
+                                        Modifier.hazeEffect(state = hazeState) {
+                                            blurEffect {
+                                                blurRadius = if (isFriday) 25.dp else 15.dp
+                                                colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
+                                            }
+                                        }
+                                    } else {
+                                        Modifier.background(backgroundColor, bubbleShape)
+                                    }
+                                )
+                                .then(
+                                    if (!isFriday) {
+                                        Modifier.border(
+                                            width = 1.dp,
+                                            color = Color.White.copy(alpha = 0.2f),
+                                            shape = bubbleShape
+                                        )
+                                    } else Modifier
+                                )
+                                .combinedClickable(
+                                    onClick = { /* Handle click */ },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onLongPress?.invoke(message, bubblePosition)
+                                    }
+                                )
+                                .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
+                        ) {
+                            ChatTextWithMetaLayout(
+                                text = {
+                                    PhestyText(
+                                        text = message.content,
+                                        style = bubbleTextStyle,
+                                        color = Color.White,
+                                        fontSize = 15.sp
+                                    )
+                                },
+                                meta = {
+                                    // Shrunken Independent Column
+                                    Column(
+                                        horizontalAlignment = Alignment.End,
+                                        modifier = Modifier.width(IntrinsicSize.Min)
+                                    ) {
                                         Text(
                                             text = formatTime(message.timestamp),
                                             style = masterMetaStyle
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        StatusIndicator(status = message.status)
                                     }
                                 }
-                            }
+                            )
+                        }
+
+                        // 2. The Avatar (Drawn second to sit on top of the tail)
+                        AvatarIsland(
+                            participant = participant,
+                            isFriday = isFriday
                         )
+                    }
+                } else {
+                    // Own Message Layout (Symmetric)
+                    Column(horizontalAlignment = Alignment.End) {
+                        Column(
+                            modifier = Modifier
+                                .widthIn(max = 280.dp)
+                                .onGloballyPositioned { coordinates ->
+                                    val pos = coordinates.positionInRoot()
+                                    bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                                }
+                                .shadow(
+                                    elevation = shadowElevation,
+                                    shape = bubbleShape,
+                                    ambientColor = shadowColor,
+                                    spotColor = shadowColor
+                                )
+                                .clip(bubbleShape)
+                                .background(backgroundColor, bubbleShape)
+                                .combinedClickable(
+                                    onClick = { /* Handle click */ },
+                                    onLongClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onLongPress?.invoke(message, bubblePosition)
+                                    }
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            ChatTextWithMetaLayout(
+                                text = {
+                                    PhestyText(
+                                        text = message.content,
+                                        style = bubbleTextStyle,
+                                        color = Color.White,
+                                        fontSize = 15.sp
+                                    )
+                                },
+                                meta = {
+                                    // Shrunken Independent Column (Master of its own style)
+                                    Column(
+                                        horizontalAlignment = Alignment.End,
+                                        modifier = Modifier.width(IntrinsicSize.Min)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = formatTime(message.timestamp),
+                                                style = masterMetaStyle
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            StatusIndicator(status = message.status)
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Reactions outside the avatar-bubble box for proper alignment
-        Column(
-            modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp),
-            horizontalAlignment = horizontalAlignment
-        ) {
-            ReactionRow(reactionsJson = message.reactions)
+            // Reactions outside the avatar-bubble box for proper alignment
+            Column(
+                modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp),
+                horizontalAlignment = horizontalAlignment
+            ) {
+                ReactionRow(reactionsJson = message.reactions)
+            }
         }
     }
 }
@@ -372,9 +446,10 @@ private fun AvatarIsland(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        } else if (isFriday) {
+        } else {
+            val fallbackUrl = if (isFriday) "https://img.icons8.com/fluency/48/artificial-intelligence.png" else "https://img.icons8.com/fluency/48/user-male-circle.png"
             AsyncImage(
-                model = "https://img.icons8.com/fluency/48/artificial-intelligence.png",
+                model = fallbackUrl,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize()
             )

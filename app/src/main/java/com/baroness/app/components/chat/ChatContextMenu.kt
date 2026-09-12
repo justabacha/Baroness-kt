@@ -12,13 +12,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Reply
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Translate
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -30,11 +30,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.models.Message
+import com.baroness.app.models.Participant
 import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.ui.theme.rememberChatTypography
@@ -50,6 +55,7 @@ fun ChatContextMenu(
     isOwn: Boolean,
     offset: IntOffset,
     activeThemeId: String,
+    participant: Participant? = null,
     settingsViewModel: SettingsViewModel? = null,
     hazeState: HazeState? = null,
     onDismiss: () -> Unit,
@@ -59,8 +65,6 @@ fun ChatContextMenu(
     onDelete: () -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
-    val typography = rememberChatTypography(settingsViewModel)
-    
     var isLaunched by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isLaunched = true }
 
@@ -69,6 +73,10 @@ fun ChatContextMenu(
         animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
         label = "scale"
     )
+
+    // Hidden container until the Tapback height is measured to prevent jumping
+    var isMeasured by remember { mutableStateOf(false) }
+    var tapbackHeight by remember { mutableIntStateOf(0) }
 
     Box(
         modifier = Modifier
@@ -87,54 +95,63 @@ fun ChatContextMenu(
                     if (hazeState != null) {
                         Modifier.hazeEffect(state = hazeState) {
                             blurEffect {
-                                blurRadius = 10.dp // Deeper iMessage blur
-                                colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.45f))) // Darker dimming
+                                blurRadius = 15.dp 
+                                colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.45f))) 
                             }
                         }
                     } else {
-                        Modifier.background(Color.Black.copy(alpha = 0.2f))
+                        Modifier.background(Color.Black.copy(alpha = 0.4f))
                     }
                 )
         )
 
-        // Layer 2: The Focused Content (Sits above the blur, 100% sharp)
-        Box(
+        // Layer 2: The Focused Content (Stable absolute Column)
+        Column(
             modifier = Modifier
-                .offset { offset }
-                .widthIn(max = 300.dp)
-                .scale(scale)
+                .graphicsLayer {
+                    // One-frame hide to wait for height measurement
+                    alpha = if (isMeasured) 1f else 0f
+                    scaleX = scale
+                    scaleY = scale
+                    // Position at root coordinates
+                    translationX = offset.x.toFloat()
+                    translationY = (offset.y - tapbackHeight - 8.dp.value.toInt()).toFloat()
+                },
+            horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // 1. Tapback Bar (above message)
-                TapbackBar(
-                    onReact = onReact,
-                    onShowEmojiPicker = onShowEmojiPicker,
-                    hazeState = hazeState
-                )
+            // 1. Tapback Bar
+            TapbackBar(
+                onReact = onReact,
+                onShowEmojiPicker = onShowEmojiPicker,
+                hazeState = hazeState,
+                modifier = Modifier.onGloballyPositioned { 
+                    tapbackHeight = it.size.height 
+                    isMeasured = true
+                }
+            )
 
-                // 2. The Selected Sharp Bubble
-                MessageBubble(
-                    message = message,
-                    isOwn = isOwn,
-                    settingsViewModel = settingsViewModel,
-                    activeThemeId = activeThemeId,
-                    hazeState = null, // KEEP THIS NULL TO PREVENT BLURRING THE FOCUSED MESSAGE
-                    modifier = Modifier.padding(horizontal = 0.dp)
-                )
+            // 2. Focused Sharp Bubble
+            MessageBubble(
+                message = message,
+                isOwn = isOwn,
+                participant = participant,
+                settingsViewModel = settingsViewModel,
+                activeThemeId = activeThemeId,
+                hazeState = null, // Sharp focus
+                isFocusedMode = true,
+                modifier = Modifier.padding(horizontal = 0.dp)
+            )
 
-                // 3. Action Menu (below message)
-                ActionMenu(
-                    isOwn = isOwn,
-                    settingsViewModel = settingsViewModel,
-                    hazeState = hazeState,
-                    onCopy = onCopy,
-                    onEdit = onEdit,
-                    onDelete = onDelete
-                )
-            }
+            // 3. Action Menu
+            ActionMenu(
+                isOwn = isOwn,
+                settingsViewModel = settingsViewModel,
+                hazeState = hazeState,
+                onCopy = onCopy,
+                onEdit = onEdit,
+                onDelete = onDelete
+            )
         }
     }
 }
@@ -201,8 +218,6 @@ private fun ActionMenu(
     onCopy: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onAddSticker: () -> Unit = {},
-    onTranslate: () -> Unit = {},
     onMore: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -228,7 +243,7 @@ private fun ActionMenu(
                 }
             )
     ) {
-        ActionItem(text = "Reply", icon = Icons.Default.Reply, onClick = {}, typography = typography)
+        ActionItem(text = "Reply", icon = Icons.AutoMirrored.Filled.Reply, onClick = {}, typography = typography)
         HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
         ActionItem(text = "Copy", icon = Icons.Default.ContentCopy, onClick = onCopy, typography = typography)
         HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
