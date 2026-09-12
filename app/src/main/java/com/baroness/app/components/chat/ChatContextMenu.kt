@@ -131,11 +131,11 @@ fun ChatContextMenu(
                 }
             )
 
-            // 2. Focused Sharp Bubble
+            // 2. Focused Sharp Bubble (NO AVATAR)
             MessageBubble(
                 message = message,
                 isOwn = isOwn,
-                participant = participant,
+                participant = null,
                 settingsViewModel = settingsViewModel,
                 activeThemeId = activeThemeId,
                 hazeState = null, // Sharp focus

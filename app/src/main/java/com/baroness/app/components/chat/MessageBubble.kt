@@ -148,75 +148,66 @@ fun MessageBubble(
     val horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
 
     if (isFocusedMode) {
-        // Naked Bubble for Context Menu Focus (MATCHING EXACT PADDING OF LIST VERSION)
-        Box(contentAlignment = Alignment.BottomStart) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .shadow(
-                        elevation = shadowElevation,
-                        shape = bubbleShape,
-                        ambientColor = shadowColor,
-                        spotColor = shadowColor
-                    )
-                    .clip(bubbleShape)
-                    .background(backgroundColor, bubbleShape)
-                    .then(
-                        if (!isFriday) {
-                            Modifier.border(
-                                width = 1.dp,
-                                color = Color.White.copy(alpha = 0.2f),
-                                shape = bubbleShape
-                            )
-                        } else Modifier
-                    )
-                    .padding(
-                        start = if (isOwn) 12.dp else 28.dp, 
-                        end = 12.dp, 
-                        top = 6.dp, 
-                        bottom = 6.dp
-                    )
-            ) {
-                ChatTextWithMetaLayout(
-                    text = {
-                        PhestyText(
-                            text = message.content,
-                            style = bubbleTextStyle,
-                            color = Color.White,
-                            fontSize = 15.sp
+        // Naked Bubble for Context Menu Focus (NO AVATAR, PERFECT MARGINS)
+        Column(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .shadow(
+                    elevation = shadowElevation,
+                    shape = bubbleShape,
+                    ambientColor = shadowColor,
+                    spotColor = shadowColor
+                )
+                .clip(bubbleShape)
+                .background(backgroundColor, bubbleShape)
+                .then(
+                    if (!isFriday) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = Color.White.copy(alpha = 0.2f),
+                            shape = bubbleShape
                         )
-                    },
-                    meta = {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            modifier = Modifier.width(IntrinsicSize.Min)
-                        ) {
-                            if (isOwn) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = formatTime(message.timestamp),
-                                        style = masterMetaStyle
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    StatusIndicator(status = message.status)
-                                }
-                            } else {
+                    } else Modifier
+                )
+                .padding(
+                    start = if (isOwn) 12.dp else 28.dp, 
+                    end = 12.dp, 
+                    top = 6.dp, 
+                    bottom = 6.dp
+                )
+        ) {
+            ChatTextWithMetaLayout(
+                text = {
+                    PhestyText(
+                        text = message.content,
+                        style = bubbleTextStyle,
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                },
+                meta = {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        modifier = Modifier.width(IntrinsicSize.Min)
+                    ) {
+                        if (isOwn) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = formatTime(message.timestamp),
                                     style = masterMetaStyle
                                 )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                StatusIndicator(status = message.status)
                             }
+                        } else {
+                            Text(
+                                text = formatTime(message.timestamp),
+                                style = masterMetaStyle
+                            )
                         }
                     }
-                )
-            }
-            if (!isOwn) {
-                AvatarIsland(
-                    participant = participant,
-                    isFriday = isFriday,
-                    modifier = Modifier.offset(x = (-20).dp)
-                )
-            }
+                }
+            )
         }
     } else {
         Column(
