@@ -1,19 +1,17 @@
 package com.baroness.app.components.chat
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,9 +47,13 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.DoneAll
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 fun MessageBubble(
@@ -75,8 +77,9 @@ fun MessageBubble(
         )
     )
     val haptic = LocalHapticFeedback.current
-    var bubblePosition = IntOffset.Zero
-    var bubbleSize = IntSize.Zero
+    var bubblePosition by remember { mutableStateOf(IntOffset.Zero) }
+    var bubbleSize by remember { mutableStateOf(IntSize.Zero) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     // Master Style for Metadata (Independent System font for functional clarity)
     val masterMetaStyle = TextStyle(
@@ -95,16 +98,15 @@ fun MessageBubble(
     val isFriday = message.senderId == "friday"
 
     val density = LocalDensity.current
-    val bubbleShape: Shape = remember(isOwn, density) {
-        val r = with(density) { 20.dp.toPx() }
-        val tw = with(density) { 16.dp.toPx() } // Longer Tail Extension
-        val th = with(density) { 14.dp.toPx() } // Proportional Bend Height
-
+    val bubbleShape: Shape = remember(isOwn) {
         GenericShape { size, _ ->
-            val w = size.width
             val h = size.height
+            val w = size.width
+            val r = min(with(density) { 20.dp.toPx() }, h / 2f)
+            val tw = with(density) { 16.dp.toPx() } 
+            val th = with(density) { 14.dp.toPx() } 
+
             if (isOwn) {
-                // Own: Symmetric Rounded Rect (20dp all round)
                 moveTo(r, 0f)
                 lineTo(w - r, 0f)
                 arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
@@ -115,14 +117,13 @@ fun MessageBubble(
                 lineTo(0f, r)
                 arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
             } else {
-                // Other: Beak at bottom-left pointing into avatar
                 moveTo(r + tw, 0f)
                 lineTo(w - r, 0f)
                 arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
                 lineTo(w, h - r)
                 arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
-                lineTo(0f, h) // The Beak Point (Extended bottom line)
-                quadraticTo(tw, h, tw, h - th) // The Bend meeting the vertical wall
+                lineTo(0f, h) 
+                quadraticTo(tw, h, tw, h - th)
                 lineTo(tw, r)
                 arcTo(Rect(tw, 0f, tw + 2 * r, 2 * r), 180f, 90f, false)
             }
@@ -130,86 +131,75 @@ fun MessageBubble(
         }
     }
 
-    // Styles for "Standout" on busy HD wallpaper
     val backgroundColor = when {
         isOwn -> theme.glowColor.copy(alpha = 0.9f)
-        isFriday -> Color.Black.copy(alpha = 0.3f) // Obsidian Smoke
-        else -> Color.White.copy(alpha = 0.12f) // Crystal Glass
+        isFriday -> Color.Black.copy(alpha = 0.3f)
+        else -> Color.White.copy(alpha = 0.12f)
     }
 
     val shadowColor = when {
-        isOwn -> theme.glowColor // Color Glow
-        isFriday -> Color.Black.copy(alpha = 0.4f) // Deep shadow for AI weight
-        else -> Color.Black.copy(alpha = 0.2f) // Fine dark drop shadow for Human
+        isOwn -> theme.glowColor
+        isFriday -> Color.Black.copy(alpha = 0.4f)
+        else -> Color.Black.copy(alpha = 0.2f)
     }
 
     val shadowElevation = if (isFriday) 12.dp else 8.dp
-
     val horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
-
     val horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
 
-    if (isFocusedMode) {
-        // Naked Bubble for Context Menu Focus (NO AVATAR, PERFECT MARGINS)
-        Column(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .shadow(
-                    elevation = shadowElevation,
-                    shape = bubbleShape,
-                    ambientColor = shadowColor,
-                    spotColor = shadowColor
-                )
-                .clip(bubbleShape)
-                .background(backgroundColor, bubbleShape)
-                .then(
-                    if (!isFriday) {
-                        Modifier.border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.2f),
-                            shape = bubbleShape
-                        )
-                    } else Modifier
-                )
-                .padding(
-                    start = if (isOwn) 12.dp else 28.dp, 
-                    end = 12.dp, 
-                    top = 6.dp, 
-                    bottom = 6.dp
-                )
-        ) {
-            ChatTextWithMetaLayout(
-                text = {
+    // Shared content block to ensure 1:1 twin fidelity between list and focus
+    val bubbleContent = @Composable {
+        ChatTextWithMetaLayout(
+            text = {
+                Column {
                     PhestyText(
                         text = message.content,
                         style = bubbleTextStyle,
                         color = Color.White,
-                        fontSize = 15.sp
+                        fontSize = 15.sp,
+                        maxLines = if (isExpanded) Int.MAX_VALUE else 10
                     )
-                },
-                meta = {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        modifier = Modifier.width(IntrinsicSize.Min)
-                    ) {
-                        if (isOwn) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = formatTime(message.timestamp),
-                                    style = masterMetaStyle
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                StatusIndicator(status = message.status)
-                            }
-                        } else {
-                            Text(
-                                text = formatTime(message.timestamp),
-                                style = masterMetaStyle
-                            )
-                        }
+                    if (message.content.lines().size > 10 || message.content.length > 500) {
+                        Text(
+                            text = if (isExpanded) "Read less" else "... Read more",
+                            style = masterMetaStyle.copy(color = Color.White.copy(alpha = 0.9f), fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .clickable { isExpanded = !isExpanded }
+                                .padding(top = 4.dp)
+                        )
                     }
                 }
-            )
+            },
+            meta = {
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Min)) {
+                    if (isOwn) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = formatTime(message.timestamp), style = masterMetaStyle)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            StatusIndicator(status = message.status)
+                        }
+                    } else {
+                        Text(text = formatTime(message.timestamp), style = masterMetaStyle)
+                    }
+                }
+            }
+        )
+    }
+
+    if (isFocusedMode) {
+        Box(contentAlignment = Alignment.BottomStart) {
+            Column(
+                modifier = Modifier
+                    .animateContentSize()
+                    .widthIn(max = 280.dp)
+                    .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
+                    .clip(bubbleShape)
+                    .background(backgroundColor, bubbleShape)
+                    .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
+                    .padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
+            ) {
+                bubbleContent()
+            }
         }
     } else {
         Column(
@@ -224,22 +214,17 @@ fun MessageBubble(
             ) {
                 if (!isOwn) {
                     Box(contentAlignment = Alignment.BottomStart) {
-                        // 1. The Bubble Column (Drawn first)
                         Column(
                             modifier = Modifier
-                                .padding(start = 20.dp) // Offset to align wall (at x=16dp) with avatar edge (at x=36dp)
+                                .animateContentSize()
+                                .padding(start = 20.dp)
                                 .widthIn(max = 280.dp)
                                 .onGloballyPositioned { coordinates ->
                                     val pos = coordinates.positionInRoot()
                                     bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
                                     bubbleSize = coordinates.size
                                 }
-                                .shadow(
-                                    elevation = shadowElevation,
-                                    shape = bubbleShape,
-                                    ambientColor = shadowColor,
-                                    spotColor = shadowColor
-                                )
+                                .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
                                 .clip(bubbleShape)
                                 .then(
                                     if (hazeState != null) {
@@ -249,21 +234,11 @@ fun MessageBubble(
                                                 colorEffects = listOf(HazeColorEffect.tint(backgroundColor))
                                             }
                                         }
-                                    } else {
-                                        Modifier.background(backgroundColor, bubbleShape)
-                                    }
+                                    } else Modifier.background(backgroundColor, bubbleShape)
                                 )
-                                .then(
-                                    if (!isFriday) {
-                                        Modifier.border(
-                                            width = 1.dp,
-                                            color = Color.White.copy(alpha = 0.2f),
-                                            shape = bubbleShape
-                                        )
-                                    } else Modifier
-                                )
+                                .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
                                 .combinedClickable(
-                                    onClick = { /* Handle click */ },
+                                    onClick = { },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onLongPress?.invoke(message, bubblePosition, bubbleSize)
@@ -271,57 +246,26 @@ fun MessageBubble(
                                 )
                                 .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
                         ) {
-                            ChatTextWithMetaLayout(
-                                text = {
-                                    PhestyText(
-                                        text = message.content,
-                                        style = bubbleTextStyle,
-                                        color = Color.White,
-                                        fontSize = 15.sp
-                                    )
-                                },
-                                meta = {
-                                    // Shrunken Independent Column
-                                    Column(
-                                        horizontalAlignment = Alignment.End,
-                                        modifier = Modifier.width(IntrinsicSize.Min)
-                                    ) {
-                                        Text(
-                                            text = formatTime(message.timestamp),
-                                            style = masterMetaStyle
-                                        )
-                                    }
-                                }
-                            )
+                            bubbleContent()
                         }
-
-                        // 2. The Avatar (Drawn second to sit on top of the tail)
-                        AvatarIsland(
-                            participant = participant,
-                            isFriday = isFriday
-                        )
+                        AvatarIsland(participant = participant, isFriday = isFriday)
                     }
                 } else {
-                    // Own Message Layout (Symmetric)
                     Column(horizontalAlignment = Alignment.End) {
                         Column(
                             modifier = Modifier
+                                .animateContentSize()
                                 .widthIn(max = 280.dp)
                                 .onGloballyPositioned { coordinates ->
                                     val pos = coordinates.positionInRoot()
                                     bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
                                     bubbleSize = coordinates.size
                                 }
-                                .shadow(
-                                    elevation = shadowElevation,
-                                    shape = bubbleShape,
-                                    ambientColor = shadowColor,
-                                    spotColor = shadowColor
-                                )
+                                .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
                                 .clip(bubbleShape)
                                 .background(backgroundColor, bubbleShape)
                                 .combinedClickable(
-                                    onClick = { /* Handle click */ },
+                                    onClick = { },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                         onLongPress?.invoke(message, bubblePosition, bubbleSize)
@@ -329,44 +273,12 @@ fun MessageBubble(
                                 )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            ChatTextWithMetaLayout(
-                                text = {
-                                    PhestyText(
-                                        text = message.content,
-                                        style = bubbleTextStyle,
-                                        color = Color.White,
-                                        fontSize = 15.sp
-                                    )
-                                },
-                                meta = {
-                                    // Shrunken Independent Column (Master of its own style)
-                                    Column(
-                                        horizontalAlignment = Alignment.End,
-                                        modifier = Modifier.width(IntrinsicSize.Min)
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = formatTime(message.timestamp),
-                                                style = masterMetaStyle
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            StatusIndicator(status = message.status)
-                                        }
-                                    }
-                                }
-                            )
+                            bubbleContent()
                         }
                     }
                 }
             }
-
-            // Reactions outside the avatar-bubble box for proper alignment
-            Column(
-                modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp),
-                horizontalAlignment = horizontalAlignment
-            ) {
-                ReactionRow(reactionsJson = message.reactions)
-            }
+            ReactionRow(reactionsJson = message.reactions, modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp))
         }
     }
 }
@@ -393,7 +305,7 @@ fun ChatTextWithMetaLayout(
         val metaWidth = metaPlaceable.width
         val metaHeight = metaPlaceable.height
 
-        val spacing = with(density) { 32.dp.roundToPx() } // The "Naturally Long" gap (Reduced from 64)
+        val spacing = with(density) { 32.dp.roundToPx() }
         val fitsOnSameLine = (textWidth + metaWidth + spacing) <= constraints.maxWidth
 
         val totalWidth: Int
@@ -401,16 +313,14 @@ fun ChatTextWithMetaLayout(
 
         if (fitsOnSameLine) {
             totalWidth = max(textWidth + spacing + metaWidth, constraints.minWidth)
-            totalHeight = textHeight + with(density) { 6.dp.roundToPx() } // Drop Room
+            totalHeight = textHeight + with(density) { 6.dp.roundToPx() }
         } else {
             totalWidth = max(textWidth, metaWidth)
-            totalHeight = textHeight + metaHeight - with(density) { 2.dp.roundToPx() } // Tucked Below
+            totalHeight = textHeight + metaHeight - with(density) { 2.dp.roundToPx() }
         }
 
         layout(totalWidth, totalHeight) {
             textPlaceable.placeRelative(0, 0)
-
-            // The "Pendant Drop": Top of meta sits level with bottom of text
             val x = totalWidth - metaWidth
             val y = textHeight - with(density) { 2.dp.roundToPx() }
             metaPlaceable.placeRelative(x, y)
@@ -429,7 +339,7 @@ private fun AvatarIsland(
 
     Box(
         modifier = modifier
-            .size(36.dp) // Increased size to match standard header dimensions (36dp)
+            .size(36.dp)
             .border(borderWidth, borderColor, CircleShape)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.1f))
@@ -454,42 +364,13 @@ private fun AvatarIsland(
 
 @Composable
 private fun StatusIndicator(status: String) {
+    val iconSize = 12.dp
     when (status) {
-        "PENDING" -> {
-            Icon(
-                imageVector = Icons.Default.Done,
-                contentDescription = "Pending",
-                modifier = Modifier.size(12.dp),
-                tint = Color.White.copy(alpha = 0.4f)
-            )
-        }
-        "SENT" -> {
-            Icon(
-                imageVector = Icons.Default.Done,
-                contentDescription = "Sent",
-                modifier = Modifier.size(12.dp),
-                tint = Color.White.copy(alpha = 0.7f)
-            )
-        }
-        "DELIVERED" -> {
-            Icon(
-                imageVector = Icons.Default.DoneAll,
-                contentDescription = "Delivered",
-                modifier = Modifier.size(12.dp),
-                tint = Color.White.copy(alpha = 0.7f)
-            )
-        }
-        "READ" -> {
-            Icon(
-                imageVector = Icons.Default.DoneAll,
-                contentDescription = "Read",
-                modifier = Modifier.size(12.dp),
-                tint = Color(0xFF80D8FF) // Light blue for read
-            )
-        }
-        "FAILED" -> {
-            Text(text = "!", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        }
+        "PENDING" -> Icon(imageVector = Icons.Default.Done, contentDescription = "Pending", modifier = Modifier.size(iconSize), tint = Color.White.copy(alpha = 0.4f))
+        "SENT" -> Icon(imageVector = Icons.Default.Done, contentDescription = "Sent", modifier = Modifier.size(iconSize), tint = Color.White.copy(alpha = 0.7f))
+        "DELIVERED" -> Icon(imageVector = Icons.Default.DoneAll, contentDescription = "Delivered", modifier = Modifier.size(iconSize), tint = Color.White.copy(alpha = 0.7f))
+        "READ" -> Icon(imageVector = Icons.Default.DoneAll, contentDescription = "Read", modifier = Modifier.size(iconSize), tint = Color(0xFF80D8FF))
+        "FAILED" -> Text(text = "!", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
