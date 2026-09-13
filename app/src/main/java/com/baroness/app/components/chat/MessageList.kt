@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.baroness.app.models.Message
 import com.baroness.app.models.Participant
@@ -25,7 +26,7 @@ fun MessageList(
     activeThemeId: String = "lavender",
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 16.dp, top = 8.dp),
-    onLongPress: (Message, IntOffset) -> Unit
+    onLongPress: (Message, IntOffset, IntSize) -> Unit
 ) {
     val listState = rememberLazyListState()
 

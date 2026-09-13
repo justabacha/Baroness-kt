@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -90,6 +91,7 @@ fun ChatRoomScreen(
     
     var contextMenuMessage by remember { mutableStateOf<Message?>(null) }
     var contextMenuOffset by remember { mutableStateOf(IntOffset.Zero) }
+    var contextMenuSize by remember { mutableStateOf(IntSize.Zero) }
     var showEmojiPicker by remember { mutableStateOf(false) }
 
     val isSubscribed by viewModel.isSubscribed.collectAsStateWithLifecycle(initialValue = true)
@@ -170,9 +172,10 @@ fun ChatRoomScreen(
                                     hazeState = hazeState,
                                     activeThemeId = activeThemeId,
                                     contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
-                                    onLongPress = { msg, offset ->
+                                    onLongPress = { msg, offset, size ->
                                         contextMenuMessage = msg
                                         contextMenuOffset = offset
+                                        contextMenuSize = size
                                     }
                                 )
                             }
@@ -233,7 +236,9 @@ fun ChatRoomScreen(
                 message = message,
                 isOwn = message.senderId == currentPersonaId,
                 offset = contextMenuOffset,
+                bubbleSize = contextMenuSize,
                 activeThemeId = activeThemeId,
+                participant = otherParticipant,
                 settingsViewModel = settingsViewModel,
                 hazeState = overlayHazeState,
                 onDismiss = { contextMenuMessage = null },

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -62,7 +63,7 @@ fun MessageBubble(
     hazeState: HazeState? = null,
     isFocusedMode: Boolean = false,
     modifier: Modifier = Modifier,
-    onLongPress: ((Message, IntOffset) -> Unit)? = null
+    onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val bubbleTextStyle = typography.body.copy(
@@ -75,6 +76,7 @@ fun MessageBubble(
     )
     val haptic = LocalHapticFeedback.current
     var bubblePosition = IntOffset.Zero
+    var bubbleSize = IntSize.Zero
 
     // Master Style for Metadata (Independent System font for functional clarity)
     val masterMetaStyle = TextStyle(
@@ -230,6 +232,7 @@ fun MessageBubble(
                                 .onGloballyPositioned { coordinates ->
                                     val pos = coordinates.positionInRoot()
                                     bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                                    bubbleSize = coordinates.size
                                 }
                                 .shadow(
                                     elevation = shadowElevation,
@@ -263,7 +266,7 @@ fun MessageBubble(
                                     onClick = { /* Handle click */ },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onLongPress?.invoke(message, bubblePosition)
+                                        onLongPress?.invoke(message, bubblePosition, bubbleSize)
                                     }
                                 )
                                 .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
@@ -307,6 +310,7 @@ fun MessageBubble(
                                 .onGloballyPositioned { coordinates ->
                                     val pos = coordinates.positionInRoot()
                                     bubblePosition = IntOffset(pos.x.toInt(), pos.y.toInt())
+                                    bubbleSize = coordinates.size
                                 }
                                 .shadow(
                                     elevation = shadowElevation,
@@ -320,7 +324,7 @@ fun MessageBubble(
                                     onClick = { /* Handle click */ },
                                     onLongClick = {
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onLongPress?.invoke(message, bubblePosition)
+                                        onLongPress?.invoke(message, bubblePosition, bubbleSize)
                                     }
                                 )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)

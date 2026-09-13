@@ -33,9 +33,10 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.models.Message
@@ -54,6 +55,7 @@ fun ChatContextMenu(
     message: Message,
     isOwn: Boolean,
     offset: IntOffset,
+    bubbleSize: IntSize,
     activeThemeId: String,
     participant: Participant? = null,
     settingsViewModel: SettingsViewModel? = null,
@@ -74,9 +76,12 @@ fun ChatContextMenu(
         label = "scale"
     )
 
-    // Hidden container until the Tapback height is measured to prevent jumping
-    var isMeasured by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
     var tapbackHeight by remember { mutableIntStateOf(0) }
+    var columnWidth by remember { mutableIntStateOf(0) }
+    var isMeasured by remember { mutableStateOf(false) }
+    
+    val gapPx = with(density) { 8.dp.roundToPx() }
 
     Box(
         modifier = Modifier
@@ -87,7 +92,7 @@ fun ChatContextMenu(
                 onClick = onDismiss
             )
     ) {
-        // Layer 1: The Blur Shield (Recedes background)
+        // 1. Background Blur Layer
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -105,45 +110,56 @@ fun ChatContextMenu(
                 )
         )
 
-        // Layer 2: The Focused Content (Stable absolute Column)
+        // 2. Focused Content Column
         Column(
             modifier = Modifier
+                .onGloballyPositioned { 
+                    columnWidth = it.size.width
+                    isMeasured = true 
+                }
                 .graphicsLayer {
-                    // One-frame hide to wait for height measurement
+                    // Alpha shield to prevent measurement jump
                     alpha = if (isMeasured) 1f else 0f
                     scaleX = scale
                     scaleY = scale
-                    // Position at root coordinates
-                    translationX = offset.x.toFloat()
-                    translationY = (offset.y - tapbackHeight - 8.dp.value.toInt()).toFloat()
+                    
+                    // X POSITIONING: 
+                    // If Own: Align right edge of column with right edge of bubble
+                    // If Other: Align left edge of column with left edge of bubble
+                    translationX = if (isOwn) {
+                        (offset.x + bubbleSize.width - columnWidth).toFloat()
+                    } else {
+                        offset.x.toFloat()
+                    }
+                    
+                    // Y POSITIONING:
+                    // Place the bubble part of the column exactly at 'offset.y'
+                    translationY = (offset.y - tapbackHeight - gapPx).toFloat()
                 },
             horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // 1. Tapback Bar
+            // A. Tapback Bar
             TapbackBar(
                 onReact = onReact,
                 onShowEmojiPicker = onShowEmojiPicker,
                 hazeState = hazeState,
-                modifier = Modifier.onGloballyPositioned { 
-                    tapbackHeight = it.size.height 
-                    isMeasured = true
-                }
+                modifier = Modifier.onGloballyPositioned { tapbackHeight = it.size.height }
             )
 
-            // 2. Focused Sharp Bubble (NO AVATAR)
+            // B. Focused Bubble (Sharp twin, no avatar)
             MessageBubble(
                 message = message,
                 isOwn = isOwn,
                 participant = null,
                 settingsViewModel = settingsViewModel,
                 activeThemeId = activeThemeId,
-                hazeState = null, // Sharp focus
+                hazeState = null, // Sharp
                 isFocusedMode = true,
                 modifier = Modifier.padding(horizontal = 0.dp)
             )
 
-            // 3. Action Menu
+            // C. Action Menu
             ActionMenu(
                 isOwn = isOwn,
                 settingsViewModel = settingsViewModel,
