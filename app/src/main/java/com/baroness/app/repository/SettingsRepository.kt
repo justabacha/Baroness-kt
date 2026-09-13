@@ -14,7 +14,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_FONT = "selected_font"
         private const val KEY_WALLPAPER = "selected_wallpaper"
         private const val KEY_RECENT_EMOJIS = "recent_emojis"
-        private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,✨"
+        private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,🤌"
     }
 
     fun getInitialTheme(): String = runBlocking { storageManager.getString(KEY_THEME) ?: "lavender" }

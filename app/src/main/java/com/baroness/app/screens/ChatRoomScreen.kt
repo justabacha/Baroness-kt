@@ -47,6 +47,7 @@ import com.baroness.app.components.WallpaperOption
 import com.baroness.app.components.WallpaperSource
 import com.baroness.app.components.chat.*
 import com.baroness.app.components.prebundledWallpapers
+import com.baroness.app.data.EmojiMap
 import com.baroness.app.models.ChatRoomUiState
 import com.baroness.app.models.Message
 import com.baroness.app.models.Participant
@@ -198,7 +199,15 @@ fun ChatRoomScreen(
                             )
                         }
                         ChatInput(
-                            onSendMessage = { viewModel.onSendMessage(it) },
+                            onSendMessage = { text ->
+                                // EMOJI MIRROR: Extract and update recent emojis from sent text
+                                EmojiMap.map.keys.forEach { emoji ->
+                                    if (text.contains(emoji)) {
+                                        settingsViewModel.onEmojiUsed(emoji)
+                                    }
+                                }
+                                viewModel.onSendMessage(text)
+                            },
                             onAttachmentClick = { /* Coming Soon */ },
                             settingsViewModel = settingsViewModel,
                             hazeState = hazeState,

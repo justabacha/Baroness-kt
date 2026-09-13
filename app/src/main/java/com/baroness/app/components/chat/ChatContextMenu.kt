@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -193,7 +194,7 @@ private fun TapbackBar(
     
     Box(
         modifier = modifier
-            .width(300.dp) // STABLE HORIZON: Fixed width to match max bubble width
+            .width(300.dp) // STABLE HORIZON
             .border(1.5.dp, Color.Black.copy(alpha = 0.8f), RoundedCornerShape(28.dp))
             .padding(0.5.dp)
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(28.dp))
@@ -210,38 +211,56 @@ private fun TapbackBar(
                     Modifier.background(Color.Black.copy(alpha = 0.4f))
                 }
             )
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 6.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly, // SYMMETRIC SPACING: Evenly spread across the shelf
+            horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            recentEmojis.forEach { emoji ->
-                Text(
-                    text = emoji,
-                    fontSize = 20.sp,
-                    modifier = Modifier
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = { onReact(emoji) }
-                        )
-                        .padding(2.dp)
-                )
+            // Snug Emoji Group
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                recentEmojis.forEach { emoji ->
+                    Text(
+                        text = emoji,
+                        fontSize = 20.sp,
+                        modifier = Modifier
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onReact(emoji) }
+                            )
+                            .padding(2.dp)
+                    )
+                }
             }
-            Text(
-                text = "+",
-                color = Color.White,
-                fontSize = 20.sp,
+
+            // The + Satellite Circle (Internal Circle Pouch)
+            Box(
                 modifier = Modifier
+                    .size(32.dp)
+                    .border(1.2.dp, Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .padding(0.5.dp)
+                    .border(0.5.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f))
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = { onShowEmojiPicker() }
-                    )
-                    .padding(horizontal = 4.dp)
-            )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

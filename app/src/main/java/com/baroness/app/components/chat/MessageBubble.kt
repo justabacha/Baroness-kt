@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
@@ -102,11 +103,13 @@ fun MessageBubble(
         GenericShape { size, _ ->
             val h = size.height
             val w = size.width
+            // Dynamic Radius: Never more than half the height to ensure smoothness on short bubbles
             val r = min(with(density) { 20.dp.toPx() }, h / 2f)
-            val tw = with(density) { 16.dp.toPx() } 
-            val th = with(density) { 14.dp.toPx() } 
+            val tw = with(density) { 16.dp.toPx() } // Tail Extension Width
+            val th = with(density) { 14.dp.toPx() } // Proportional Bend Height
 
             if (isOwn) {
+                // Own: Symmetric Adaptive Rounded Rect
                 moveTo(r, 0f)
                 lineTo(w - r, 0f)
                 arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
@@ -117,13 +120,14 @@ fun MessageBubble(
                 lineTo(0f, r)
                 arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
             } else {
+                // Other: Identity Beak with Adaptive non-tail side
                 moveTo(r + tw, 0f)
                 lineTo(w - r, 0f)
                 arcTo(Rect(w - 2 * r, 0f, w, 2 * r), -90f, 90f, false)
                 lineTo(w, h - r)
                 arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
-                lineTo(0f, h) 
-                quadraticTo(tw, h, tw, h - th)
+                lineTo(0f, h) // The Beak Point
+                quadraticTo(tw, h, tw, h - th) // Beak curve
                 lineTo(tw, r)
                 arcTo(Rect(tw, 0f, tw + 2 * r, 2 * r), 180f, 90f, false)
             }
@@ -193,7 +197,10 @@ fun MessageBubble(
                     .animateContentSize()
                     .widthIn(max = 280.dp)
                     .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
-                    .clip(bubbleShape)
+                    .graphicsLayer {
+                        clip = true
+                        shape = bubbleShape
+                    }
                     .background(backgroundColor, bubbleShape)
                     .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
                     .padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
@@ -225,7 +232,10 @@ fun MessageBubble(
                                     bubbleSize = coordinates.size
                                 }
                                 .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
-                                .clip(bubbleShape)
+                                .graphicsLayer {
+                                    clip = true
+                                    shape = bubbleShape
+                                }
                                 .then(
                                     if (hazeState != null) {
                                         Modifier.hazeEffect(state = hazeState) {
@@ -262,7 +272,10 @@ fun MessageBubble(
                                     bubbleSize = coordinates.size
                                 }
                                 .shadow(elevation = shadowElevation, shape = bubbleShape, ambientColor = shadowColor, spotColor = shadowColor)
-                                .clip(bubbleShape)
+                                .graphicsLayer {
+                                    clip = true
+                                    shape = bubbleShape
+                                }
                                 .background(backgroundColor, bubbleShape)
                                 .combinedClickable(
                                     onClick = { },
