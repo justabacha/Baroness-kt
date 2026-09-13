@@ -89,7 +89,18 @@ fun ChatContextMenu(
     )
 
     val density = LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+    val spaceAbove = offset.y.toFloat()
+    val spaceBelow = screenHeightPx - (offset.y + bubbleSize.height).toFloat()
+    
+    // Thresholds matching components size estimates
+    val isTopCollision = spaceAbove < with(density) { (56 + 48).dp.toPx() }
+    val isBottomCollision = !isTopCollision && spaceBelow < with(density) { 240.dp.toPx() }
+
     var tapbackHeight by remember { mutableIntStateOf(0) }
+    var menuHeight by remember { mutableIntStateOf(0) }
     var columnWidth by remember { mutableIntStateOf(0) }
     var isMeasured by remember { mutableStateOf(false) }
     
@@ -144,46 +155,85 @@ fun ChatContextMenu(
                         offset.x.toFloat()
                     }
                     
-                    // Y POSITIONING:
-                    // Place the bubble part of the column exactly at 'offset.y'
-                    translationY = (offset.y - tapbackHeight - gapPx).toFloat()
+                    // Y POSITIONING: Fluid inversion engine
+                    translationY = when {
+                        isTopCollision -> {
+                            // Top collision: align the top of the column to the bubble's top offset
+                            offset.y.toFloat()
+                        }
+                        isBottomCollision -> {
+                            // Bottom collision (Sandwich): Align the bubble (which is middle) to offset.y
+                            // Bubble is preceded by the Action Menu and a gap
+                            (offset.y - menuHeight - gapPx).toFloat()
+                        }
+                        else -> {
+                            // Normal mode: place bubble exactly at offset.y by shifting up for Tapback Bar
+                            (offset.y - tapbackHeight - gapPx).toFloat()
+                        }
+                    }
                 },
             horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // A. Tapback Bar
-            TapbackBar(
-                settingsViewModel = settingsViewModel,
-                onReact = { emoji ->
-                    settingsViewModel?.onEmojiUsed(emoji)
-                    onReact(emoji)
-                },
-                onShowEmojiPicker = onShowEmojiPicker,
-                hazeState = hazeState,
-                modifier = Modifier.onGloballyPositioned { tapbackHeight = it.size.height }
-            )
+            val tapbackBarBlock = @Composable {
+                TapbackBar(
+                    settingsViewModel = settingsViewModel,
+                    onReact = { emoji ->
+                        settingsViewModel?.onEmojiUsed(emoji)
+                        onReact(emoji)
+                    },
+                    onShowEmojiPicker = onShowEmojiPicker,
+                    hazeState = hazeState,
+                    modifier = Modifier.onGloballyPositioned { tapbackHeight = it.size.height }
+                )
+            }
 
-            // B. Focused Bubble (Sharp twin, no avatar)
-            MessageBubble(
-                message = message,
-                isOwn = isOwn,
-                participant = null,
-                settingsViewModel = settingsViewModel,
-                activeThemeId = activeThemeId,
-                hazeState = null, // Sharp
-                isFocusedMode = true,
-                modifier = Modifier.padding(horizontal = 0.dp)
-            )
+            val messageBubbleBlock = @Composable {
+                MessageBubble(
+                    message = message,
+                    isOwn = isOwn,
+                    participant = null,
+                    settingsViewModel = settingsViewModel,
+                    activeThemeId = activeThemeId,
+                    hazeState = null, // Sharp
+                    isFocusedMode = true,
+                    modifier = Modifier.padding(horizontal = 0.dp)
+                )
+            }
 
-            // C. Action Menu
-            ActionMenu(
-                isOwn = isOwn,
-                settingsViewModel = settingsViewModel,
-                hazeState = hazeState,
-                onCopy = onCopy,
-                onEdit = onEdit,
-                onDelete = onDelete
-            )
+            val actionMenuBlock = @Composable {
+                ActionMenu(
+                    isOwn = isOwn,
+                    settingsViewModel = settingsViewModel,
+                    hazeState = hazeState,
+                    onCopy = onCopy,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                    modifier = Modifier.onGloballyPositioned { menuHeight = it.size.height }
+                )
+            }
+
+            // Inversion Layout Selector
+            when {
+                isTopCollision -> {
+                    // Top Collision Order: Bubble -> Tapback Bar -> Action Menu
+                    messageBubbleBlock()
+                    tapbackBarBlock()
+                    actionMenuBlock()
+                }
+                isBottomCollision -> {
+                    // Bottom Collision Order (Sandwich): Action Menu -> Bubble -> Tapback Bar
+                    actionMenuBlock()
+                    messageBubbleBlock()
+                    tapbackBarBlock()
+                }
+                else -> {
+                    // Normal Order: Tapback Bar -> Bubble -> Action Menu
+                    tapbackBarBlock()
+                    messageBubbleBlock()
+                    actionMenuBlock()
+                }
+            }
         }
     }
 }
@@ -205,18 +255,18 @@ private fun TapbackBar(
             .fillMaxWidth(0.9f) // Prevents edge bleed on small screens
             .border(1.5.dp, Color.Black.copy(alpha = 0.8f), RoundedCornerShape(28.dp))
             .padding(0.5.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(28.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(28.dp))
             .clip(RoundedCornerShape(28.dp))
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(state = hazeState) {
                         blurEffect {
                             blurRadius = 15.dp
-                            colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.3f)))
+                            colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.8f)))
                         }
                     }
                 } else {
-                    Modifier.background(Color.Black.copy(alpha = 0.4f))
+                    Modifier.background(Color.Black.copy(alpha = 0.8f))
                 }
             )
             .padding(vertical = 6.dp)
@@ -304,18 +354,18 @@ private fun ActionMenu(
             .width(200.dp)
             .border(1.5.dp, Color.Black.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
             .padding(0.5.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .then(
                 if (hazeState != null) {
                     Modifier.hazeEffect(state = hazeState) {
                         blurEffect {
                             blurRadius = 15.dp
-                            colorEffects = listOf(HazeColorEffect.tint(Color.White.copy(alpha = 0.08f)))
+                            colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.8f)))
                         }
                     }
                 } else {
-                    Modifier.background(Color.White.copy(alpha = 0.1f))
+                    Modifier.background(Color.Black.copy(alpha = 0.8f))
                 }
             )
     ) {
