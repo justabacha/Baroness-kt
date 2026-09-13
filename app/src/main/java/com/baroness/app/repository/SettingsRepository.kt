@@ -13,6 +13,8 @@ class SettingsRepository(context: Context) {
         private const val KEY_THEME = "selected_theme"
         private const val KEY_FONT = "selected_font"
         private const val KEY_WALLPAPER = "selected_wallpaper"
+        private const val KEY_RECENT_EMOJIS = "recent_emojis"
+        private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,✨"
     }
 
     fun getInitialTheme(): String = runBlocking { storageManager.getString(KEY_THEME) ?: "lavender" }
@@ -26,4 +28,7 @@ class SettingsRepository(context: Context) {
     fun getInitialWallpaper(): String = runBlocking { storageManager.getString(KEY_WALLPAPER) ?: "sunrise" }
     fun getWallpaperFlow(): Flow<String> = storageManager.getStringFlow(KEY_WALLPAPER).map { it ?: "sunrise" }
     suspend fun saveWallpaper(id: String) = storageManager.saveString(KEY_WALLPAPER, id)
+
+    fun getRecentEmojisFlow(): Flow<String> = storageManager.getStringFlow(KEY_RECENT_EMOJIS).map { it ?: DEFAULT_EMOJIS }
+    suspend fun saveRecentEmojis(emojis: String) = storageManager.saveString(KEY_RECENT_EMOJIS, emojis)
 }

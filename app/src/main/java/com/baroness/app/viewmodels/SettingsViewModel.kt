@@ -44,6 +44,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _previewWallpaper = MutableStateFlow(repository.getInitialWallpaper())
     val previewWallpaper: StateFlow<String> = _previewWallpaper.asStateFlow()
 
+    // EMOJIS
+    val recentEmojis: StateFlow<List<String>> = repository.getRecentEmojisFlow()
+        .map { it.split(",") }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, listOf("❤️", "👍", "👎", "😂", "‼️", "❓", "🤌"))
+
     init {
         // Initialize preview states with active values when they are first loaded
         viewModelScope.launch {
@@ -150,6 +155,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             }
         } catch (e: Exception) {
             showWarning("Failed to save wallpaper: ${e.localizedMessage}")
+        }
+    }
+
+    // EMOJI Actions
+    fun onEmojiUsed(emoji: String) {
+        viewModelScope.launch {
+            val current = recentEmojis.value.toMutableList()
+            // Remove if already exists, then add to front
+            current.remove(emoji)
+            current.add(0, emoji)
+            // Keep top 7
+            val updated = current.take(7).joinToString(",")
+            repository.saveRecentEmojis(updated)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.baroness.app.components.chat
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.baroness.app.models.Message
 import com.baroness.app.models.Participant
 import com.baroness.app.models.SettingsOptions
@@ -49,6 +51,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun ChatContextMenu(
@@ -67,6 +70,8 @@ fun ChatContextMenu(
     onDelete: () -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
+    BackHandler { onDismiss() }
+    
     var isLaunched by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { isLaunched = true }
 
@@ -100,7 +105,7 @@ fun ChatContextMenu(
                     if (hazeState != null) {
                         Modifier.hazeEffect(state = hazeState) {
                             blurEffect {
-                                blurRadius = 15.dp 
+                                blurRadius = 8.dp
                                 colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.45f))) 
                             }
                         }
@@ -141,7 +146,11 @@ fun ChatContextMenu(
         ) {
             // A. Tapback Bar
             TapbackBar(
-                onReact = onReact,
+                settingsViewModel = settingsViewModel,
+                onReact = { emoji ->
+                    settingsViewModel?.onEmojiUsed(emoji)
+                    onReact(emoji)
+                },
                 onShowEmojiPicker = onShowEmojiPicker,
                 hazeState = hazeState,
                 modifier = Modifier.onGloballyPositioned { tapbackHeight = it.size.height }
@@ -174,15 +183,17 @@ fun ChatContextMenu(
 
 @Composable
 private fun TapbackBar(
+    settingsViewModel: SettingsViewModel?,
     onReact: (String) -> Unit,
     onShowEmojiPicker: () -> Unit,
     hazeState: HazeState? = null,
     modifier: Modifier = Modifier
 ) {
-    val emojis = listOf("❤️", "👍", "👎", "😂", "‼️", "❓")
+    val recentEmojis by (settingsViewModel?.recentEmojis ?: MutableStateFlow(listOf("❤️", "👍", "👎", "😂", "‼️", "❓", "✨"))).collectAsStateWithLifecycle()
     
     Box(
         modifier = modifier
+            .width(300.dp) // STABLE HORIZON: Fixed width to match max bubble width
             .border(1.5.dp, Color.Black.copy(alpha = 0.8f), RoundedCornerShape(28.dp))
             .padding(0.5.dp)
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(28.dp))
@@ -199,27 +210,36 @@ private fun TapbackBar(
                     Modifier.background(Color.Black.copy(alpha = 0.4f))
                 }
             )
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceEvenly, // SYMMETRIC SPACING: Evenly spread across the shelf
+            modifier = Modifier.fillMaxWidth()
         ) {
-            emojis.forEach { emoji ->
+            recentEmojis.forEach { emoji ->
                 Text(
                     text = emoji,
-                    fontSize = 24.sp,
+                    fontSize = 20.sp,
                     modifier = Modifier
-                        .clickable { onReact(emoji) }
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onReact(emoji) }
+                        )
                         .padding(2.dp)
                 )
             }
             Text(
                 text = "+",
                 color = Color.White,
-                fontSize = 24.sp,
+                fontSize = 20.sp,
                 modifier = Modifier
-                    .clickable { onShowEmojiPicker() }
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onShowEmojiPicker() }
+                    )
                     .padding(horizontal = 4.dp)
             )
         }
