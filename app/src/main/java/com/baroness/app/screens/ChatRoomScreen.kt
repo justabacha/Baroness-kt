@@ -3,6 +3,8 @@ package com.baroness.app.screens
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -93,6 +95,11 @@ fun ChatRoomScreen(
     var contextMenuMessage by remember { mutableStateOf<Message?>(null) }
     var contextMenuOffset by remember { mutableStateOf(IntOffset.Zero) }
     var contextMenuSize by remember { mutableStateOf(IntSize.Zero) }
+    
+    var quickReactMessage by remember { mutableStateOf<Message?>(null) }
+    var quickReactOffset by remember { mutableStateOf(IntOffset.Zero) }
+    var quickReactSize by remember { mutableStateOf(IntSize.Zero) }
+
     var showEmojiPicker by remember { mutableStateOf(false) }
 
     val isSubscribed by viewModel.isSubscribed.collectAsStateWithLifecycle(initialValue = true)
@@ -177,6 +184,11 @@ fun ChatRoomScreen(
                                         contextMenuMessage = msg
                                         contextMenuOffset = offset
                                         contextMenuSize = size
+                                    },
+                                    onReactionClick = { msg, offset, size ->
+                                        quickReactMessage = msg
+                                        quickReactOffset = offset
+                                        quickReactSize = size
                                     }
                                 )
                             }
@@ -273,12 +285,81 @@ fun ChatRoomScreen(
             )
         }
 
+        // Quick React Overlay (No Blur, No Tint)
+        quickReactMessage?.let { message ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { quickReactMessage = null }
+                    )
+            ) {
+                val isOwn = message.senderId == currentPersonaId
+                val bubbleRightPx = (quickReactOffset.x + quickReactSize.width).toFloat()
+                val bubbleLeftPx = quickReactOffset.x.toFloat()
+                
+                val spaceAbove = quickReactOffset.y.toFloat()
+                val pillHeightEstimate = with(density) { 52.dp.toPx() }
+                val isTopCollision = spaceAbove < pillHeightEstimate
+                
+                // Vertical Placement Anchor
+                val targetY = if (isTopCollision) {
+                    (quickReactOffset.y + quickReactSize.height + with(density) { 8.dp.toPx() })
+                } else {
+                    (quickReactOffset.y - with(density) { 44.dp.toPx() } - with(density) { 8.dp.toPx() })
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .graphicsLayer { translationY = targetY }
+                        .padding(horizontal = 16.dp)
+                ) {
+                    // Logic: Use a sub-container to handle the "Right Alignment" without knowing pill width
+                    Box(
+                        modifier = Modifier
+                            .then(
+                                if (isOwn) {
+                                    // Spans from left of screen to the bubble's right edge
+                                    Modifier.width(with(density) { bubbleRightPx.toDp() - 16.dp })
+                                } else {
+                                    // Spans from bubble's left edge to right of screen
+                                    Modifier.padding(start = with(density) { bubbleLeftPx.toDp() - 16.dp }).fillMaxWidth()
+                                }
+                            )
+                            .align(if (isOwn) Alignment.TopStart else Alignment.TopStart)
+                    ) {
+                        TapbackBar(
+                            settingsViewModel = settingsViewModel,
+                            onReact = { emoji ->
+                                viewModel.onReactToMessage(message, emoji)
+                                quickReactMessage = null
+                            },
+                            onShowEmojiPicker = {
+                                showEmojiPicker = true
+                                // Reuse contextMenuMessage strictly as a reference for the picker
+                            },
+                            hazeState = null, // Transparent/Clear
+                            modifier = Modifier.align(if (isOwn) Alignment.TopEnd else Alignment.TopStart)
+                        )
+                    }
+                }
+            }
+        }
+
         EmojiPicker(
             visible = showEmojiPicker,
-            onDismiss = { showEmojiPicker = false },
-            onEmojiSelected = { emoji ->
-                contextMenuMessage?.let { viewModel.onReactToMessage(it, emoji) }
+            onDismiss = { 
                 showEmojiPicker = false
+                quickReactMessage = null 
+            },
+            onEmojiSelected = { emoji ->
+                val targetMsg = quickReactMessage ?: contextMenuMessage
+                targetMsg?.let { viewModel.onReactToMessage(it, emoji) }
+                showEmojiPicker = false
+                quickReactMessage = null
                 contextMenuMessage = null
             }
         )

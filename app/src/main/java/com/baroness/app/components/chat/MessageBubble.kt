@@ -66,7 +66,8 @@ fun MessageBubble(
     hazeState: HazeState? = null,
     isFocusedMode: Boolean = false,
     modifier: Modifier = Modifier,
-    onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null
+    onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null,
+    onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val bubbleTextStyle = typography.body.copy(
@@ -296,7 +297,8 @@ fun MessageBubble(
                 modifier = Modifier.padding(
                     start = if (isOwn) 0.dp else 32.dp,
                     end = if (isOwn) 8.dp else 0.dp
-                )
+                ),
+                onClick = { onReactionClick?.invoke(message, bubblePosition, bubbleSize) }
             )
         }
     }
