@@ -291,7 +291,13 @@ fun MessageBubble(
                     }
                 }
             }
-            ReactionRow(reactionsJson = message.reactions, modifier = Modifier.padding(start = if (isOwn) 0.dp else 28.dp))
+            ReactionRow(
+                reactionsJson = message.reactions, 
+                modifier = Modifier.padding(
+                    start = if (isOwn) 0.dp else 32.dp,
+                    end = if (isOwn) 8.dp else 0.dp
+                )
+            )
         }
     }
 }

@@ -12,9 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.baroness.app.components.Emoji
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonArray
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReactionRow(
     reactionsJson: String,
@@ -22,35 +20,32 @@ fun ReactionRow(
 ) {
     if (reactionsJson == "{}" || reactionsJson.isBlank()) return
 
-    // Parse the JSON reactions string: emoji -> List of UserIds
     val reactions = try {
         val json = Json.parseToJsonElement(reactionsJson).jsonObject
-        json.keys.toList() // We only care about the emojis themselves
+        json.keys.toList()
     } catch (e: Exception) {
         emptyList<String>()
     }
 
     if (reactions.isEmpty()) return
 
-    // Requirement: Only one circle reaction for a bubble.
-    // We take the last one (most recent in the map/list logic).
     val displayEmoji = reactions.last()
 
+    // Fixed height container to ensure next bubble is pushed down responsibly
     Box(
         modifier = modifier
-            .padding(top = 2.dp)
-            .offset(y = (-11).dp), // Hanging on the wall - barely contact
-        contentAlignment = Alignment.Center
+            .height(22.dp) 
     ) {
         Box(
             modifier = Modifier
-                .size(24.dp) // Perfect Circle footprint
+                .offset(y = (-3).dp) // Hanging on the wall - barely contact (2dp inside)
+                .requiredSize(24.dp) // Unbreakable perfect circle
                 .background(
-                    color = Color.Black.copy(alpha = 0.8f), // Deep dark tint
+                    color = Color.Black.copy(alpha = 0.8f),
                     shape = CircleShape
                 )
                 .border(
-                    width = 0.8.dp, // Thin layer connection look
+                    width = 0.8.dp,
                     color = Color.White.copy(alpha = 0.3f),
                     shape = CircleShape
                 ),
@@ -58,8 +53,8 @@ fun ReactionRow(
         ) {
             Emoji(
                 emoji = displayEmoji,
-                size = 18.dp, // Pumped size inside the 24dp circle
-                modifier = Modifier.padding(1.dp)
+                modifier = Modifier.padding(1.dp),
+                size = 18.dp
             )
         }
     }
