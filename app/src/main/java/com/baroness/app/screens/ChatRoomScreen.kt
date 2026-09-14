@@ -215,7 +215,7 @@ fun ChatRoomScreen(
                                 // EMOJI MIRROR: Extract and update recent emojis from sent text
                                 EmojiMap.map.keys.forEach { emoji ->
                                     if (text.contains(emoji)) {
-                                        settingsViewModel.onEmojiUsed(emoji)
+                                        settingsViewModel.onEmojiUsed(emoji, isDirect = false)
                                     }
                                 }
                                 viewModel.onSendMessage(text)
@@ -357,7 +357,10 @@ fun ChatRoomScreen(
             },
             onEmojiSelected = { emoji ->
                 val targetMsg = quickReactMessage ?: contextMenuMessage
-                targetMsg?.let { viewModel.onReactToMessage(it, emoji) }
+                targetMsg?.let { 
+                    viewModel.onReactToMessage(it, emoji)
+                    settingsViewModel.onEmojiUsed(emoji, isDirect = true)
+                }
                 showEmojiPicker = false
                 quickReactMessage = null
                 contextMenuMessage = null

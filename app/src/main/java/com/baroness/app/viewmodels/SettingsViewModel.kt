@@ -49,6 +49,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .map { it.split(",") }
         .stateIn(viewModelScope, SharingStarted.Eagerly, listOf("❤️", "👍", "👎", "😂", "‼️", "❓", "🤌"))
 
+    private val emojiFrequencyMap = mutableMapOf<String, Int>()
+
     init {
         // Initialize preview states with active values when they are first loaded
         viewModelScope.launch {
@@ -159,8 +161,20 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     // EMOJI Actions
-    fun onEmojiUsed(emoji: String) {
+    fun onEmojiUsed(emoji: String, isDirect: Boolean = true) {
         viewModelScope.launch {
+            if (!isDirect) {
+                // For text input, only add if frequency > 3
+                val count = (emojiFrequencyMap[emoji] ?: 0) + 1
+                if (count < 3) {
+                    emojiFrequencyMap[emoji] = count
+                    return@launch
+                } else {
+                    // Threshold reached, reset count for this emoji
+                    emojiFrequencyMap[emoji] = 0
+                }
+            }
+
             val current = recentEmojis.value.toMutableList()
             // Remove if already exists, then add to front
             current.remove(emoji)
