@@ -3,14 +3,13 @@ package com.baroness.app.components.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.baroness.app.components.Emoji
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonArray
@@ -26,51 +25,42 @@ fun ReactionRow(
     // Parse the JSON reactions string: emoji -> List of UserIds
     val reactions = try {
         val json = Json.parseToJsonElement(reactionsJson).jsonObject
-        json.mapValues { (_, value) -> 
-            value.jsonArray.size 
-        }
+        json.keys.toList() // We only care about the emojis themselves
     } catch (e: Exception) {
-        emptyMap<String, Int>()
+        emptyList<String>()
     }
 
     if (reactions.isEmpty()) return
 
-    FlowRow(
+    // Requirement: Only one circle reaction for a bubble.
+    // We take the last one (most recent in the map/list logic).
+    val displayEmoji = reactions.last()
+
+    Box(
         modifier = modifier
             .padding(top = 2.dp)
-            .offset(y = (-4).dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .offset(y = (-11).dp), // Hanging on the wall - barely contact
+        contentAlignment = Alignment.Center
     ) {
-        reactions.forEach { (emoji, count) ->
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = Color.White.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .border(
-                        width = 0.5.dp,
-                        color = Color.White.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(text = emoji, fontSize = 12.sp)
-                    if (count > 1) {
-                        Text(
-                            text = count.toString(),
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 10.sp
-                        )
-                    }
-                }
-            }
+        Box(
+            modifier = Modifier
+                .size(24.dp) // Perfect Circle footprint
+                .background(
+                    color = Color.Black.copy(alpha = 0.8f), // Deep dark tint
+                    shape = CircleShape
+                )
+                .border(
+                    width = 0.8.dp, // Thin layer connection look
+                    color = Color.White.copy(alpha = 0.3f),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Emoji(
+                emoji = displayEmoji,
+                size = 18.dp, // Pumped size inside the 24dp circle
+                modifier = Modifier.padding(1.dp)
+            )
         }
     }
 }

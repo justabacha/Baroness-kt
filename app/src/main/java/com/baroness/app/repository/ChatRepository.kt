@@ -302,10 +302,47 @@ class ChatRepository private constructor(context: Context) {
     }
 
     suspend fun reactToMessage(messageId: String, emoji: String) {
+        val currentPersonaId = storageManager.getString("currentPersonaId") ?: "unknown"
         val existing = messageDao.getMessageById(messageId) ?: return
-        // Basic reaction update logic - assuming reactions is a JSON string
-        // In a real app, this would parse/update/stringify
-        messageDao.updateMessage(existing.copy(reactions = emoji)) // Placeholder
+        
+        val updatedReactions = try {
+            val json = Json.parseToJsonElement(existing.reactions).jsonObject.toMutableMap()
+            
+            // Check if user has already reacted with THIS exact emoji
+            val alreadyReactedWithThis = json[emoji]?.jsonArray?.any { it.jsonPrimitive.content == currentPersonaId } ?: false
+            
+            // POLICY: One user = One reaction per message.
+            // Clear any existing reaction by this user across all emojis.
+            val newJson = mutableMapOf<String, JsonElement>()
+            json.forEach { (k, v) ->
+                val filteredList = v.jsonArray.filter { it.jsonPrimitive.content != currentPersonaId }
+                if (filteredList.isNotEmpty()) {
+                    newJson[k] = buildJsonArray { filteredList.forEach { add(it) } }
+                }
+            }
+            
+            // If they weren't clicking the same emoji to remove it, add the new one.
+            if (!alreadyReactedWithThis) {
+                val currentUsersForEmoji = newJson[emoji]?.jsonArray?.toMutableList() ?: mutableListOf()
+                newJson[emoji] = buildJsonArray {
+                    currentUsersForEmoji.forEach { add(it) }
+                    add(currentPersonaId)
+                }
+            }
+            
+            buildJsonObject {
+                newJson.forEach { (k, v) -> put(k, v) }
+            }.toString()
+            
+        } catch (e: Exception) {
+            // Fallback for corrupted/empty JSON
+            buildJsonObject {
+                put(emoji, buildJsonArray { add(currentPersonaId) })
+            }.toString()
+        }
+
+        messageDao.updateMessage(existing.copy(reactions = updatedReactions))
+        triggerSync()
     }
 
     suspend fun markMessagesAsRead(conversationId: String) {
