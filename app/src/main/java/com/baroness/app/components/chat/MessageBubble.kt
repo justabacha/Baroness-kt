@@ -65,6 +65,7 @@ fun MessageBubble(
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
     hazeState: HazeState? = null,
     isFocusedMode: Boolean = false,
+    isPreviewMode: Boolean = false, // New: Forces left alignment for sheets
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null,
     onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null
@@ -104,10 +105,10 @@ fun MessageBubble(
         GenericShape { size, _ ->
             val h = size.height
             val w = size.width
-            // Dynamic Radius: Never more than half the height to ensure smoothness on short bubbles
+            // Dynamic Radius
             val r = min(with(density) { 20.dp.toPx() }, h / 2f)
-            val tw = with(density) { 16.dp.toPx() } // Tail Extension Width
-            val th = with(density) { 14.dp.toPx() } // Proportional Bend Height
+            val tw = with(density) { 16.dp.toPx() } 
+            val th = with(density) { 14.dp.toPx() } 
 
             if (isOwn) {
                 // Own: Symmetric Adaptive Rounded Rect
@@ -213,12 +214,12 @@ fun MessageBubble(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp),
-            horizontalAlignment = horizontalAlignment
+                .padding(horizontal = if (isPreviewMode) 0.dp else 16.dp, vertical = 4.dp),
+            horizontalAlignment = if (isOwn && !isPreviewMode) Alignment.End else Alignment.Start
         ) {
             Row(
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = horizontalArrangement
+                horizontalArrangement = if (isOwn && !isPreviewMode) Arrangement.End else Arrangement.Start
             ) {
                 if (!isOwn) {
                     Box(contentAlignment = Alignment.BottomStart) {
@@ -262,7 +263,7 @@ fun MessageBubble(
                         AvatarIsland(participant = participant, isFriday = isFriday)
                     }
                 } else {
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column(horizontalAlignment = if (isPreviewMode) Alignment.Start else Alignment.End) {
                         Column(
                             modifier = Modifier
                                 .animateContentSize()
@@ -295,8 +296,8 @@ fun MessageBubble(
             ReactionRow(
                 reactionsJson = message.reactions, 
                 modifier = Modifier.padding(
-                    start = if (isOwn) 0.dp else 32.dp,
-                    end = if (isOwn) 8.dp else 0.dp
+                    start = if (isOwn && !isPreviewMode) 0.dp else if (isOwn && isPreviewMode) 10.dp else 32.dp,
+                    end = if (isOwn && !isPreviewMode) 8.dp else 0.dp
                 ),
                 onClick = { onReactionClick?.invoke(message, bubblePosition, bubbleSize) }
             )

@@ -92,11 +92,17 @@ fun ChatContextMenu(
     onDelete: () -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
-    BackHandler { onDismiss() }
-    
     var isLaunched by remember { mutableStateOf(false) }
     var isMoreOpen by remember { mutableStateOf(false) }
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    BackHandler {
+        if (isMoreOpen) {
+            isMoreOpen = false
+        } else {
+            onDismiss()
+        }
+    }
     
     LaunchedEffect(Unit) { 
         isLaunched = true 
@@ -448,7 +454,7 @@ private fun ObsidianSheet(
                 if (hazeState != null) {
                     Modifier.hazeEffect(state = hazeState) {
                         blurEffect {
-                            blurRadius = 30.dp
+                            blurRadius = 20.dp
                             colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.85f)))
                         }
                     }
@@ -470,7 +476,7 @@ private fun ObsidianSheet(
         Spacer(modifier = Modifier.height(24.dp))
         
         Text(
-            text = "Options",
+            text = "More Options",
             style = typography.title.copy(fontSize = 20.sp),
             color = Color.White
         )

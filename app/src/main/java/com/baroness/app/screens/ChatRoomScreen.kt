@@ -1,8 +1,14 @@
 package com.baroness.app.screens
 
 import android.graphics.BitmapFactory
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -48,6 +54,7 @@ import com.baroness.app.components.DynamicBackground
 import com.baroness.app.components.WallpaperOption
 import com.baroness.app.components.WallpaperSource
 import com.baroness.app.components.chat.*
+import com.baroness.app.components.chat.actions.ChatCommunicationActions
 import com.baroness.app.components.prebundledWallpapers
 import com.baroness.app.data.EmojiMap
 import com.baroness.app.models.ChatRoomUiState
@@ -99,6 +106,8 @@ fun ChatRoomScreen(
     var quickReactMessage by remember { mutableStateOf<Message?>(null) }
     var quickReactOffset by remember { mutableStateOf(IntOffset.Zero) }
     var quickReactSize by remember { mutableStateOf(IntSize.Zero) }
+    
+    var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
 
     var showEmojiPicker by remember { mutableStateOf(false) }
 
@@ -276,7 +285,7 @@ fun ChatRoomScreen(
                     contextMenuMessage = null
                 },
                 onDelete = {
-                    viewModel.onDeleteMessage(message)
+                    deleteMessageForConfirmation = message
                     contextMenuMessage = null
                 },
                 onShowEmojiPicker = {
@@ -287,6 +296,7 @@ fun ChatRoomScreen(
 
         // Quick React Overlay (No Blur, No Tint)
         quickReactMessage?.let { message ->
+            BackHandler { quickReactMessage = null }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -366,6 +376,36 @@ fun ChatRoomScreen(
                 contextMenuMessage = null
             }
         )
+
+        // Delete Confirmation Overlay
+        AnimatedVisibility(
+            visible = deleteMessageForConfirmation != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            deleteMessageForConfirmation?.let { message ->
+                DeleteConfirmationSheet(
+                    message = message,
+                    isOwn = message.senderId == currentPersonaId,
+                    participant = otherParticipant,
+                    activeThemeId = activeThemeId,
+                    hazeState = overlayHazeState,
+                    settingsViewModel = settingsViewModel,
+                    onDeleteForMe = {
+                        ChatCommunicationActions.deleteForMe(context, message)
+                        deleteMessageForConfirmation = null
+                    },
+                    onDeleteForEveryone = {
+                        ChatCommunicationActions.deleteForEveryone(context, message)
+                        deleteMessageForConfirmation = null
+                    },
+                    onCancel = {
+                        deleteMessageForConfirmation = null
+                    }
+                )
+            }
+        }
     }
 }
 
