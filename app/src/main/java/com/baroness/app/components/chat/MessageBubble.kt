@@ -1,6 +1,5 @@
 package com.baroness.app.components.chat
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -171,7 +170,7 @@ fun MessageBubble(
         if (message.isDeleted) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                modifier = Modifier.padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp, top = 4.dp, bottom = 4.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Block,
@@ -189,7 +188,7 @@ fun MessageBubble(
                 )
             }
         } else {
-            Column {
+            Column(modifier = Modifier.width(IntrinsicSize.Max)) {
                 // REPLY QUOTE (Hanging Quote)
                 if (message.replyToId != null) {
                     ReplyQuote(
@@ -198,14 +197,18 @@ fun MessageBubble(
                         participant = participant,
                         theme = theme,
                         typography = typography,
+                        isOwn = isOwn,
                         onClick = { 
-                            message.replyToId?.let { id -> onReplyClick?.invoke(id) }
+                            message.replyToId.let { id -> onReplyClick?.invoke(id) }
                         }
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
 
                 ChatTextWithMetaLayout(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp),
                     text = {
                         Column {
                             PhestyText(
@@ -266,7 +269,7 @@ fun MessageBubble(
                     .background(backgroundColor, bubbleShape)
                     .border(width = 2.dp, color = theme.glowColor.copy(alpha = highlightAlpha), shape = bubbleShape)
                     .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
-                    .padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
+                    .padding(top = 6.dp, bottom = 6.dp)
             ) {
                 bubbleContent()
             }
@@ -318,7 +321,7 @@ fun MessageBubble(
                                         onLongPress?.invoke(message, bubblePosition, bubbleSize)
                                     }
                                 )
-                                .padding(start = 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
+                                .padding(top = 6.dp, bottom = 6.dp)
                         ) {
                             bubbleContent()
                         }
@@ -349,7 +352,7 @@ fun MessageBubble(
                                         onLongPress?.invoke(message, bubblePosition, bubbleSize)
                                     }
                                 )
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .padding(vertical = 6.dp)
                         ) {
                             bubbleContent()
                         }
@@ -377,6 +380,7 @@ private fun ReplyQuote(
     participant: Participant?,
     theme: com.baroness.app.models.AppTheme,
     typography: com.baroness.app.ui.theme.ChatTypography,
+    isOwn: Boolean,
     onClick: () -> Unit
 ) {
     val senderName = when {
@@ -385,27 +389,36 @@ private fun ReplyQuote(
         else -> "You"
     }
 
+    // Identical Bending: Mirror the bubble's top rounding
+    val quoteShape = RoundedCornerShape(
+        topStart = 16.dp,
+        topEnd = 16.dp,
+        bottomStart = 6.dp,
+        bottomEnd = 6.dp
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color.White.copy(alpha = 0.1f))
+            .padding(start = 4.dp, end = 4.dp, top = 1.dp) // Close to wall but not touching
+            .clip(quoteShape)
+            .background(Color.Black.copy(alpha = 0.45f)) // Darker for high contrast
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .width(2.dp)
-                .height(24.dp)
+                .width(2.5.dp)
+                .height(26.dp)
                 .background(theme.glowColor, RoundedCornerShape(1.dp))
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(
                 text = senderName,
                 style = typography.body.copy(
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = theme.glowColor
                 )
@@ -413,10 +426,10 @@ private fun ReplyQuote(
             Text(
                 text = replyToContent,
                 style = typography.body.copy(
-                    fontSize = 12.sp,
-                    color = Color.White.copy(alpha = 0.7f)
+                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.85f)
                 ),
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -446,23 +459,23 @@ fun ChatTextWithMetaLayout(
         val metaHeight = metaPlaceable.height
 
         val spacing = with(density) { 32.dp.roundToPx() }
-        val fitsOnSameLine = (textWidth + metaWidth + spacing) <= constraints.maxWidth
+        
+        // Law of the Corner: Use maxWidth if we are inside an IntrinsicSize.Max container
+        val totalWidth = if (constraints.hasBoundedWidth) constraints.maxWidth else max(textWidth + spacing + metaWidth, constraints.minWidth)
+        
+        val fitsOnSameLine = (textWidth + metaWidth + spacing) <= totalWidth
 
-        val totalWidth: Int
         val totalHeight: Int
-
         if (fitsOnSameLine) {
-            totalWidth = max(textWidth + spacing + metaWidth, constraints.minWidth)
             totalHeight = textHeight + with(density) { 6.dp.roundToPx() }
         } else {
-            totalWidth = max(textWidth, metaWidth)
             totalHeight = textHeight + metaHeight - with(density) { 2.dp.roundToPx() }
         }
 
         layout(totalWidth, totalHeight) {
             textPlaceable.placeRelative(0, 0)
             val x = totalWidth - metaWidth
-            val y = textHeight - with(density) { 2.dp.roundToPx() }
+            val y = totalHeight - metaHeight
             metaPlaceable.placeRelative(x, y)
         }
     }
