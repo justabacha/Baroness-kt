@@ -26,14 +26,15 @@ fun MessageList(
     activeThemeId: String = "lavender",
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(bottom = 16.dp, top = 8.dp),
+    listState: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
+    highlightedMessageId: String? = null,
     onLongPress: (Message, IntOffset, IntSize) -> Unit,
-    onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null
+    onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null,
+    onReplyClick: ((String) -> Unit)? = null
 ) {
-    val listState = rememberLazyListState()
-
     // Scroll to bottom (index 0 in reverseLayout) when a new message arrives
     LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
+        if (messages.isNotEmpty() && listState.firstVisibleItemIndex < 2) {
             listState.animateScrollToItem(0)
         }
     }
@@ -55,8 +56,10 @@ fun MessageList(
                 settingsViewModel = settingsViewModel,
                 hazeState = hazeState,
                 activeThemeId = activeThemeId,
+                isHighlighted = message.id == highlightedMessageId,
                 onLongPress = onLongPress,
-                onReactionClick = onReactionClick
+                onReactionClick = onReactionClick,
+                onReplyClick = onReplyClick
             )
         }
     }

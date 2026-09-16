@@ -8,7 +8,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -17,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -40,15 +38,9 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -58,10 +50,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.baroness.app.models.Message
 import com.baroness.app.models.Participant
-import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.SettingsViewModel
@@ -73,7 +63,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
-import kotlinx.coroutines.flow.MutableStateFlow
 
 @Composable
 fun ChatContextMenu(
@@ -88,6 +77,7 @@ fun ChatContextMenu(
     onDismiss: () -> Unit,
     onReact: (String) -> Unit,
     onCopy: () -> Unit,
+    onReply: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onShowEmojiPicker: () -> Unit
@@ -248,6 +238,7 @@ fun ChatContextMenu(
                     isWithinUndoWindow = isWithinUndoWindow,
                     settingsViewModel = settingsViewModel,
                     hazeState = hazeState,
+                    onReply = onReply,
                     onCopy = onCopy,
                     onEdit = onEdit,
                     onDelete = onDelete,
@@ -306,7 +297,8 @@ private fun ActionMenu(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMore: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReply: () -> Unit
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val context = LocalContext.current
@@ -335,7 +327,10 @@ private fun ActionMenu(
         ActionItem(
             text = "Reply", 
             icon = Icons.AutoMirrored.Filled.Reply, 
-            onClick = { ChatCommunicationActions.reply(message) }, 
+            onClick = { 
+                ChatCommunicationActions.reply(message)
+                onReply()
+            },
             typography = typography
         )
         HorizontalDivider(color = Color.White.copy(alpha = 0.1f))

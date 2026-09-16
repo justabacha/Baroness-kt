@@ -31,6 +31,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import com.baroness.app.models.SettingsOptions
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.SettingsViewModel
@@ -39,7 +41,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 
-import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.*
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
@@ -52,6 +54,10 @@ fun ChatInput(
     editingMessage: Message? = null,
     onCancelEdit: () -> Unit = {},
     onConfirmEdit: (String) -> Unit = {},
+    replyingToMessage: Message? = null,
+    onCancelReply: () -> Unit = {},
+    onConfirmReply: (String, Message) -> Unit = { _, _ -> },
+    participant: com.baroness.app.models.Participant? = null,
     settingsViewModel: SettingsViewModel? = null,
     hazeState: HazeState? = null,
     activeThemeId: String = "lavender",
@@ -65,6 +71,12 @@ fun ChatInput(
             text = editingMessage.content
         } else {
             text = ""
+        }
+    }
+
+    LaunchedEffect(replyingToMessage) {
+        if (replyingToMessage != null) {
+            // Usually we don't clear text for reply, but maybe we should ensure it's focused
         }
     }
     
@@ -83,16 +95,19 @@ fun ChatInput(
     )
 
     val isEditing = editingMessage != null
+    val isReply = replyingToMessage != null
+    val isFocusedMode = isEditing || isReply
+    
     val containerBg by animateColorAsState(
-        targetValue = if (isEditing) Color.Black.copy(alpha = 0.92f) else Color.Transparent,
+        targetValue = if (isFocusedMode) Color.Black.copy(alpha = 0.92f) else Color.Transparent,
         label = "containerBg"
     )
     val horizontalPadding by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isEditing) 0.dp else 20.dp,
+        targetValue = if (isFocusedMode) 0.dp else 20.dp,
         label = "horizontalPadding"
     )
     val innerPadding by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (isEditing) 16.dp else 0.dp,
+        targetValue = if (isFocusedMode) 16.dp else 0.dp,
         label = "innerPadding"
     )
 
@@ -101,7 +116,7 @@ fun ChatInput(
             .fillMaxWidth()
             .background(containerBg)
             .then(
-                if (isEditing && hazeState != null) {
+                if (isFocusedMode && hazeState != null) {
                     Modifier.hazeEffect(state = hazeState) {
                         blurEffect {
                             blurRadius = 20.dp
@@ -120,48 +135,114 @@ fun ChatInput(
                 .padding(horizontal = innerPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (editingMessage != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            AnimatedVisibility(
+                visible = isEditing,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
             ) {
                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editing Mode",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Editing message...",
+                            style = typography.body.copy(
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.6f)
+                            ),
+                            maxLines = 1
+                        )
+                    }
                     Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editing Mode",
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cancel Edit",
                         tint = Color.White.copy(alpha = 0.6f),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Editing message...",
-                        style = typography.body.copy(
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.6f)
-                        ),
-                        maxLines = 1
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onCancelEdit
+                            )
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Cancel Edit",
-                    tint = Color.White.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onCancelEdit
-                        )
-                )
             }
-        }
+
+            AnimatedVisibility(
+                visible = isReply && replyingToMessage != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                replyingToMessage?.let { msg ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(3.dp)
+                                    .height(24.dp)
+                                    .background(theme.glowColor, RoundedCornerShape(2.dp))
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = if (msg.senderId == participant?.id) {
+                                        participant?.displayName ?: "Someone"
+                                    } else "You",
+                                    style = typography.body.copy(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = theme.glowColor
+                                    )
+                                )
+                                Text(
+                                    text = msg.content,
+                                    style = typography.body.copy(
+                                        fontSize = 13.sp,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    ),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel Reply",
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClick = onCancelReply
+                                )
+                        )
+                    }
+                }
+            }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -280,6 +361,8 @@ fun ChatInput(
                     onClick = {
                         if (editingMessage != null) {
                             onConfirmEdit(text)
+                        } else if (replyingToMessage != null) {
+                            onConfirmReply(text, replyingToMessage)
                         } else {
                             onSendMessage(text)
                         }
@@ -288,11 +371,11 @@ fun ChatInput(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            AnimatedContent(targetState = editingMessage != null, label = "sendIconMorph") { isEditing ->
-                if (isEditing) {
+            AnimatedContent(targetState = isFocusedMode, label = "sendIconMorph") { focused ->
+                if (focused) {
                     Icon(
                         imageVector = Icons.Default.Check,
-                        contentDescription = "Confirm Edit",
+                        contentDescription = "Confirm",
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
                     )

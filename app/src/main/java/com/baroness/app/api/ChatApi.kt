@@ -24,7 +24,10 @@ data class MessageDto(
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("read_at") val readAt: String? = null,
     @SerialName("is_deleted") val isDeleted: Boolean = false,
-    val reactions: String = "{}"
+    val reactions: String = "{}",
+    @SerialName("reply_to_id") val replyToId: String? = null,
+    @SerialName("reply_to_content") val replyToContent: String? = null,
+    @SerialName("reply_to_sender_id") val replyToSenderId: String? = null
 )
 
 @Serializable

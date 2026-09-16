@@ -10,5 +10,8 @@ data class Message(
     val serverTimestamp: Long? = null,
     val status: String,
     val isDeleted: Boolean = false,
-    val reactions: String = "{}"
+    val reactions: String = "{}",
+    val replyToId: String? = null,
+    val replyToContent: String? = null,
+    val replyToSenderId: String? = null
 )

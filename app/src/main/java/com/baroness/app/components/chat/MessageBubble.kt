@@ -1,6 +1,9 @@
 package com.baroness.app.components.chat
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +55,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.ui.text.style.TextOverflow
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.max
@@ -67,9 +71,11 @@ fun MessageBubble(
     hazeState: HazeState? = null,
     isFocusedMode: Boolean = false,
     isPreviewMode: Boolean = false, // New: Forces left alignment for sheets
+    isHighlighted: Boolean = false,
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null,
-    onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null
+    onReactionClick: ((Message, IntOffset, IntSize) -> Unit)? = null,
+    onReplyClick: ((String) -> Unit)? = null
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val bubbleTextStyle = typography.body.copy(
@@ -84,6 +90,12 @@ fun MessageBubble(
     var bubblePosition by remember { mutableStateOf(IntOffset.Zero) }
     var bubbleSize by remember { mutableStateOf(IntSize.Zero) }
     var isExpanded by remember { mutableStateOf(false) }
+
+    val highlightAlpha by animateFloatAsState(
+        targetValue = if (isHighlighted) 0.8f else 0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "highlightAlpha"
+    )
 
     // Master Style for Metadata (Independent System font for functional clarity)
     val masterMetaStyle = TextStyle(
@@ -177,49 +189,66 @@ fun MessageBubble(
                 )
             }
         } else {
-            ChatTextWithMetaLayout(
-            text = {
-                Column {
-                    PhestyText(
-                        text = message.content,
-                        style = bubbleTextStyle,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        maxLines = if (isExpanded) Int.MAX_VALUE else 10
+            Column {
+                // REPLY QUOTE (Hanging Quote)
+                if (message.replyToId != null) {
+                    ReplyQuote(
+                        replyToContent = message.replyToContent ?: "",
+                        replyToSenderId = message.replyToSenderId ?: "",
+                        participant = participant,
+                        theme = theme,
+                        typography = typography,
+                        onClick = { 
+                            message.replyToId?.let { id -> onReplyClick?.invoke(id) }
+                        }
                     )
-                    if (message.content.lines().size > 10 || message.content.length > 500) {
-                        Text(
-                            text = if (isExpanded) "Read less" else "... Read more",
-                            style = masterMetaStyle.copy(color = Color.White.copy(alpha = 0.9f), fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .clickable { isExpanded = !isExpanded }
-                                .padding(top = 4.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
-            },
-            meta = {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Min)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (message.editedAt != null) {
-                            Text(
-                                text = "Edited",
-                                style = masterMetaStyle.copy(
-                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                    color = Color.White.copy(alpha = 0.5f)
-                                )
+
+                ChatTextWithMetaLayout(
+                    text = {
+                        Column {
+                            PhestyText(
+                                text = message.content,
+                                style = bubbleTextStyle,
+                                color = Color.White,
+                                fontSize = 15.sp,
+                                maxLines = if (isExpanded) Int.MAX_VALUE else 10
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            if (message.content.lines().size > 10 || message.content.length > 500) {
+                                Text(
+                                    text = if (isExpanded) "Read less" else "... Read more",
+                                    style = masterMetaStyle.copy(color = Color.White.copy(alpha = 0.9f), fontWeight = FontWeight.Bold),
+                                    modifier = Modifier
+                                        .clickable { isExpanded = !isExpanded }
+                                        .padding(top = 4.dp)
+                                )
+                            }
                         }
-                        Text(text = formatTime(message.timestamp), style = masterMetaStyle)
-                        if (isOwn) {
-                            Spacer(modifier = Modifier.width(4.dp))
-                            StatusIndicator(status = message.status)
+                    },
+                    meta = {
+                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Min)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (message.editedAt != null) {
+                                    Text(
+                                        text = "Edited",
+                                        style = masterMetaStyle.copy(
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                            color = Color.White.copy(alpha = 0.5f)
+                                        )
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+                                Text(text = formatTime(message.timestamp), style = masterMetaStyle)
+                                if (isOwn) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    StatusIndicator(status = message.status)
+                                }
+                            }
                         }
                     }
-                }
+                )
             }
-        )
         }
     }
 
@@ -235,6 +264,7 @@ fun MessageBubble(
                         shape = bubbleShape
                     }
                     .background(backgroundColor, bubbleShape)
+                    .border(width = 2.dp, color = theme.glowColor.copy(alpha = highlightAlpha), shape = bubbleShape)
                     .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
                     .padding(start = if (isOwn) 12.dp else 28.dp, end = 12.dp, top = 6.dp, bottom = 6.dp)
             ) {
@@ -279,6 +309,7 @@ fun MessageBubble(
                                         }
                                     } else Modifier.background(backgroundColor, bubbleShape)
                                 )
+                                .border(width = 2.dp, color = theme.glowColor.copy(alpha = highlightAlpha), shape = bubbleShape)
                                 .border(width = 1.dp, color = if (isFriday) Color.Transparent else Color.White.copy(alpha = 0.2f), shape = bubbleShape)
                                 .combinedClickable(
                                     onClick = { },
@@ -310,6 +341,7 @@ fun MessageBubble(
                                     shape = bubbleShape
                                 }
                                 .background(backgroundColor, bubbleShape)
+                                .border(width = 2.dp, color = theme.glowColor.copy(alpha = highlightAlpha), shape = bubbleShape)
                                 .combinedClickable(
                                     onClick = { },
                                     onLongClick = {
@@ -334,6 +366,59 @@ fun MessageBubble(
                     onClick = { onReactionClick?.invoke(message, bubblePosition, bubbleSize) }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ReplyQuote(
+    replyToContent: String,
+    replyToSenderId: String,
+    participant: Participant?,
+    theme: com.baroness.app.models.AppTheme,
+    typography: com.baroness.app.ui.theme.ChatTypography,
+    onClick: () -> Unit
+) {
+    val senderName = when {
+        replyToSenderId == "friday" -> "FRIDAY"
+        replyToSenderId == participant?.id -> participant.displayName
+        else -> "You"
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.1f))
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(24.dp)
+                .background(theme.glowColor, RoundedCornerShape(1.dp))
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column {
+            Text(
+                text = senderName,
+                style = typography.body.copy(
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = theme.glowColor
+                )
+            )
+            Text(
+                text = replyToContent,
+                style = typography.body.copy(
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

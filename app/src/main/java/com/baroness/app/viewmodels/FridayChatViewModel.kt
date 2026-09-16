@@ -128,6 +128,19 @@ class FridayChatViewModel(
         }
     }
 
+    override fun onReplyMessage(text: String, replyTo: Message) {
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            repository.sendMessage(
+                conversationId = "friday",
+                content = text,
+                replyToId = replyTo.id,
+                replyToContent = replyTo.content,
+                replyToSenderId = replyTo.senderId
+            )
+        }
+    }
+
     override fun onReactToMessage(message: Message, emoji: String) {
         viewModelScope.launch {
             repository.reactToMessage(message.id, emoji)

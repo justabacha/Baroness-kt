@@ -131,6 +131,9 @@ class ChatRepository private constructor(context: Context) {
                 val senderId = payload["senderId"]?.jsonPrimitive?.content ?: return
                 val content = payload["content"]?.jsonPrimitive?.content ?: ""
                 val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
+                val replyToId = payload["replyToId"]?.jsonPrimitive?.contentOrNull
+                val replyToContent = payload["replyToContent"]?.jsonPrimitive?.contentOrNull
+                val replyToSenderId = payload["replyToSenderId"]?.jsonPrimitive?.contentOrNull
 
                 val entity = MessageEntity(
                     id = messageId,
@@ -138,7 +141,10 @@ class ChatRepository private constructor(context: Context) {
                     senderId = senderId,
                     content = content,
                     timestamp = timestamp,
-                    status = "SENT"
+                    status = "SENT",
+                    replyToId = replyToId,
+                    replyToContent = replyToContent,
+                    replyToSenderId = replyToSenderId
                 )
                 messageDao.insertMessage(entity)
                 Log.d(TAG, "Received message from pipe: $messageId")
@@ -168,7 +174,14 @@ class ChatRepository private constructor(context: Context) {
         }
     }
 
-    suspend fun sendMessage(conversationId: String, content: String, senderId: String? = null) {
+    suspend fun sendMessage(
+        conversationId: String, 
+        content: String, 
+        senderId: String? = null,
+        replyToId: String? = null,
+        replyToContent: String? = null,
+        replyToSenderId: String? = null
+    ) {
         val currentPersonaId = storageManager.getString("currentPersonaId") ?: "unknown"
         val actualSenderId = senderId ?: currentPersonaId
         val messageId = UUID.randomUUID().toString()
@@ -181,7 +194,10 @@ class ChatRepository private constructor(context: Context) {
             senderId = actualSenderId,
             content = content,
             timestamp = timestamp,
-            status = "PENDING"
+            status = "PENDING",
+            replyToId = replyToId,
+            replyToContent = replyToContent,
+            replyToSenderId = replyToSenderId
         )
         messageDao.insertMessage(entity)
 
@@ -248,7 +264,10 @@ class ChatRepository private constructor(context: Context) {
                         content = dto.content,
                         timestamp = parseIsoToLong(dto.createdAt),
                         status = "SENT",
-                        reactions = dto.reactions
+                        reactions = dto.reactions,
+                        replyToId = dto.replyToId,
+                        replyToContent = dto.replyToContent,
+                        replyToSenderId = dto.replyToSenderId
                     )
                 }
                 messageDao.insertMessages(entities)
@@ -408,7 +427,10 @@ class ChatRepository private constructor(context: Context) {
             serverTimestamp = serverTimestamp,
             status = status,
             isDeleted = isDeleted,
-            reactions = reactions
+            reactions = reactions,
+            replyToId = replyToId,
+            replyToContent = replyToContent,
+            replyToSenderId = replyToSenderId
         )
     }
 }

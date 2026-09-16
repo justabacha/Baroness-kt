@@ -73,6 +73,7 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatRoomScreen(
@@ -100,6 +101,8 @@ fun ChatRoomScreen(
     val clipboardManager = LocalClipboardManager.current
     val hazeState = remember { HazeState() }
     val overlayHazeState = remember { HazeState() }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     
     var contextMenuMessage by remember { mutableStateOf<Message?>(null) }
     var contextMenuOffset by remember { mutableStateOf(IntOffset.Zero) }
@@ -110,6 +113,8 @@ fun ChatRoomScreen(
     var quickReactSize by remember { mutableStateOf(IntSize.Zero) }
 
     var editingMessage by remember { mutableStateOf<Message?>(null) }
+    var replyingToMessage by remember { mutableStateOf<Message?>(null) }
+    var highlightedMessageId by remember { mutableStateOf<String?>(null) }
     
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
@@ -133,9 +138,10 @@ fun ChatRoomScreen(
         }
     }
 
-    if (editingMessage != null) {
+    if (editingMessage != null || replyingToMessage != null) {
         BackHandler {
             editingMessage = null
+            replyingToMessage = null
         }
     }
 
@@ -199,6 +205,8 @@ fun ChatRoomScreen(
                                     settingsViewModel = settingsViewModel,
                                     hazeState = hazeState,
                                     activeThemeId = activeThemeId,
+                                    listState = listState,
+                                    highlightedMessageId = highlightedMessageId,
                                     contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
                                     onLongPress = { msg, offset, size ->
                                         if (msg.isDeleted) {
@@ -215,6 +223,17 @@ fun ChatRoomScreen(
                                         quickReactMessage = msg
                                         quickReactOffset = offset
                                         quickReactSize = size
+                                    },
+                                    onReplyClick = { replyId ->
+                                        val index = state.messages.indexOfFirst { it.id == replyId }
+                                        if (index != -1) {
+                                            coroutineScope.launch {
+                                                listState.animateScrollToItem(index)
+                                                highlightedMessageId = replyId
+                                                kotlinx.coroutines.delay(2000)
+                                                highlightedMessageId = null
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -245,6 +264,13 @@ fun ChatRoomScreen(
                                     editingMessage = null
                                 }
                             },
+                            replyingToMessage = replyingToMessage,
+                            onCancelReply = { replyingToMessage = null },
+                            onConfirmReply = { text, replyTo ->
+                                viewModel.onReplyMessage(text, replyTo)
+                                replyingToMessage = null
+                            },
+                            participant = otherParticipant,
                             onSendMessage = { text ->
                                 // EMOJI MIRROR: Extract and update recent emojis from sent text
                                 EmojiMap.map.keys.forEach { emoji ->
@@ -303,6 +329,10 @@ fun ChatRoomScreen(
                 },
                 onCopy = {
                     clipboardManager.setText(AnnotatedString(message.content))
+                    contextMenuMessage = null
+                },
+                onReply = {
+                    replyingToMessage = message
                     contextMenuMessage = null
                 },
                 onEdit = {
