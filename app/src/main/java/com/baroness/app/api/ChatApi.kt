@@ -79,6 +79,20 @@ object ChatApi {
         }
     }
 
+    suspend fun markMessageAsDeleted(messageId: String): Boolean {
+        return try {
+            supabase.postgrest["messages"].update({
+                set("is_deleted", true)
+            }) {
+                filter { eq("id", messageId) }
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to mark message as deleted: ${e.message}")
+            false
+        }
+    }
+
     suspend fun pushToSyncPipe(recipientId: String, payload: JsonObject): Boolean {
         return try {
             val dto = SyncPipeDto(recipientId, payload)

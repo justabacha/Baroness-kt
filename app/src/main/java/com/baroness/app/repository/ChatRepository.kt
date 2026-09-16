@@ -120,23 +120,29 @@ class ChatRepository private constructor(context: Context) {
             val pipeId = record["id"]?.jsonPrimitive?.content ?: return
             val payload = record["payload"]?.jsonObject ?: return
             
+            val type = payload["type"]?.jsonPrimitive?.content ?: "NEW_MESSAGE"
             val messageId = payload["messageId"]?.jsonPrimitive?.content ?: return
-            val conversationId = payload["conversationId"]?.jsonPrimitive?.content ?: return
-            val senderId = payload["senderId"]?.jsonPrimitive?.content ?: return
-            val content = payload["content"]?.jsonPrimitive?.content ?: ""
-            val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
 
-            val entity = MessageEntity(
-                id = messageId,
-                conversationId = conversationId,
-                senderId = senderId,
-                content = content,
-                timestamp = timestamp,
-                status = "SENT"
-            )
-            
-            messageDao.insertMessage(entity)
-            Log.d(TAG, "Received message from pipe: $messageId. Purging pipe item $pipeId")
+            if (type == "DELETE_MESSAGE") {
+                messageDao.softDeleteMessage(messageId)
+                Log.d(TAG, "Soft-deleted message from pipe (Tombstone): $messageId")
+            } else {
+                val conversationId = payload["conversationId"]?.jsonPrimitive?.content ?: return
+                val senderId = payload["senderId"]?.jsonPrimitive?.content ?: return
+                val content = payload["content"]?.jsonPrimitive?.content ?: ""
+                val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
+
+                val entity = MessageEntity(
+                    id = messageId,
+                    conversationId = conversationId,
+                    senderId = senderId,
+                    content = content,
+                    timestamp = timestamp,
+                    status = "SENT"
+                )
+                messageDao.insertMessage(entity)
+                Log.d(TAG, "Received message from pipe: $messageId")
+            }
             
             // Cleanup: Delete from sync pipe once consumed
             ChatApi.deletePipeItem(pipeId)
@@ -286,8 +292,21 @@ class ChatRepository private constructor(context: Context) {
     }
 
     suspend fun deleteMessage(messageId: String) {
-        messageDao.softDeleteMessage(messageId)
-        // Sync delete logic to be implemented in SyncWorker/Api
+        messageDao.hardDeleteMessage(messageId)
+    }
+
+    suspend fun deleteMessageForMe(messageId: String) {
+        messageDao.hardDeleteMessage(messageId)
+    }
+
+    suspend fun deleteMessageForEveryone(messageId: String) {
+        val existing = messageDao.getMessageById(messageId) ?: return
+        val updated = existing.copy(
+            isDeleted = true,
+            status = "PENDING"
+        )
+        messageDao.updateMessage(updated)
+        triggerSync()
     }
 
     suspend fun editMessage(messageId: String, newContent: String) {

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface MessageDao {
 
-    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND isDeleted = 0 ORDER BY timestamp DESC")
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId ORDER BY timestamp DESC")
     fun getMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
 
     @Query("SELECT * FROM messages WHERE id = :messageId")

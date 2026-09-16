@@ -37,10 +37,10 @@ class ChatSyncWorker(
 
                 var allSuccess = true
                 for (message in pendingMessages) {
-                    val success = if (message.conversationId == "friday") {
-                        syncFridayMessage(message)
-                    } else {
-                        syncHumanMessage(message)
+                    val success = when {
+                        message.isDeleted -> syncDeleteMessage(message)
+                        message.conversationId == "friday" -> syncFridayMessage(message)
+                        else -> syncHumanMessage(message)
                     }
 
                     if (success) {
@@ -56,6 +56,23 @@ class ChatSyncWorker(
                 Result.retry()
             }
         }
+    }
+
+    private suspend fun syncDeleteMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
+        val remoteSuccess = ChatApi.markMessageAsDeleted(message.id)
+        if (!remoteSuccess) return false
+
+        // Notify other participant if human chat
+        if (message.conversationId != "friday") {
+            val receiverId = if (message.conversationId == "baroness") "baroness_official" else "phesty_official"
+            val pipePayload = buildJsonObject {
+                put("type", "DELETE_MESSAGE")
+                put("messageId", message.id)
+                put("conversationId", message.conversationId)
+            }
+            ChatApi.pushToSyncPipe(receiverId, pipePayload)
+        }
+        return true
     }
 
     private suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {

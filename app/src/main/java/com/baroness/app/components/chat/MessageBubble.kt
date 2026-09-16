@@ -49,6 +49,7 @@ import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.DoneAll
 import java.text.SimpleDateFormat
@@ -150,12 +151,33 @@ fun MessageBubble(
     }
 
     val shadowElevation = if (isFriday) 12.dp else 8.dp
-    val horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
-    val horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
+    val horizontalAlignment = if (isOwn && !isPreviewMode) Alignment.End else Alignment.Start
+    val horizontalArrangement = if (isOwn && !isPreviewMode) Arrangement.End else Arrangement.Start
 
     // Shared content block to ensure 1:1 twin fidelity between list and focus
     val bubbleContent = @Composable {
-        ChatTextWithMetaLayout(
+        if (message.isDeleted) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Block,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.4f),
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isOwn) "You deleted this message" else "This message was deleted",
+                    style = bubbleTextStyle.copy(
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                )
+            }
+        } else {
+            ChatTextWithMetaLayout(
             text = {
                 Column {
                     PhestyText(
@@ -190,6 +212,7 @@ fun MessageBubble(
                 }
             }
         )
+        }
     }
 
     if (isFocusedMode) {
@@ -293,14 +316,16 @@ fun MessageBubble(
                     }
                 }
             }
-            ReactionRow(
-                reactionsJson = message.reactions, 
-                modifier = Modifier.padding(
-                    start = if (isOwn && !isPreviewMode) 0.dp else if (isOwn && isPreviewMode) 10.dp else 32.dp,
-                    end = if (isOwn && !isPreviewMode) 8.dp else 0.dp
-                ),
-                onClick = { onReactionClick?.invoke(message, bubblePosition, bubbleSize) }
-            )
+            if (!message.isDeleted) {
+                ReactionRow(
+                    reactionsJson = message.reactions, 
+                    modifier = Modifier.padding(
+                        start = if (isOwn && !isPreviewMode) 0.dp else if (isOwn && isPreviewMode) 10.dp else 32.dp,
+                        end = if (isOwn && !isPreviewMode) 8.dp else 0.dp
+                    ),
+                    onClick = { onReactionClick?.invoke(message, bubblePosition, bubbleSize) }
+                )
+            }
         }
     }
 }

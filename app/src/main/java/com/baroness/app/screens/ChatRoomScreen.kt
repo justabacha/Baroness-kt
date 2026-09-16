@@ -16,6 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -108,6 +110,7 @@ fun ChatRoomScreen(
     var quickReactSize by remember { mutableStateOf(IntSize.Zero) }
     
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
+    var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
 
     var showEmojiPicker by remember { mutableStateOf(false) }
 
@@ -190,9 +193,15 @@ fun ChatRoomScreen(
                                     activeThemeId = activeThemeId,
                                     contentPadding = PaddingValues(bottom = 100.dp, top = 8.dp), // Space for floating island
                                     onLongPress = { msg, offset, size ->
-                                        contextMenuMessage = msg
-                                        contextMenuOffset = offset
-                                        contextMenuSize = size
+                                        if (msg.isDeleted) {
+                                            ghostDeleteTarget = msg
+                                            contextMenuOffset = offset
+                                            contextMenuSize = size
+                                        } else {
+                                            contextMenuMessage = msg
+                                            contextMenuOffset = offset
+                                            contextMenuSize = size
+                                        }
                                     },
                                     onReactionClick = { msg, offset, size ->
                                         quickReactMessage = msg
@@ -377,6 +386,53 @@ fun ChatRoomScreen(
             }
         )
 
+        // Ghost Delete Interaction (Standalone Trash Icon)
+        ghostDeleteTarget?.let { message ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { ghostDeleteTarget = null }
+                    )
+            ) {
+                BackHandler { ghostDeleteTarget = null }
+                
+                val isOwn = message.senderId == currentPersonaId
+                val bubbleRightPx = (contextMenuOffset.x + contextMenuSize.width).toFloat()
+                val bubbleLeftPx = contextMenuOffset.x.toFloat()
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .graphicsLayer {
+                            translationX = if (isOwn) {
+                                bubbleLeftPx - with(density) { 56.dp.toPx() }
+                            } else {
+                                bubbleRightPx + with(density) { 8.dp.toPx() }
+                            }
+                            translationY = contextMenuOffset.y.toFloat() + (contextMenuSize.height / 2f) - with(density) { 24.dp.toPx() }
+                        }
+                        .size(48.dp)
+                        .background(Color.Black.copy(alpha = 0.8f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+                        .clickable {
+                            viewModel.onDeleteMessageForMe(message)
+                            ghostDeleteTarget = null
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Hard Delete",
+                        tint = Color(0xFFFF8A80),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+        }
+
         // Delete Confirmation Overlay
         AnimatedVisibility(
             visible = deleteMessageForConfirmation != null,
@@ -393,10 +449,12 @@ fun ChatRoomScreen(
                     hazeState = overlayHazeState,
                     settingsViewModel = settingsViewModel,
                     onDeleteForMe = {
+                        viewModel.onDeleteMessageForMe(message)
                         ChatCommunicationActions.deleteForMe(context, message)
                         deleteMessageForConfirmation = null
                     },
                     onDeleteForEveryone = {
+                        viewModel.onDeleteMessageForEveryone(message)
                         ChatCommunicationActions.deleteForEveryone(context, message)
                         deleteMessageForConfirmation = null
                     },

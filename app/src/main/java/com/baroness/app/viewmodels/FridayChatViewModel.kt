@@ -110,9 +110,15 @@ class FridayChatViewModel(
         repository.sendMessage("friday", content, senderId = "friday")
     }
 
-    override fun onDeleteMessage(message: Message) {
+    override fun onDeleteMessageForMe(message: Message) {
         viewModelScope.launch {
-            repository.deleteMessage(message.id)
+            repository.deleteMessageForMe(message.id)
+        }
+    }
+
+    override fun onDeleteMessageForEveryone(message: Message) {
+        viewModelScope.launch {
+            repository.deleteMessageForMe(message.id) // For Friday, Everyone = Me
         }
     }
 

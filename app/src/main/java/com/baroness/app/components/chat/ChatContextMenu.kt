@@ -403,7 +403,6 @@ private fun ActionMenu(
                         text = "Delete", 
                         icon = Icons.Default.Delete, 
                         onClick = { 
-                            ChatCommunicationActions.delete(context, message)
                             onDelete()
                         }, 
                         typography = typography,

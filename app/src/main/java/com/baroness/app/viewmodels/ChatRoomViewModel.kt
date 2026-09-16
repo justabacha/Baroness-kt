@@ -13,7 +13,8 @@ abstract class ChatRoomViewModel : ViewModel() {
     abstract val otherParticipant: StateFlow<Participant?>
 
     abstract fun onSendMessage(text: String)
-    abstract fun onDeleteMessage(message: Message)
+    abstract fun onDeleteMessageForMe(message: Message)
+    abstract fun onDeleteMessageForEveryone(message: Message)
     abstract fun onEditMessage(message: Message, newContent: String)
     abstract fun onReactToMessage(message: Message, emoji: String)
     abstract fun setUserTyping(isTyping: Boolean)
