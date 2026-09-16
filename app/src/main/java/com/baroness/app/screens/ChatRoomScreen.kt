@@ -108,6 +108,8 @@ fun ChatRoomScreen(
     var quickReactMessage by remember { mutableStateOf<Message?>(null) }
     var quickReactOffset by remember { mutableStateOf(IntOffset.Zero) }
     var quickReactSize by remember { mutableStateOf(IntSize.Zero) }
+
+    var editingMessage by remember { mutableStateOf<Message?>(null) }
     
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
@@ -128,6 +130,12 @@ fun ChatRoomScreen(
             settingsViewModel.showWarning("Connecting to live chat...")
         } else {
             settingsViewModel.dismissWarning()
+        }
+    }
+
+    if (editingMessage != null) {
+        BackHandler {
+            editingMessage = null
         }
     }
 
@@ -229,6 +237,14 @@ fun ChatRoomScreen(
                             )
                         }
                         ChatInput(
+                            editingMessage = editingMessage,
+                            onCancelEdit = { editingMessage = null },
+                            onConfirmEdit = { newText ->
+                                if (editingMessage != null) {
+                                    viewModel.onEditMessage(editingMessage!!, newText)
+                                    editingMessage = null
+                                }
+                            },
                             onSendMessage = { text ->
                                 // EMOJI MIRROR: Extract and update recent emojis from sent text
                                 EmojiMap.map.keys.forEach { emoji ->
@@ -290,7 +306,7 @@ fun ChatRoomScreen(
                     contextMenuMessage = null
                 },
                 onEdit = {
-                    viewModel.onEditMessage(message, message.content)
+                    editingMessage = message
                     contextMenuMessage = null
                 },
                 onDelete = {

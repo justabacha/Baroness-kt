@@ -39,10 +39,19 @@ import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.blur.HazeColorEffect
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
+import com.baroness.app.models.Message
+
 @Composable
 fun ChatInput(
     onSendMessage: (String) -> Unit,
     onAttachmentClick: () -> Unit,
+    editingMessage: Message? = null,
+    onCancelEdit: () -> Unit = {},
+    onConfirmEdit: (String) -> Unit = {},
     settingsViewModel: SettingsViewModel? = null,
     hazeState: HazeState? = null,
     activeThemeId: String = "lavender",
@@ -50,6 +59,14 @@ fun ChatInput(
 ) {
     var text by remember { mutableStateOf("") }
     val typography = rememberChatTypography(settingsViewModel)
+
+    LaunchedEffect(editingMessage) {
+        if (editingMessage != null) {
+            text = editingMessage.content
+        } else {
+            text = ""
+        }
+    }
     
     val theme = SettingsOptions.themes.find { it.id == activeThemeId } ?: SettingsOptions.LavenderTheme
     val isSendEnabled = text.isNotBlank()
@@ -65,15 +82,92 @@ fun ChatInput(
         blurRadius = 4f
     )
 
-    Row(
+    val isEditing = editingMessage != null
+    val containerBg by animateColorAsState(
+        targetValue = if (isEditing) Color.Black.copy(alpha = 0.92f) else Color.Transparent,
+        label = "containerBg"
+    )
+    val horizontalPadding by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isEditing) 0.dp else 20.dp,
+        label = "horizontalPadding"
+    )
+    val innerPadding by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isEditing) 16.dp else 0.dp,
+        label = "innerPadding"
+    )
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 12.dp)
+            .background(containerBg)
+            .then(
+                if (isEditing && hazeState != null) {
+                    Modifier.hazeEffect(state = hazeState) {
+                        blurEffect {
+                            blurRadius = 20.dp
+                            colorEffects = listOf(HazeColorEffect.tint(Color.Black.copy(alpha = 0.4f)))
+                        }
+                    }
+                } else Modifier
+            )
             .navigationBarsPadding()
-            .imePadding(),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+            .imePadding()
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = horizontalPadding, vertical = 12.dp)
+                .padding(horizontal = innerPadding),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (editingMessage != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editing Mode",
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Editing message...",
+                        style = typography.body.copy(
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        ),
+                        maxLines = 1
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Cancel Edit",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onCancelEdit
+                        )
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         // Attachment Satellite Island
         Box(
             modifier = Modifier
@@ -184,20 +278,37 @@ fun ChatInput(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     onClick = {
-                        onSendMessage(text)
+                        if (editingMessage != null) {
+                            onConfirmEdit(text)
+                        } else {
+                            onSendMessage(text)
+                        }
                         text = ""
                     }
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.Send,
-                contentDescription = "Send",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            AnimatedContent(targetState = editingMessage != null, label = "sendIconMorph") { isEditing ->
+                if (isEditing) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = "Confirm Edit",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         }
     }
+}
+}
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF000000)

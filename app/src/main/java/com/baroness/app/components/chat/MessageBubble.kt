@@ -200,14 +200,22 @@ fun MessageBubble(
             },
             meta = {
                 Column(horizontalAlignment = Alignment.End, modifier = Modifier.width(IntrinsicSize.Min)) {
-                    if (isOwn) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = formatTime(message.timestamp), style = masterMetaStyle)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (message.editedAt != null) {
+                            Text(
+                                text = "Edited",
+                                style = masterMetaStyle.copy(
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                    color = Color.White.copy(alpha = 0.5f)
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Text(text = formatTime(message.timestamp), style = masterMetaStyle)
+                        if (isOwn) {
                             Spacer(modifier = Modifier.width(4.dp))
                             StatusIndicator(status = message.status)
                         }
-                    } else {
-                        Text(text = formatTime(message.timestamp), style = masterMetaStyle)
                     }
                 }
             }

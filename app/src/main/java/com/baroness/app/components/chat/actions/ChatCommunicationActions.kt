@@ -11,7 +11,7 @@ object ChatCommunicationActions {
     }
 
     fun edit(message: Message) {
-        // Implementation later
+        // Handled via state tracking inside ChatRoomScreen
     }
 
     fun unsend(context: Context, message: Message) {
