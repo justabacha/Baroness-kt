@@ -122,6 +122,7 @@ fun ChatRoomScreen(
     var messageInfoTarget by remember { mutableStateOf<Message?>(null) }
     var translationTarget by remember { mutableStateOf<Message?>(null) }
     var askFridayTarget by remember { mutableStateOf<Message?>(null) }
+    var showComingSoon by remember { mutableStateOf(false) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
     var showPinnedLedger by remember { mutableStateOf(false) }
 
@@ -416,6 +417,10 @@ fun ChatRoomScreen(
                     askFridayTarget = message
                     contextMenuMessage = null
                 },
+                onComingSoon = {
+                    showComingSoon = true
+                    contextMenuMessage = null
+                },
                 onShowEmojiPicker = {
                     showEmojiPicker = true
                 }
@@ -648,6 +653,22 @@ fun ChatRoomScreen(
                     }
                 )
             }
+        }
+
+        // Coming Soon Overlay
+        AnimatedVisibility(
+            visible = showComingSoon,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            ComingSoonSheet(
+                hazeState = overlayHazeState,
+                settingsViewModel = settingsViewModel,
+                onDismiss = {
+                    showComingSoon = false
+                }
+            )
         }
     }
 }

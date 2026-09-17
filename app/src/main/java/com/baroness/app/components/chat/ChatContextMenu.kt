@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.HorizontalDivider
@@ -83,6 +84,7 @@ fun ChatContextMenu(
     onInfo: () -> Unit,
     onTranslate: () -> Unit,
     onAskFriday: () -> Unit,
+    onComingSoon: () -> Unit,
     onTogglePin: (Message) -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
@@ -101,7 +103,7 @@ fun ChatContextMenu(
     LaunchedEffect(Unit) { 
         isLaunched = true 
         while(true) {
-            delay(10000) // Update every 10s for window accuracy
+            delay(10000)
             currentTime = System.currentTimeMillis()
         }
     }
@@ -249,6 +251,7 @@ fun ChatContextMenu(
                     onInfo = onInfo,
                     onTranslate = onTranslate,
                     onAskFriday = onAskFriday,
+                    onComingSoon = onComingSoon,
                     onMore = { isMoreOpen = true },
                     modifier = Modifier.onGloballyPositioned { menuHeight = it.size.height }
                 )
@@ -281,15 +284,16 @@ fun ChatContextMenu(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            ObsidianSheet(
-                message = message,
-                hazeState = hazeState,
-                settingsViewModel = settingsViewModel,
-                onDismiss = { isMoreOpen = false },
-                onTogglePin = onTogglePin,
-                onTranslate = onTranslate,
-                onAskFriday = onAskFriday
-            )
+                ObsidianSheet(
+                    message = message,
+                    hazeState = hazeState,
+                    settingsViewModel = settingsViewModel,
+                    onDismiss = { isMoreOpen = false },
+                    onTogglePin = onTogglePin,
+                    onTranslate = onTranslate,
+                    onAskFriday = onAskFriday,
+                    onComingSoon = onComingSoon
+                )
         }
     }
 }
@@ -309,6 +313,7 @@ private fun ActionMenu(
     onInfo: () -> Unit,
     onTranslate: () -> Unit,
     onAskFriday: () -> Unit,
+    onComingSoon: () -> Unit,
     onMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     onReply: () -> Unit
@@ -451,7 +456,8 @@ private fun ObsidianSheet(
     onDismiss: () -> Unit,
     onTogglePin: (Message) -> Unit,
     onTranslate: () -> Unit,
-    onAskFriday: () -> Unit
+    onAskFriday: () -> Unit,
+    onComingSoon: () -> Unit
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -508,7 +514,7 @@ private fun ObsidianSheet(
                 onAskFriday()
             }
             SheetItem("Star", Icons.Default.Star, typography) { 
-                ChatRepositoryActions.star(context, message)
+                onComingSoon()
             }
             SheetItem(if (message.isPinned) "Unpin Message" else "Pin Message", Icons.Default.PushPin, typography) { 
                 onTogglePin(message)
@@ -518,19 +524,19 @@ private fun ObsidianSheet(
                 onTranslate()
             }
             SheetItem("Remind Me", Icons.Default.Notifications, typography) { 
-                ChatRepositoryActions.remindMe(message)
+                onComingSoon()
             }
             SheetItem("Search Within Chat", Icons.Default.Search, typography) { 
-                ChatUtilityActions.searchWithinChat(message)
+                onComingSoon()
             }
             SheetItem("Share", Icons.Default.Share, typography) { 
-                ChatUtilityActions.share(message)
+                onComingSoon()
             }
-            SheetItem("Read Aloud", Icons.Default.VolumeUp, typography) { 
-                ChatUtilityActions.readAloud(message)
+            SheetItem("Read Aloud", Icons.AutoMirrored.Filled.VolumeUp, typography) { 
+                onComingSoon()
             }
             SheetItem("Create a Wish", Icons.Default.Event, typography) { 
-                ChatRepositoryActions.createWish(context, message)
+                onComingSoon()
             }
             
             Spacer(modifier = Modifier.height(32.dp))
