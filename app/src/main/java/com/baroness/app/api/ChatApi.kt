@@ -28,7 +28,8 @@ data class MessageDto(
     @SerialName("reply_to_id") val replyToId: String? = null,
     @SerialName("reply_to_content") val replyToContent: String? = null,
     @SerialName("reply_to_sender_id") val replyToSenderId: String? = null,
-    @SerialName("delivered_at") val deliveredAt: String? = null
+    @SerialName("delivered_at") val deliveredAt: String? = null,
+    @SerialName("is_pinned") val isPinned: Boolean = false
 )
 
 @Serializable
@@ -37,7 +38,8 @@ data class FridayMessageDto(
     @SerialName("owner_id") val ownerId: String,
     val sender: String,
     val message: String,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("is_pinned") val isPinned: Boolean = false
 )
 
 @Serializable

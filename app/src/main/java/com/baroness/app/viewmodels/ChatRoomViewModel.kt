@@ -11,6 +11,7 @@ abstract class ChatRoomViewModel : ViewModel() {
     abstract val isTyping: StateFlow<Boolean>
     abstract val isSubscribed: StateFlow<Boolean>
     abstract val otherParticipant: StateFlow<Participant?>
+    abstract val pinnedMessages: StateFlow<List<Message>>
 
     abstract fun onSendMessage(text: String)
     abstract fun onDeleteMessageForMe(message: Message)
@@ -18,5 +19,6 @@ abstract class ChatRoomViewModel : ViewModel() {
     abstract fun onEditMessage(message: Message, newContent: String)
     abstract fun onReplyMessage(text: String, replyTo: Message)
     abstract fun onReactToMessage(message: Message, emoji: String)
+    abstract fun onTogglePinMessage(message: Message)
     abstract fun setUserTyping(isTyping: Boolean)
 }

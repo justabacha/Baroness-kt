@@ -91,7 +91,8 @@ class ChatSyncWorker(
             replyToContent = message.replyToContent,
             replyToSenderId = message.replyToSenderId,
             deliveredAt = message.deliveredAt?.let { formatLongToIso(it) },
-            readAt = message.readAt?.let { formatLongToIso(it) }
+            readAt = message.readAt?.let { formatLongToIso(it) },
+            isPinned = message.isPinned
         )
 
         val sentToMessages = ChatApi.sendMessage(dto)
@@ -109,6 +110,7 @@ class ChatSyncWorker(
             message.replyToSenderId?.let { put("replyToSenderId", it) }
             message.deliveredAt?.let { put("deliveredAt", it) }
             message.readAt?.let { put("readAt", it) }
+            put("isPinned", message.isPinned)
         }
         val sentToPipe = ChatApi.pushToSyncPipe(receiverId, pipePayload)
 
@@ -122,7 +124,8 @@ class ChatSyncWorker(
             ownerId = currentPersonaId, // User who owns the conversation
             sender = message.senderId,   // Either user's ID or "friday"
             message = message.content,
-            createdAt = formatLongToIso(message.timestamp)
+            createdAt = formatLongToIso(message.timestamp),
+            isPinned = message.isPinned
         )
         return ChatApi.sendFridayMessage(dto)
     }

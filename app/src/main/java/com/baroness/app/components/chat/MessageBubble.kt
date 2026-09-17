@@ -69,7 +69,7 @@ fun MessageBubble(
     activeThemeId: String = SettingsOptions.DEFAULT_THEME_ID,
     hazeState: HazeState? = null,
     isFocusedMode: Boolean = false,
-    isPreviewMode: Boolean = false, // New: Forces left alignment for sheets
+    isPreviewMode: Boolean = false,
     isHighlighted: Boolean = false,
     modifier: Modifier = Modifier,
     onLongPress: ((Message, IntOffset, IntSize) -> Unit)? = null,

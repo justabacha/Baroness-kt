@@ -81,6 +81,7 @@ fun ChatContextMenu(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onInfo: () -> Unit,
+    onTogglePin: (Message) -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
     var isLaunched by remember { mutableStateOf(false) }
@@ -280,7 +281,8 @@ fun ChatContextMenu(
                 message = message,
                 hazeState = hazeState,
                 settingsViewModel = settingsViewModel,
-                onDismiss = { isMoreOpen = false }
+                onDismiss = { isMoreOpen = false },
+                onTogglePin = onTogglePin
             )
         }
     }
@@ -438,7 +440,8 @@ private fun ObsidianSheet(
     message: Message,
     hazeState: HazeState?,
     settingsViewModel: SettingsViewModel?,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onTogglePin: (Message) -> Unit
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -496,8 +499,9 @@ private fun ObsidianSheet(
             SheetItem("Star", Icons.Default.Star, typography) { 
                 ChatRepositoryActions.star(context, message)
             }
-            SheetItem("Pin", Icons.Default.PushPin, typography) { 
-                ChatRepositoryActions.pin(message)
+            SheetItem(if (message.isPinned) "Unpin Message" else "Pin Message", Icons.Default.PushPin, typography) { 
+                onTogglePin(message)
+                // Removed onDismiss() here because the Screen now handles total closure
             }
             SheetItem("Translate", Icons.Default.Translate, typography) { 
                 ChatUtilityActions.translate(message)

@@ -136,6 +136,7 @@ class ChatRepository private constructor(context: Context) {
                 val replyToSenderId = payload["replyToSenderId"]?.jsonPrimitive?.contentOrNull
                 val deliveredAt = payload["deliveredAt"]?.jsonPrimitive?.longOrNull
                 val readAt = payload["readAt"]?.jsonPrimitive?.longOrNull
+                val isPinned = payload["isPinned"]?.jsonPrimitive?.booleanOrNull ?: false
 
                 val entity = MessageEntity(
                     id = messageId,
@@ -148,7 +149,8 @@ class ChatRepository private constructor(context: Context) {
                     replyToContent = replyToContent,
                     replyToSenderId = replyToSenderId,
                     deliveredAt = deliveredAt,
-                    readAt = readAt
+                    readAt = readAt,
+                    isPinned = isPinned
                 )
                 messageDao.insertMessage(entity)
                 Log.d(TAG, "Received message from pipe: $messageId")
@@ -176,6 +178,22 @@ class ChatRepository private constructor(context: Context) {
         return messageDao.getMessagesForConversation(conversationId).map { entities ->
             entities.map { it.toDomain() }
         }
+    }
+
+    fun getPinnedMessages(conversationId: String): Flow<List<Message>> {
+        return messageDao.getPinnedMessagesForConversation(conversationId).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    suspend fun togglePinMessage(messageId: String) {
+        val existing = messageDao.getMessageById(messageId) ?: return
+        val updated = existing.copy(
+            isPinned = !existing.isPinned,
+            status = "PENDING"
+        )
+        messageDao.updateMessage(updated)
+        triggerSync()
     }
 
     suspend fun sendMessage(
@@ -254,7 +272,8 @@ class ChatRepository private constructor(context: Context) {
                         senderId = dto.sender,
                         content = dto.message,
                         timestamp = parseIsoToLong(dto.createdAt),
-                        status = "SENT"
+                        status = "SENT",
+                        isPinned = dto.isPinned
                     )
                 }
                 messageDao.insertMessages(entities)
@@ -273,7 +292,8 @@ class ChatRepository private constructor(context: Context) {
                         replyToContent = dto.replyToContent,
                         replyToSenderId = dto.replyToSenderId,
                         deliveredAt = parseIsoToLong(dto.deliveredAt),
-                        readAt = parseIsoToLong(dto.readAt)
+                        readAt = parseIsoToLong(dto.readAt),
+                        isPinned = dto.isPinned
                     )
                 }
                 messageDao.insertMessages(entities)
@@ -438,7 +458,8 @@ class ChatRepository private constructor(context: Context) {
             replyToContent = replyToContent,
             replyToSenderId = replyToSenderId,
             deliveredAt = deliveredAt,
-            readAt = readAt
+            readAt = readAt,
+            isPinned = isPinned
         )
     }
 }

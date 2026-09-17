@@ -40,4 +40,10 @@ interface MessageDao {
 
     @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND isDeleted = 0 ORDER BY timestamp DESC LIMIT 1")
     fun getLastMessageForConversation(conversationId: String): Flow<MessageEntity?>
+
+    @Query("SELECT * FROM messages WHERE conversationId = :conversationId AND isPinned = 1 AND isDeleted = 0 ORDER BY timestamp DESC")
+    fun getPinnedMessagesForConversation(conversationId: String): Flow<List<MessageEntity>>
+
+    @Query("UPDATE messages SET isPinned = :isPinned WHERE id = :messageId")
+    suspend fun updatePinnedStatus(messageId: String, isPinned: Boolean)
 }

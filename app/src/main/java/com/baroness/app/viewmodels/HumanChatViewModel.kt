@@ -31,6 +31,13 @@ class HumanChatViewModel(
             initialValue = ChatRoomUiState.Loading
         )
 
+    override val pinnedMessages: StateFlow<List<Message>> = repository.getPinnedMessages(conversationId)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     init {
         fetchParticipant()
         observeTyping()
@@ -122,6 +129,12 @@ class HumanChatViewModel(
     override fun onReactToMessage(message: Message, emoji: String) {
         viewModelScope.launch {
             repository.reactToMessage(message.id, emoji)
+        }
+    }
+
+    override fun onTogglePinMessage(message: Message) {
+        viewModelScope.launch {
+            repository.togglePinMessage(message.id)
         }
     }
 

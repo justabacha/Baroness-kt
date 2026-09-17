@@ -41,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -89,6 +90,7 @@ fun ChatRoomScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val otherParticipant by viewModel.otherParticipant.collectAsStateWithLifecycle()
     val isOtherTyping by viewModel.isTyping.collectAsStateWithLifecycle()
+    val pinnedMessages by viewModel.pinnedMessages.collectAsStateWithLifecycle()
     val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
     val activeThemeId by settingsViewModel.activeTheme.collectAsStateWithLifecycle()
     
@@ -119,6 +121,7 @@ fun ChatRoomScreen(
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
     var messageInfoTarget by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
+    var showPinnedLedger by remember { mutableStateOf(false) }
 
     var showEmojiPicker by remember { mutableStateOf(false) }
 
@@ -293,6 +296,11 @@ fun ChatRoomScreen(
             // Floating Ghost Header (Zero-Surface)
             ChatTopBar(
                 participant = otherParticipant,
+                pinnedMessages = pinnedMessages,
+                activeThemeId = activeThemeId,
+                settingsViewModel = settingsViewModel,
+                hazeState = hazeState,
+                onPinnedPillClick = { showPinnedLedger = !showPinnedLedger },
                 onBack = { navController.popBackStack() },
                 typography = chatTypography,
                 modifier = Modifier.statusBarsPadding(),
@@ -303,6 +311,52 @@ fun ChatRoomScreen(
                     }
                 }
             )
+
+            // Pinned Messages Dropdown
+            if (showPinnedLedger) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { showPinnedLedger = false }
+                        )
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .padding(top = 64.dp), // Height of TopBar
+                contentAlignment = Alignment.TopCenter
+            ) {
+                AnimatedVisibility(
+                    visible = showPinnedLedger,
+                    enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+                ) {
+                    PinnedMessagesLedger(
+                        pinnedMessages = pinnedMessages,
+                        activeThemeId = activeThemeId,
+                        settingsViewModel = settingsViewModel,
+                        hazeState = hazeState,
+                        onMessageClick = { msg ->
+                            val index = (uiState as? ChatRoomUiState.Success)?.messages?.indexOfFirst { it.id == msg.id } ?: -1
+                            if (index != -1) {
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(index)
+                                    highlightedMessageId = msg.id
+                                    kotlinx.coroutines.delay(2000)
+                                    highlightedMessageId = null
+                                }
+                            }
+                        },
+                        onDismiss = { showPinnedLedger = false }
+                    )
+                }
+            }
         }
 
         TopWarningBanner(
@@ -347,6 +401,10 @@ fun ChatRoomScreen(
                 onInfo = {
                     messageInfoTarget = message
                     contextMenuMessage = null
+                },
+                onTogglePin = { msg ->
+                    viewModel.onTogglePinMessage(msg)
+                    contextMenuMessage = null // Action complete: Close the entire context layer
                 },
                 onShowEmojiPicker = {
                     showEmojiPicker = true
@@ -544,6 +602,11 @@ fun ChatRoomScreen(
 @Composable
 fun ChatTopBar(
     participant: Participant?,
+    pinnedMessages: List<Message>,
+    activeThemeId: String,
+    settingsViewModel: SettingsViewModel,
+    hazeState: HazeState?,
+    onPinnedPillClick: () -> Unit,
     onBack: () -> Unit,
     typography: ChatTypography,
     modifier: Modifier = Modifier,
@@ -560,7 +623,10 @@ fun ChatTopBar(
         modifier = modifier,
         windowInsets = WindowInsets(0),
         title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 // Avatar with crisp dual-border tracing for separation on any wallpaper
                 Box(
                     modifier = Modifier
@@ -586,11 +652,13 @@ fun ChatTopBar(
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = participant?.displayName ?: "Loading...",
                         style = typography.title.copy(shadow = textOutlineShadow),
-                        color = Color.White
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (participant?.id == "friday") "Friday AI" else "Online",
@@ -598,6 +666,15 @@ fun ChatTopBar(
                         color = Color.White.copy(alpha = 0.9f)
                     )
                 }
+
+                PinnedMessagesPill(
+                    pinnedMessages = pinnedMessages,
+                    activeThemeId = activeThemeId,
+                    settingsViewModel = settingsViewModel,
+                    hazeState = hazeState,
+                    onClick = onPinnedPillClick,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
             }
         },
         navigationIcon = {

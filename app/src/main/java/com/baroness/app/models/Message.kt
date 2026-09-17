@@ -15,5 +15,6 @@ data class Message(
     val replyToContent: String? = null,
     val replyToSenderId: String? = null,
     val deliveredAt: Long? = null,
-    val readAt: Long? = null
+    val readAt: Long? = null,
+    val isPinned: Boolean = false
 )

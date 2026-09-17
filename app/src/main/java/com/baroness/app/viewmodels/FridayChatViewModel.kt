@@ -44,6 +44,13 @@ class FridayChatViewModel(
             initialValue = ChatRoomUiState.Loading
         )
 
+    override val pinnedMessages: StateFlow<List<Message>> = repository.getPinnedMessages("friday")
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     init {
         // Removed auto-fetch to respect offline-first/restore-only architecture
     }
@@ -144,6 +151,12 @@ class FridayChatViewModel(
     override fun onReactToMessage(message: Message, emoji: String) {
         viewModelScope.launch {
             repository.reactToMessage(message.id, emoji)
+        }
+    }
+
+    override fun onTogglePinMessage(message: Message) {
+        viewModelScope.launch {
+            repository.togglePinMessage(message.id)
         }
     }
 
