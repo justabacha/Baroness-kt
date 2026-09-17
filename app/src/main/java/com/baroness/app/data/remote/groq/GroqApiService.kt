@@ -51,6 +51,22 @@ class GroqApiService {
         return performRequest(messages)
     }
 
+    suspend fun analyzeMessage(text: String, mode: String): String? {
+        val systemPrompt = when (mode) {
+            "Analyze Intent" -> "You are Friday, the Baroness Analyst. Analyze the intent of this message. What is the sender actually trying to achieve? Keep it concise and witty."
+            "Detect Sarcasm" -> "You are Friday, the Baroness Analyst. Check this message for sarcasm or hidden subtext. Is the sender being serious? Keep it concise and witty."
+            "Summarize Context" -> "You are Friday, the Baroness Analyst. Provide a brief summary of what this message means in a social context. Keep it concise and witty."
+            "Suggest a Reply" -> "You are Friday, the Baroness Analyst. Suggest a high-vibe, witty reply to this message that matches the Baroness aesthetic. Keep it concise."
+            else -> "You are Friday, the Baroness Analyst. Analyze this message and provide insights. Keep it concise and witty."
+        }
+
+        val messages = listOf(
+            GroqMessage(role = "system", content = systemPrompt),
+            GroqMessage(role = "user", content = text)
+        )
+        return performRequest(messages)
+    }
+
     private suspend fun performRequest(messages: List<GroqMessage>): String? {
         if (apiKeys.isEmpty()) {
             Log.e(TAG, "No Groq API Keys found in BuildConfig!")

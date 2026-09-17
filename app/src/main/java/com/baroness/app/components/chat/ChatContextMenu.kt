@@ -82,6 +82,7 @@ fun ChatContextMenu(
     onDelete: () -> Unit,
     onInfo: () -> Unit,
     onTranslate: () -> Unit,
+    onAskFriday: () -> Unit,
     onTogglePin: (Message) -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
@@ -247,6 +248,7 @@ fun ChatContextMenu(
                     onDelete = onDelete,
                     onInfo = onInfo,
                     onTranslate = onTranslate,
+                    onAskFriday = onAskFriday,
                     onMore = { isMoreOpen = true },
                     modifier = Modifier.onGloballyPositioned { menuHeight = it.size.height }
                 )
@@ -285,7 +287,8 @@ fun ChatContextMenu(
                 settingsViewModel = settingsViewModel,
                 onDismiss = { isMoreOpen = false },
                 onTogglePin = onTogglePin,
-                onTranslate = onTranslate
+                onTranslate = onTranslate,
+                onAskFriday = onAskFriday
             )
         }
     }
@@ -305,6 +308,7 @@ private fun ActionMenu(
     onDelete: () -> Unit,
     onInfo: () -> Unit,
     onTranslate: () -> Unit,
+    onAskFriday: () -> Unit,
     onMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     onReply: () -> Unit
@@ -446,7 +450,8 @@ private fun ObsidianSheet(
     settingsViewModel: SettingsViewModel?,
     onDismiss: () -> Unit,
     onTogglePin: (Message) -> Unit,
-    onTranslate: () -> Unit
+    onTranslate: () -> Unit,
+    onAskFriday: () -> Unit
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -500,6 +505,7 @@ private fun ObsidianSheet(
         ) {
             SheetItem("Ask Friday", Icons.Default.AutoAwesome, typography) { 
                 ChatFridayActions.askFriday(message)
+                onAskFriday()
             }
             SheetItem("Star", Icons.Default.Star, typography) { 
                 ChatRepositoryActions.star(context, message)

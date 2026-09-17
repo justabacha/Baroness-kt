@@ -121,6 +121,7 @@ fun ChatRoomScreen(
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
     var messageInfoTarget by remember { mutableStateOf<Message?>(null) }
     var translationTarget by remember { mutableStateOf<Message?>(null) }
+    var askFridayTarget by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
     var showPinnedLedger by remember { mutableStateOf(false) }
 
@@ -411,6 +412,10 @@ fun ChatRoomScreen(
                     translationTarget = message
                     contextMenuMessage = null
                 },
+                onAskFriday = {
+                    askFridayTarget = message
+                    contextMenuMessage = null
+                },
                 onShowEmojiPicker = {
                     showEmojiPicker = true
                 }
@@ -618,6 +623,28 @@ fun ChatRoomScreen(
                     settingsViewModel = settingsViewModel,
                     onDismiss = {
                         translationTarget = null
+                    }
+                )
+            }
+        }
+
+        // Ask Friday Overlay
+        AnimatedVisibility(
+            visible = askFridayTarget != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            askFridayTarget?.let { message ->
+                AskFridaySheet(
+                    message = message,
+                    isOwn = message.senderId == currentPersonaId,
+                    participant = otherParticipant,
+                    activeThemeId = activeThemeId,
+                    hazeState = overlayHazeState,
+                    settingsViewModel = settingsViewModel,
+                    onDismiss = {
+                        askFridayTarget = null
                     }
                 )
             }
