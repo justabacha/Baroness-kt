@@ -211,10 +211,11 @@ private fun InfoRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
+        com.baroness.app.components.PhestyText(
             text = label,
             style = typography.body.copy(fontSize = 16.sp),
-            color = Color.White.copy(alpha = 0.7f)
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 16.sp
         )
         Text(
             text = value,

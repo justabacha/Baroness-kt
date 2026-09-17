@@ -423,14 +423,15 @@ private fun ReplyQuote(
                     color = theme.glowColor
                 )
             )
-            Text(
+            com.baroness.app.components.PhestyText(
                 text = replyToContent,
                 style = typography.body.copy(
                     fontSize = 10.sp,
                     color = Color.White.copy(alpha = 0.85f)
                 ),
+                fontSize = 10.sp,
                 maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
     }

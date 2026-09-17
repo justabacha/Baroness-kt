@@ -217,14 +217,15 @@ fun ChatInput(
                                         color = theme.glowColor
                                     )
                                 )
-                                Text(
+                                com.baroness.app.components.PhestyText(
                                     text = msg.content,
                                     style = typography.body.copy(
                                         fontSize = 13.sp,
                                         color = Color.White.copy(alpha = 0.6f)
                                     ),
+                                    fontSize = 13.sp,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -371,8 +372,8 @@ fun ChatInput(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            AnimatedContent(targetState = isFocusedMode, label = "sendIconMorph") { focused ->
-                if (focused) {
+            AnimatedContent(targetState = isEditing, label = "sendIconMorph") { editing ->
+                if (editing) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Confirm",
