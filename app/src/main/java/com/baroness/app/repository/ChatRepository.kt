@@ -134,6 +134,8 @@ class ChatRepository private constructor(context: Context) {
                 val replyToId = payload["replyToId"]?.jsonPrimitive?.contentOrNull
                 val replyToContent = payload["replyToContent"]?.jsonPrimitive?.contentOrNull
                 val replyToSenderId = payload["replyToSenderId"]?.jsonPrimitive?.contentOrNull
+                val deliveredAt = payload["deliveredAt"]?.jsonPrimitive?.longOrNull
+                val readAt = payload["readAt"]?.jsonPrimitive?.longOrNull
 
                 val entity = MessageEntity(
                     id = messageId,
@@ -144,7 +146,9 @@ class ChatRepository private constructor(context: Context) {
                     status = "SENT",
                     replyToId = replyToId,
                     replyToContent = replyToContent,
-                    replyToSenderId = replyToSenderId
+                    replyToSenderId = replyToSenderId,
+                    deliveredAt = deliveredAt,
+                    readAt = readAt
                 )
                 messageDao.insertMessage(entity)
                 Log.d(TAG, "Received message from pipe: $messageId")
@@ -267,7 +271,9 @@ class ChatRepository private constructor(context: Context) {
                         reactions = dto.reactions,
                         replyToId = dto.replyToId,
                         replyToContent = dto.replyToContent,
-                        replyToSenderId = dto.replyToSenderId
+                        replyToSenderId = dto.replyToSenderId,
+                        deliveredAt = parseIsoToLong(dto.deliveredAt),
+                        readAt = parseIsoToLong(dto.readAt)
                     )
                 }
                 messageDao.insertMessages(entities)
@@ -430,7 +436,9 @@ class ChatRepository private constructor(context: Context) {
             reactions = reactions,
             replyToId = replyToId,
             replyToContent = replyToContent,
-            replyToSenderId = replyToSenderId
+            replyToSenderId = replyToSenderId,
+            deliveredAt = deliveredAt,
+            readAt = readAt
         )
     }
 }

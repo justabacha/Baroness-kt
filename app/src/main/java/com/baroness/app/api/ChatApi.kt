@@ -27,7 +27,8 @@ data class MessageDto(
     val reactions: String = "{}",
     @SerialName("reply_to_id") val replyToId: String? = null,
     @SerialName("reply_to_content") val replyToContent: String? = null,
-    @SerialName("reply_to_sender_id") val replyToSenderId: String? = null
+    @SerialName("reply_to_sender_id") val replyToSenderId: String? = null,
+    @SerialName("delivered_at") val deliveredAt: String? = null
 )
 
 @Serializable

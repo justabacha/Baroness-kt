@@ -80,6 +80,7 @@ fun ChatContextMenu(
     onReply: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onInfo: () -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
     var isLaunched by remember { mutableStateOf(false) }
@@ -242,6 +243,7 @@ fun ChatContextMenu(
                     onCopy = onCopy,
                     onEdit = onEdit,
                     onDelete = onDelete,
+                    onInfo = onInfo,
                     onMore = { isMoreOpen = true },
                     modifier = Modifier.onGloballyPositioned { menuHeight = it.size.height }
                 )
@@ -296,6 +298,7 @@ private fun ActionMenu(
     onCopy: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onInfo: () -> Unit,
     onMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     onReply: () -> Unit
@@ -364,7 +367,10 @@ private fun ActionMenu(
                     ActionItem(
                         text = "Message Info", 
                         icon = Icons.Default.Info, 
-                        onClick = { ChatRepositoryActions.messageInfo(message) }, 
+                        onClick = { 
+                            ChatRepositoryActions.messageInfo(message)
+                            onInfo()
+                        },
                         typography = typography
                     )
                 }
@@ -373,7 +379,10 @@ private fun ActionMenu(
             ActionItem(
                 text = "Message Info", 
                 icon = Icons.Default.Info, 
-                onClick = { ChatRepositoryActions.messageInfo(message) }, 
+                onClick = { 
+                    ChatRepositoryActions.messageInfo(message)
+                    onInfo()
+                },
                 typography = typography
             )
         }

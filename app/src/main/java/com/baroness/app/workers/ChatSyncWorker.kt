@@ -89,7 +89,9 @@ class ChatSyncWorker(
             reactions = message.reactions,
             replyToId = message.replyToId,
             replyToContent = message.replyToContent,
-            replyToSenderId = message.replyToSenderId
+            replyToSenderId = message.replyToSenderId,
+            deliveredAt = message.deliveredAt?.let { formatLongToIso(it) },
+            readAt = message.readAt?.let { formatLongToIso(it) }
         )
 
         val sentToMessages = ChatApi.sendMessage(dto)
@@ -105,6 +107,8 @@ class ChatSyncWorker(
             message.replyToId?.let { put("replyToId", it) }
             message.replyToContent?.let { put("replyToContent", it) }
             message.replyToSenderId?.let { put("replyToSenderId", it) }
+            message.deliveredAt?.let { put("deliveredAt", it) }
+            message.readAt?.let { put("readAt", it) }
         }
         val sentToPipe = ChatApi.pushToSyncPipe(receiverId, pipePayload)
 

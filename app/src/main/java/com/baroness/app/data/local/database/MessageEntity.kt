@@ -25,5 +25,7 @@ data class MessageEntity(
     val reactions: String = "{}", // JSON map of emoji -> List of userIds
     val replyToId: String? = null,
     val replyToContent: String? = null,
-    val replyToSenderId: String? = null
+    val replyToSenderId: String? = null,
+    val deliveredAt: Long? = null,
+    val readAt: Long? = null
 )

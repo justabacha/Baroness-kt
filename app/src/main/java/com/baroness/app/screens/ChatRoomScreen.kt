@@ -117,6 +117,7 @@ fun ChatRoomScreen(
     var highlightedMessageId by remember { mutableStateOf<String?>(null) }
     
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
+    var messageInfoTarget by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
 
     var showEmojiPicker by remember { mutableStateOf(false) }
@@ -343,6 +344,10 @@ fun ChatRoomScreen(
                     deleteMessageForConfirmation = message
                     contextMenuMessage = null
                 },
+                onInfo = {
+                    messageInfoTarget = message
+                    contextMenuMessage = null
+                },
                 onShowEmojiPicker = {
                     showEmojiPicker = true
                 }
@@ -506,6 +511,28 @@ fun ChatRoomScreen(
                     },
                     onCancel = {
                         deleteMessageForConfirmation = null
+                    }
+                )
+            }
+        }
+
+        // Message Info Overlay
+        AnimatedVisibility(
+            visible = messageInfoTarget != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            messageInfoTarget?.let { message ->
+                MessageInfoSheet(
+                    message = message,
+                    isOwn = message.senderId == currentPersonaId,
+                    participant = otherParticipant,
+                    activeThemeId = activeThemeId,
+                    hazeState = overlayHazeState,
+                    settingsViewModel = settingsViewModel,
+                    onDismiss = {
+                        messageInfoTarget = null
                     }
                 )
             }
