@@ -81,6 +81,7 @@ fun ChatContextMenu(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onInfo: () -> Unit,
+    onTranslate: () -> Unit,
     onTogglePin: (Message) -> Unit,
     onShowEmojiPicker: () -> Unit
 ) {
@@ -245,6 +246,7 @@ fun ChatContextMenu(
                     onEdit = onEdit,
                     onDelete = onDelete,
                     onInfo = onInfo,
+                    onTranslate = onTranslate,
                     onMore = { isMoreOpen = true },
                     modifier = Modifier.onGloballyPositioned { menuHeight = it.size.height }
                 )
@@ -282,7 +284,8 @@ fun ChatContextMenu(
                 hazeState = hazeState,
                 settingsViewModel = settingsViewModel,
                 onDismiss = { isMoreOpen = false },
-                onTogglePin = onTogglePin
+                onTogglePin = onTogglePin,
+                onTranslate = onTranslate
             )
         }
     }
@@ -301,6 +304,7 @@ private fun ActionMenu(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onInfo: () -> Unit,
+    onTranslate: () -> Unit,
     onMore: () -> Unit = {},
     modifier: Modifier = Modifier,
     onReply: () -> Unit
@@ -441,7 +445,8 @@ private fun ObsidianSheet(
     hazeState: HazeState?,
     settingsViewModel: SettingsViewModel?,
     onDismiss: () -> Unit,
-    onTogglePin: (Message) -> Unit
+    onTogglePin: (Message) -> Unit,
+    onTranslate: () -> Unit
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
@@ -501,10 +506,10 @@ private fun ObsidianSheet(
             }
             SheetItem(if (message.isPinned) "Unpin Message" else "Pin Message", Icons.Default.PushPin, typography) { 
                 onTogglePin(message)
-                // Removed onDismiss() here because the Screen now handles total closure
             }
             SheetItem("Translate", Icons.Default.Translate, typography) { 
                 ChatUtilityActions.translate(message)
+                onTranslate()
             }
             SheetItem("Remind Me", Icons.Default.Notifications, typography) { 
                 ChatRepositoryActions.remindMe(message)

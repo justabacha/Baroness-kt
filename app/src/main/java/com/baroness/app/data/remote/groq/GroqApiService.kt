@@ -7,6 +7,7 @@ import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -31,6 +32,26 @@ class GroqApiService {
     ).filter { it.isNotBlank() }
 
     suspend fun getChatCompletion(messages: List<GroqMessage>): String? {
+        return performRequest(messages)
+    }
+
+    suspend fun translateText(text: String, targetLanguage: String = "English"): String? {
+        val messages = listOf(
+            GroqMessage(
+                role = "system",
+                content = "You are an expert translator for the Baroness app. Translate the provided text into $targetLanguage. " +
+                        "Maintain the original tone, slang, and keep all emojis exactly as they are. " +
+                        "Only return the translated text, nothing else."
+            ),
+            GroqMessage(
+                role = "user",
+                content = text
+            )
+        )
+        return performRequest(messages)
+    }
+
+    private suspend fun performRequest(messages: List<GroqMessage>): String? {
         if (apiKeys.isEmpty()) {
             Log.e(TAG, "No Groq API Keys found in BuildConfig!")
             return null
@@ -57,9 +78,8 @@ class GroqApiService {
                         continue 
                     }
                     else -> {
-                        val errorBody = response.body<String>()
+                        val errorBody = response.bodyAsText()
                         Log.e(TAG, "Key #${index + 1} FAILED with status ${response.status}: $errorBody")
-                        // If it's a 401 or something else, we still try the next key just in case
                         continue
                     }
                 }

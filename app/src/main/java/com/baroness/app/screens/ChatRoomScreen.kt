@@ -120,6 +120,7 @@ fun ChatRoomScreen(
     
     var deleteMessageForConfirmation by remember { mutableStateOf<Message?>(null) }
     var messageInfoTarget by remember { mutableStateOf<Message?>(null) }
+    var translationTarget by remember { mutableStateOf<Message?>(null) }
     var ghostDeleteTarget by remember { mutableStateOf<Message?>(null) }
     var showPinnedLedger by remember { mutableStateOf(false) }
 
@@ -406,6 +407,10 @@ fun ChatRoomScreen(
                     viewModel.onTogglePinMessage(msg)
                     contextMenuMessage = null // Action complete: Close the entire context layer
                 },
+                onTranslate = {
+                    translationTarget = message
+                    contextMenuMessage = null
+                },
                 onShowEmojiPicker = {
                     showEmojiPicker = true
                 }
@@ -591,6 +596,28 @@ fun ChatRoomScreen(
                     settingsViewModel = settingsViewModel,
                     onDismiss = {
                         messageInfoTarget = null
+                    }
+                )
+            }
+        }
+
+        // Translation Overlay
+        AnimatedVisibility(
+            visible = translationTarget != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            translationTarget?.let { message ->
+                TranslationSheet(
+                    message = message,
+                    isOwn = message.senderId == currentPersonaId,
+                    participant = otherParticipant,
+                    activeThemeId = activeThemeId,
+                    hazeState = overlayHazeState,
+                    settingsViewModel = settingsViewModel,
+                    onDismiss = {
+                        translationTarget = null
                     }
                 )
             }
