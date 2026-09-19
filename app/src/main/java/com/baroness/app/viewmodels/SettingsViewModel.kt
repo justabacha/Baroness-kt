@@ -67,6 +67,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val directorNote: StateFlow<String> = repository.getDirectorNoteFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialDirectorNote())
 
+    // Voice State
+    val voiceState = voiceCenter.state
+
     // EMOJIS
     val recentEmojis: StateFlow<List<String>> = repository.getRecentEmojisFlow()
         .map { it.split(",") }
@@ -193,6 +196,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun previewVoice() {
+        if (voiceState.value != com.baroness.app.voice.VoiceState.IDLE) return
+        
         val config = VoiceConfig(
             voiceId = voiceId.value,
             speed = voiceSpeed.value,
@@ -201,6 +206,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             directorNote = directorNote.value
         )
         voiceCenter.speak("This is a preview of AVIA with your current AVIS settings. How do I sound?", VoiceContext(config))
+    }
+
+    fun stopVoice() {
+        voiceCenter.stop()
     }
 
     override fun onCleared() {

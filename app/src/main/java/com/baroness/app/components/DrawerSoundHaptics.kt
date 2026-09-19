@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.voice.VoiceState
 import dev.chrisbanes.haze.HazeState
 
 @Composable
@@ -29,6 +31,7 @@ fun DrawerSoundHaptics(
     val voiceSpeed by viewModel.voiceSpeed.collectAsState()
     val voicePitch by viewModel.voicePitch.collectAsState()
     val directorNote by viewModel.directorNote.collectAsState()
+    val voiceState by viewModel.voiceState.collectAsState()
 
     GlassCategoryBox(
         title = "AVIS - SOUND & HAPTICS",
@@ -58,13 +61,33 @@ fun DrawerSoundHaptics(
                 
                 if (voiceEnabled) {
                     IconButton(
-                        onClick = { viewModel.previewVoice() },
+                        onClick = { 
+                            if (voiceState == VoiceState.IDLE) viewModel.previewVoice() 
+                            else viewModel.stopVoice()
+                        },
+                        enabled = voiceState != VoiceState.LOADING,
                         colors = IconButtonDefaults.iconButtonColors(
                             containerColor = Color.White.copy(alpha = 0.1f),
-                            contentColor = Color.White
+                            contentColor = Color.White,
+                            disabledContainerColor = Color.White.copy(alpha = 0.05f),
+                            disabledContentColor = Color.White.copy(alpha = 0.3f)
                         )
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = "Preview Voice")
+                        when (voiceState) {
+                            VoiceState.LOADING -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                            VoiceState.PLAYING -> {
+                                Icon(Icons.Default.Stop, contentDescription = "Stop Voice")
+                            }
+                            VoiceState.IDLE -> {
+                                Icon(Icons.Default.PlayArrow, contentDescription = "Preview Voice")
+                            }
+                        }
                     }
                 }
             }
