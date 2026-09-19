@@ -5,6 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.repository.SettingsRepository
+import com.baroness.app.voice.VoiceCenter
+import com.baroness.app.voice.VoiceConfig
+import com.baroness.app.voice.VoiceContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.File
@@ -12,6 +15,7 @@ import java.io.File
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val appContext = application.applicationContext
     private val repository = SettingsRepository(appContext)
+    private val voiceCenter = VoiceCenter(appContext)
 
     // Warning State
     private val _warningMessage = MutableStateFlow<String?>(null)
@@ -43,6 +47,25 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     
     private val _previewWallpaper = MutableStateFlow(repository.getInitialWallpaper())
     val previewWallpaper: StateFlow<String> = _previewWallpaper.asStateFlow()
+
+    // VOICE
+    val voiceEnabled: StateFlow<Boolean> = repository.getVoiceEnabledFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceEnabled())
+
+    val voiceProvider: StateFlow<String> = repository.getVoiceProviderFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceProvider())
+
+    val voiceId: StateFlow<String> = repository.getVoiceIdFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceId())
+
+    val voiceSpeed: StateFlow<Float> = repository.getVoiceSpeedFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceSpeed())
+
+    val voicePitch: StateFlow<Float> = repository.getVoicePitchFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoicePitch())
+
+    val directorNote: StateFlow<String> = repository.getDirectorNoteFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialDirectorNote())
 
     // EMOJIS
     val recentEmojis: StateFlow<List<String>> = repository.getRecentEmojisFlow()
@@ -132,6 +155,57 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             repository.saveWallpaper(DEFAULT_WALLPAPER)
             _previewWallpaper.value = DEFAULT_WALLPAPER
         }
+    }
+
+    // VOICE Actions
+    fun setVoiceEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.saveVoiceEnabled(enabled) }
+    }
+
+    fun setVoiceProvider(provider: String) {
+        viewModelScope.launch { 
+            repository.saveVoiceProvider(provider)
+            // Set sensible default voice for the provider
+            val defaultId = when(provider) {
+                "murf" -> "en-US-marcus"
+                "deepgram" -> "aura-asteria-en"
+                "edge" -> "en-US-JennyNeural"
+                else -> "aura-asteria-en"
+            }
+            repository.saveVoiceId(defaultId)
+        }
+    }
+
+    fun setVoiceId(id: String) {
+        viewModelScope.launch { repository.saveVoiceId(id) }
+    }
+
+    fun setVoiceSpeed(speed: Float) {
+        viewModelScope.launch { repository.saveVoiceSpeed(speed) }
+    }
+
+    fun setVoicePitch(pitch: Float) {
+        viewModelScope.launch { repository.saveVoicePitch(pitch) }
+    }
+
+    fun setDirectorNote(note: String) {
+        viewModelScope.launch { repository.saveDirectorNote(note) }
+    }
+
+    fun previewVoice() {
+        val config = VoiceConfig(
+            voiceId = voiceId.value,
+            speed = voiceSpeed.value,
+            pitch = voicePitch.value,
+            provider = voiceProvider.value,
+            directorNote = directorNote.value
+        )
+        voiceCenter.speak("This is a preview of AVIA with your current AVIS settings. How do I sound?", VoiceContext(config))
+    }
+
+    override fun onCleared() {
+        voiceCenter.shutdown()
+        super.onCleared()
     }
 
     fun setUserWallpaper(uri: Uri) {

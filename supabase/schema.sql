@@ -1,6 +1,11 @@
 -- Baroness-kt Supabase Schema (Generated via Node Bridge)
 
 
+-- Table: access_keys
+--   id: text (NOT NULL)
+--   secret_key: text (NOT NULL)
+--   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+
 -- Table: backup_log
 --   persona_id: text (NOT NULL)
 --   last_backup_at: timestamp with time zone (NULLABLE, DEFAULT now())
@@ -114,7 +119,8 @@
 -- Policy: Allow update memories on friday_memories (UPDATE)
 -- Policy: Allow delete memories on friday_memories (DELETE)
 -- Policy: Allow all operations on typing_status on typing_status (ALL)
--- Policy: Users can access their own messages on messages (ALL)
--- Policy: Users can access their AI messages on friday_messages (ALL)
--- Policy: Users can only see their own mailbox on chat_sync_pipe (ALL)
--- Policy: Users can manage their own backup log on backup_log (ALL)
+-- Policy: Allow public access to messages on messages (ALL)
+-- Policy: Allow public access to AI messages on friday_messages (ALL)
+-- Policy: Allow public access to sync pipe on chat_sync_pipe (ALL)
+-- Policy: Allow public access to backup log on backup_log (ALL)
+-- Policy: Allow public to read access keys on access_keys (SELECT)

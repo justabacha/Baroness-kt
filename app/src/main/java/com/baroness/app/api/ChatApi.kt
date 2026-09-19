@@ -3,7 +3,6 @@ package com.baroness.app.api
 import android.util.Log
 import com.baroness.app.config.SupabaseConfig
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.broadcast
 import kotlinx.serialization.SerialName

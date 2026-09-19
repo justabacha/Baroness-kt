@@ -13,7 +13,10 @@ import com.baroness.app.utils.StorageManager
 import com.baroness.app.utils.VibeManager
 import com.baroness.app.data.QuoteRepository
 import com.baroness.app.data.AvatarRepository
-import com.baroness.app.utils.VoiceManager
+import com.baroness.app.voice.VoiceCenter
+import com.baroness.app.voice.VoiceConfig
+import com.baroness.app.voice.VoiceContext
+import com.baroness.app.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,14 +30,16 @@ import kotlinx.serialization.encodeToString
 class DashboardViewModel(application: Application) : AndroidViewModel(application) {
 
     private val storage = StorageManager(getApplication())
+    private val settingsRepository = SettingsRepository(getApplication())
     private val json = Json { ignoreUnknownKeys = true }
-    private val voiceManager = VoiceManager(getApplication())
+    private val voiceCenter = VoiceCenter(getApplication())
     private val locationHelper = LocationHelper(getApplication())
     private val quoteRepository = QuoteRepository(getApplication())
     private val avatarRepository = AvatarRepository(getApplication())
 
     companion object {
-        private var hasSpokenInSession = false
+        private const val ANNOUNCEMENT_COOLDOWN_MS = 40 * 60 * 1000L // 40 minutes
+        private const val KEY_LAST_ANNOUNCEMENT_TIME = "last_announcement_time"
     }
 
     private val _userProfile = MutableStateFlow<UserProfile?>(null)
@@ -217,15 +222,62 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun triggerAnnouncement(profile: UserProfile?, weatherSuggestion: String?, isManual: Boolean) {
-        if (isManual || !hasSpokenInSession) {
-            val message = voiceManager.buildAnnouncementMessage(
-                userProfile = profile,
-                greeting = _greeting.value,
-                weatherSuggestion = weatherSuggestion ?: "stay in your zone"
-            )
-            voiceManager.speak(message)
-            hasSpokenInSession = true
+        viewModelScope.launch {
+            val lastAnnounce = storage.getLong(KEY_LAST_ANNOUNCEMENT_TIME) ?: 0L
+            val currentTimeMillis = System.currentTimeMillis()
+            val timePassed = currentTimeMillis - lastAnnounce
+
+            if (isManual || timePassed >= ANNOUNCEMENT_COOLDOWN_MS) {
+                val isVoiceEnabled = settingsRepository.getInitialVoiceEnabled()
+                if (!isVoiceEnabled) return@launch
+
+                val message = buildAnnouncementMessage(
+                    userProfile = profile,
+                    greeting = _greeting.value,
+                    weatherSuggestion = weatherSuggestion ?: "stay in your zone"
+                )
+
+                val voiceConfig = VoiceConfig(
+                    voiceId = settingsRepository.getInitialVoiceId(),
+                    speed = settingsRepository.getInitialVoiceSpeed(),
+                    pitch = settingsRepository.getInitialVoicePitch(),
+                    provider = settingsRepository.getInitialVoiceProvider(),
+                    directorNote = settingsRepository.getInitialDirectorNote()
+                )
+
+                voiceCenter.speak(message, VoiceContext(voiceConfig))
+                storage.saveLong(KEY_LAST_ANNOUNCEMENT_TIME, currentTimeMillis)
+            }
         }
+    }
+
+    private fun buildAnnouncementMessage(
+        userProfile: UserProfile?,
+        greeting: String,
+        weatherSuggestion: String
+    ): String {
+        val now = java.util.Calendar.getInstance()
+        val dayName = now.getDisplayName(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.LONG, java.util.Locale.UK) ?: "Monday"
+        val month = now.getDisplayName(java.util.Calendar.MONTH, java.util.Calendar.LONG, java.util.Locale.UK) ?: "January"
+        val dateStr = "${now.get(java.util.Calendar.DAY_OF_MONTH)} $month"
+        var hours = now.get(java.util.Calendar.HOUR_OF_DAY)
+        val minutes = now.get(java.util.Calendar.MINUTE)
+        val amPmStr = if (hours >= 12) "PM" else "AM"
+        hours = if (hours % 12 == 0) 12 else hours % 12
+        val minutesStr = when (minutes) {
+            0 -> "o'clock"
+            in 1..9 -> "oh $minutes"
+            else -> minutes.toString()
+        }
+        val period = if (amPmStr == "AM") "morning" else "evening"
+        val timeForVoice = "$hours $minutesStr in the $period"
+
+        val welcome = userProfile?.displayName?.let { "Hi $it" } ?: "Hi there"
+        val introVariants = listOf("Quick update,", "Here's where we are,", "Right now,")
+        val intro = introVariants.random()
+
+        val cleanStatus = weatherSuggestion.replace(Regex("[\\uD83C-\\uDBFF\\uDC00-\\uDFFF]+"), "").trim()
+        return "$welcome. $greeting... $intro it's $dayName, $dateStr. The time is $timeForVoice. Just so you know, $cleanStatus."
     }
 
     private fun startTimeUpdate() {
@@ -238,7 +290,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     override fun onCleared() {
-        voiceManager.shutdown()
+        voiceCenter.shutdown()
         super.onCleared()
     }
 

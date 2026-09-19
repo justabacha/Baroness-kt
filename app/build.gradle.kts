@@ -95,6 +95,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.8.7")
     implementation("androidx.navigation:navigation-compose:2.8.4")
 
+    // Media3
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.session)
+
     // Icons & Material3 (explicit version)
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
     implementation("androidx.compose.material3:material3:1.3.1")

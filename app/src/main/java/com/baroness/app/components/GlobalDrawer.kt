@@ -185,6 +185,7 @@ fun GlobalDrawer(
                             onToggle = {
                                 expandedCategory = if (expandedCategory == "SOUND") null else "SOUND"
                             },
+                            viewModel = viewModel,
                             hazeState = hazeState
                         )
 

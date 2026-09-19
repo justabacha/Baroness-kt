@@ -64,7 +64,11 @@ class ChatSyncWorker(
 
         // Notify other participant if human chat
         if (message.conversationId != "friday") {
-            val receiverId = if (message.conversationId == "baroness") "baroness_official" else "phesty_official"
+            val receiverId = when (message.conversationId) {
+                "baroness" -> "baroness_official"
+                "phesty" -> "phesty_official"
+                else -> message.conversationId
+            }
             val pipePayload = buildJsonObject {
                 put("type", "DELETE_MESSAGE")
                 put("messageId", message.id)
@@ -76,8 +80,12 @@ class ChatSyncWorker(
     }
 
     private suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
-        // Determine receiver
-        val receiverId = if (message.conversationId == "baroness") "baroness_official" else "phesty_official"
+        // Determine receiver dynamically from the conversation context
+        val receiverId = when (message.conversationId) {
+            "baroness" -> "baroness_official"
+            "phesty" -> "phesty_official"
+            else -> message.conversationId
+        }
         
         val dto = MessageDto(
             id = message.id,

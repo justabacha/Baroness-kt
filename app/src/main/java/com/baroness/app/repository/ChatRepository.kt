@@ -44,11 +44,22 @@ class ChatRepository private constructor(context: Context) {
     private val _isSubscribed = MutableStateFlow(false)
     val isSubscribed: StateFlow<Boolean> = _isSubscribed.asStateFlow()
 
+    private var syncPipeJob: Job? = null
+
     init {
         scope.launch {
             setupNetworkListener(context)
             setupLifecycleObserver()
-            subscribeToSyncPipe()
+            
+            // Fix 2: Reactive Identity Handling
+            storageManager.getStringFlow("currentPersonaId").collect { personaId ->
+                if (personaId != null) {
+                    restartSyncPipeSubscription(personaId)
+                } else {
+                    syncPipeJob?.cancel()
+                    _isSubscribed.value = false
+                }
+            }
         }
     }
 
@@ -77,37 +88,46 @@ class ChatRepository private constructor(context: Context) {
         }
     }
 
-    private suspend fun subscribeToSyncPipe() {
-        val currentPersonaId = storageManager.getString("currentPersonaId") ?: return
-        
-        scope.launch {
+    private fun restartSyncPipeSubscription(personaId: String) {
+        syncPipeJob?.cancel()
+        syncPipeJob = scope.launch {
             var retryDelay = 1000L
             while (isActive) {
                 try {
-                    Log.d(TAG, "Connecting to Chat Sync Pipe Realtime")
-                    val channel = supabase.realtime.channel("chat_sync_pipe_$currentPersonaId")
+                    Log.d(TAG, "Connecting to Chat Sync Pipe Realtime: chat_sync_pipe_$personaId")
+                    val channel = supabase.realtime.channel("chat_sync_pipe_$personaId")
                     val pipeFlow = channel.postgresChangeFlow<PostgresAction>(
                         schema = "public"
                     ) {
                         table = "chat_sync_pipe"
                     }
 
-                    scope.launch {
+                    val collectorJob = launch {
                         pipeFlow.collect { action ->
                             if (action is PostgresAction.Insert) {
                                 val recipientId = action.record["recipient_id"]?.jsonPrimitive?.content
-                                if (recipientId == currentPersonaId) {
+                                if (recipientId == personaId) {
                                     handlePipeMessage(action.record)
                                 }
                             }
                         }
                     }
+                    
                     channel.subscribe()
                     _isSubscribed.value = true
-                    break
+                    Log.d(TAG, "Successfully subscribed to SyncPipe for $personaId")
+                    
+                    // Keep this coroutine alive to manage the collectorJob
+                    // If the channel status changes or we are cancelled, the loop/job will end.
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        collectorJob.cancel()
+                        channel.unsubscribe()
+                    }
                 } catch (e: Exception) {
                     _isSubscribed.value = false
-                    Log.e(TAG, "Chat sync pipe subscription error: ${e.message}. Retrying in ${retryDelay}ms")
+                    Log.e(TAG, "Chat sync pipe subscription error for $personaId: ${e.message}. Retrying in ${retryDelay}ms")
                     delay(retryDelay)
                     retryDelay = (retryDelay * 2).coerceAtMost(30000L)
                 }
@@ -126,6 +146,7 @@ class ChatRepository private constructor(context: Context) {
             if (type == "DELETE_MESSAGE") {
                 messageDao.softDeleteMessage(messageId)
                 Log.d(TAG, "Soft-deleted message from pipe (Tombstone): $messageId")
+                ChatApi.deletePipeItem(pipeId)
             } else {
                 val conversationId = payload["conversationId"]?.jsonPrimitive?.content ?: return
                 val senderId = payload["senderId"]?.jsonPrimitive?.content ?: return
@@ -152,12 +173,18 @@ class ChatRepository private constructor(context: Context) {
                     readAt = readAt,
                     isPinned = isPinned
                 )
-                messageDao.insertMessage(entity)
-                Log.d(TAG, "Received message from pipe: $messageId")
+                
+                // Fix 4: Transactional Pipe Cleanup - ensure DB insert succeeds first
+                try {
+                    messageDao.insertMessage(entity)
+                    Log.d(TAG, "Received message from pipe and saved to DB: $messageId")
+                    
+                    // Cleanup: Delete from sync pipe once consumed
+                    ChatApi.deletePipeItem(pipeId)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to persist message from pipe: ${e.message}")
+                }
             }
-            
-            // Cleanup: Delete from sync pipe once consumed
-            ChatApi.deletePipeItem(pipeId)
         } catch (e: Exception) {
             Log.e(TAG, "Error handling pipe message: ${e.message}")
         }
