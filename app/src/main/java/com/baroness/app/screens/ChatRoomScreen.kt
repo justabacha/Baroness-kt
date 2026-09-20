@@ -374,6 +374,7 @@ fun ChatRoomScreen(
             ChatContextMenu(
                 message = message,
                 isOwn = message.senderId == currentPersonaId,
+                conversationId = conversationId,
                 offset = contextMenuOffset,
                 bubbleSize = contextMenuSize,
                 activeThemeId = activeThemeId,

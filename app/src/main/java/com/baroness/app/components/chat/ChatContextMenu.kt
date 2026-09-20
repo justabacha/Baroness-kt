@@ -69,6 +69,7 @@ import dev.chrisbanes.haze.blur.HazeColorEffect
 fun ChatContextMenu(
     message: Message,
     isOwn: Boolean,
+    conversationId: String,
     offset: IntOffset,
     bubbleSize: IntSize,
     activeThemeId: String,
@@ -240,6 +241,7 @@ fun ChatContextMenu(
                 ActionMenu(
                     message = message,
                     isOwn = isOwn,
+                    conversationId = conversationId,
                     isWithinEditWindow = isWithinEditWindow,
                     isWithinUndoWindow = isWithinUndoWindow,
                     settingsViewModel = settingsViewModel,
@@ -303,6 +305,7 @@ fun ChatContextMenu(
 private fun ActionMenu(
     message: Message,
     isOwn: Boolean,
+    conversationId: String,
     isWithinEditWindow: Boolean = true,
     isWithinUndoWindow: Boolean = true,
     settingsViewModel: SettingsViewModel? = null,
@@ -320,6 +323,7 @@ private fun ActionMenu(
 ) {
     val typography = rememberChatTypography(settingsViewModel)
     val context = LocalContext.current
+    val isFridayChat = conversationId == "friday"
     
     Column(
         modifier = modifier

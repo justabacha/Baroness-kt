@@ -225,22 +225,72 @@ class ChatRepository private constructor(context: Context) {
                 val typingDurationMs = payload["typing_duration_ms"]?.jsonPrimitive?.longOrNull ?: 0L
                 val isPinned = payload["isPinned"]?.jsonPrimitive?.booleanOrNull ?: false
                 
+                val reactions = payload["reactions"]?.jsonPrimitive?.contentOrNull ?: "{}"
+                val editedAt = payload["editedAt"]?.jsonPrimitive?.longOrNull
+                
                 val replyToId = payload["replyToId"]?.jsonPrimitive?.contentOrNull
                 val replyToContent = payload["replyToContent"]?.jsonPrimitive?.contentOrNull
                 val replyToSenderId = payload["replyToSenderId"]?.jsonPrimitive?.contentOrNull
                 val deliveredAt = payload["deliveredAt"]?.jsonPrimitive?.longOrNull
                 val readAt = payload["readAt"]?.jsonPrimitive?.longOrNull
 
-                saveMessageWithTyping(
+                saveMessageWithMetadata(
                     messageId, localConversationId, senderId, content, timestamp, 
-                    typingDurationMs, isPinned, replyToId, replyToContent, 
-                    replyToSenderId, deliveredAt, readAt
+                    typingDurationMs, isPinned, reactions, editedAt, 
+                    replyToId, replyToContent, replyToSenderId, deliveredAt, readAt
                 )
 
                 ChatApi.deletePipeItem(pipeId)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling pipe message: ${e.message}")
+        }
+    }
+
+    private suspend fun saveMessageWithMetadata(
+        messageId: String,
+        conversationId: String,
+        senderId: String,
+        content: String,
+        timestamp: Long,
+        typingDurationMs: Long,
+        isPinned: Boolean,
+        reactions: String = "{}",
+        editedAt: Long? = null,
+        replyToId: String? = null,
+        replyToContent: String? = null,
+        replyToSenderId: String? = null,
+        deliveredAt: Long? = null,
+        readAt: Long? = null
+    ) {
+        if (typingDurationMs > 0 && conversationId == "friday") {
+            _isFridayTyping.value = true
+            delay(typingDurationMs)
+            _isFridayTyping.value = false
+        }
+
+        val entity = MessageEntity(
+            id = messageId,
+            conversationId = conversationId,
+            senderId = senderId,
+            content = content,
+            timestamp = timestamp,
+            status = "SENT",
+            editedAt = editedAt,
+            replyToId = replyToId,
+            replyToContent = replyToContent,
+            replyToSenderId = replyToSenderId,
+            deliveredAt = deliveredAt,
+            readAt = readAt,
+            isPinned = isPinned,
+            reactions = reactions
+        )
+        
+        try {
+            messageDao.insertMessage(entity)
+            Log.d(TAG, "Persisted message from pipe: $messageId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to persist message: ${e.message}")
         }
     }
 
@@ -406,18 +456,16 @@ class ChatRepository private constructor(context: Context) {
             else -> conversationId
         }
         
-        return if (currentPersonaId < otherId) {
-            "${currentPersonaId}_$otherId"
-        } else {
-            "${otherId}_$currentPersonaId"
-        }
+        // Use full standard format for channels: phesty_official_baroness_official
+        val sortedList = listOf(currentPersonaId, otherId).sorted()
+        return "${sortedList[0]}_${sortedList[1]}"
     }
 
     suspend fun fetchMessagesFromServer(conversationId: String) {
         val currentPersonaId = storageManager.getString("currentPersonaId") ?: return
         try {
             if (conversationId == "friday") {
-                val remoteMessages = ChatApi.fetchFridayMessages(currentPersonaId)
+                val remoteMessages: List<FridayMessageDto> = ChatApi.fetchFridayMessages(currentPersonaId)
                 val entities = remoteMessages.map { dto ->
                     MessageEntity(
                         id = dto.id ?: UUID.randomUUID().toString(),
@@ -443,7 +491,7 @@ class ChatRepository private constructor(context: Context) {
                     else -> conversationId
                 }
 
-                val remoteMessages = ChatApi.fetchMessages(currentPersonaId, otherParticipantId)
+                val remoteMessages: List<MessageDto> = ChatApi.fetchMessages(currentPersonaId, otherParticipantId)
                 val entities = remoteMessages.map { dto ->
                     val rawConversationId = if (dto.senderId == currentPersonaId) dto.receiverId else dto.senderId
                     val mappedConversationId = when (rawConversationId) {
@@ -513,25 +561,21 @@ class ChatRepository private constructor(context: Context) {
     }
 
     suspend fun deleteMessageForMe(messageId: String) {
-        // For Friday, we also need to notify the backend/DB if we want it reflected
-        messageDao.hardDeleteMessage(messageId)
+        val message = messageDao.getMessageById(messageId) ?: return
         
-        // If it's a Friday message, it's stored in a different table on Supabase
-        // We'll let the SyncWorker handle the remote deletion logic
-        val message = messageDao.getMessageById(messageId)
-        if (message != null) {
-            messageDao.updateMessage(message.copy(isDeleted = true, status = "PENDING"))
-            triggerSync()
-        }
+        // Soft delete locally first
+        messageDao.updateMessage(message.copy(isDeleted = true, status = "PENDING"))
+        
+        // Trigger sync to notify server
+        triggerSync()
     }
 
     suspend fun deleteMessageForEveryone(messageId: String) {
-        val existing = messageDao.getMessageById(messageId) ?: return
-        val updated = existing.copy(
-            isDeleted = true,
-            status = "PENDING"
-        )
-        messageDao.updateMessage(updated)
+        val message = messageDao.getMessageById(messageId) ?: return
+        
+        // For Friday chat, "Everyone" = "Me" since it's a private bot chat
+        // For human chat, it notifies the other participant
+        messageDao.updateMessage(message.copy(isDeleted = true, status = "PENDING"))
         triggerSync()
     }
 

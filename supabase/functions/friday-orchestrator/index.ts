@@ -20,6 +20,7 @@ serve(async (req) => {
 
     const ownerId = record.owner_id;
     const userMessage = record.message;
+    const userMessageId = record.id;
 
     // 2. Setup Supabase Client
     const supabase = createClient(
@@ -28,6 +29,7 @@ serve(async (req) => {
     );
 
     // 2.1 IMMEDIATE FEEDBACK: Tell the phone to show typing dots NOW
+    // We do this at the absolute top of the processing to minimize perceived latency
     await supabase.from("chat_sync_pipe").insert({
       recipient_id: ownerId,
       payload: {
@@ -36,14 +38,31 @@ serve(async (req) => {
       },
     });
 
-    // Small sleep to ensure the Realtime pipe processes START_TYPING before we get busy with AI
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 2.2 IDEMPOTENCY LOCK: Use the unique constraint on reply_to_id
+    // We insert a placeholder message immediately to "claim" this request.
+    const placeholderId = crypto.randomUUID();
+    const { error: lockError } = await supabase
+      .from("friday_messages")
+      .insert({
+        id: placeholderId,
+        owner_id: ownerId,
+        sender: "friday",
+        message: "...", // Placeholder
+        reply_to_id: userMessageId,
+        status: "THINKING"
+      });
 
-    // 2.2 Manage Session ID
+    if (lockError) {
+      console.log(`Could not acquire lock for message ${userMessageId}: ${lockError.message}`);
+      return new Response("Duplicate or conflict ignored", { status: 200 });
+    }
+
+    // 2.3 Manage Session ID
     const { data: lastMsg } = await supabase
       .from("friday_messages")
       .select("session_id, created_at")
       .eq("owner_id", ownerId)
+      .neq("id", placeholderId) // Don't count our own placeholder
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
@@ -57,11 +76,11 @@ serve(async (req) => {
       sessionId = crypto.randomUUID();
     }
 
-    // 2.2 Update the current incoming message with the session_id
-    await supabase
-      .from("friday_messages")
-      .update({ session_id: sessionId })
-      .eq("id", record.id);
+    // 2.3 Update the current incoming message and our placeholder with the session_id
+    await Promise.all([
+      supabase.from("friday_messages").update({ session_id: sessionId }).eq("id", userMessageId),
+      supabase.from("friday_messages").update({ session_id: sessionId }).eq("id", placeholderId)
+    ]);
 
     // 3. Phase A: Intent Classification
     const classification = await classifyMessage(userMessage);
@@ -69,20 +88,18 @@ serve(async (req) => {
     if (classification.classification === "COMMAND") {
       // FAST PATH: Direct command execution
       const acknowledgment = "On it";
-      const fridayMsgId = crypto.randomUUID();
 
-      // Save acknowledgment to history
-      await supabase.from("friday_messages").insert({
-        id: fridayMsgId,
-        owner_id: ownerId,
-        sender: "friday",
-        message: acknowledgment,
-        session_id: sessionId,
-      });
+      // Update placeholder with acknowledgment
+      await supabase.from("friday_messages")
+        .update({
+          message: acknowledgment,
+          status: "SENT"
+        })
+        .eq("id", placeholderId);
 
       const commandPayload = {
         type: "COMMAND",
-        messageId: fridayMsgId,
+        messageId: placeholderId,
         intent: classification.intent,
         parameters: classification.parameters,
         content: acknowledgment,
@@ -107,20 +124,18 @@ serve(async (req) => {
     // 4.3 Compute Typing Delay (Characters per MS)
     const typingDurationMs = Math.round(Math.min(text.length / 0.06, 6000) + 400);
 
-    // 4.4 Save to friday_messages table
-    const fridayMsgId = crypto.randomUUID();
-    await supabase.from("friday_messages").insert({
-      id: fridayMsgId,
-      owner_id: ownerId,
-      sender: "friday",
-      message: text,
-      session_id: sessionId,
-    });
+    // 4.4 Update placeholder with the final message
+    await supabase.from("friday_messages")
+      .update({
+        message: text,
+        status: "SENT"
+      })
+      .eq("id", placeholderId);
 
     // 4.5 Push to chat_sync_pipe for Android Realtime Sync
     const pipePayload = {
       type: "NEW_MESSAGE",
-      messageId: fridayMsgId,
+      messageId: placeholderId,
       conversationId: "friday",
       senderId: "friday",
       content: text,

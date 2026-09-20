@@ -93,7 +93,7 @@ class ChatSyncWorker(
         }
     }
 
-    suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
+    private suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
         // 1. Determine receiver dynamically from the conversation context
         val currentPersonaId = storageManager.getString("currentPersonaId") ?: return false
         val receiverId = when (message.conversationId) {
@@ -105,7 +105,7 @@ class ChatSyncWorker(
         // 2. Persist to central messages table
         val dto = MessageDto(
             id = message.id,
-            conversationId = "human_chat", // Use a generic identifier or logic as per DB schema
+            conversationId = "human_chat",
             senderId = currentPersonaId,
             receiverId = receiverId,
             content = message.content,
@@ -129,6 +129,10 @@ class ChatSyncWorker(
             put("senderId", currentPersonaId)
             put("content", message.content)
             put("timestamp", message.timestamp)
+            put("reactions", message.reactions)
+            if (message.editedAt != null) {
+                put("editedAt", message.editedAt)
+            }
             message.replyToId?.let { put("replyToId", it) }
             message.replyToContent?.let { put("replyToContent", it) }
             message.replyToSenderId?.let { put("replyToSenderId", it) }
