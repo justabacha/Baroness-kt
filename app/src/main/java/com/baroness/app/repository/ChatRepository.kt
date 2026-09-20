@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.*
+import com.baroness.app.command.LocalCommandExecutor
 import com.baroness.app.api.ChatApi
 import com.baroness.app.api.FridayMessageDto
 import com.baroness.app.api.MessageDto
@@ -40,9 +41,13 @@ class ChatRepository private constructor(context: Context) {
     private val supabase = SupabaseConfig.supabase
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val workManager = WorkManager.getInstance(context)
+    private val commandExecutor = LocalCommandExecutor(context)
 
     private val _isSubscribed = MutableStateFlow(false)
     val isSubscribed: StateFlow<Boolean> = _isSubscribed.asStateFlow()
+
+    private val _isFridayTyping = MutableStateFlow(false)
+    val isFridayTyping: StateFlow<Boolean> = _isFridayTyping.asStateFlow()
 
     private var syncPipeJob: Job? = null
 
@@ -51,15 +56,17 @@ class ChatRepository private constructor(context: Context) {
             setupNetworkListener(context)
             setupLifecycleObserver()
             
-            // Fix 2: Reactive Identity Handling
-            storageManager.getStringFlow("currentPersonaId").collect { personaId ->
-                if (personaId != null) {
-                    restartSyncPipeSubscription(personaId)
-                } else {
-                    syncPipeJob?.cancel()
-                    _isSubscribed.value = false
+            // Fix 2: Reactive Identity Handling with change detection
+            storageManager.getStringFlow("currentPersonaId")
+                .distinctUntilChanged()
+                .collect { personaId ->
+                    if (personaId != null) {
+                        restartSyncPipeSubscription(personaId)
+                    } else {
+                        syncPipeJob?.cancel()
+                        _isSubscribed.value = false
+                    }
                 }
-            }
         }
     }
 
@@ -81,8 +88,9 @@ class ChatRepository private constructor(context: Context) {
         scope.launch(Dispatchers.Main) {
             ProcessLifecycleOwner.get().lifecycle.addObserver(LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
-                    Log.d(TAG, "App resumed, triggering chat sync")
+                    Log.d(TAG, "App resumed, triggering chat sync and checking for offline messages")
                     triggerSync()
+                    fetchOfflineMessages()
                 }
             })
         }
@@ -91,19 +99,29 @@ class ChatRepository private constructor(context: Context) {
     private fun restartSyncPipeSubscription(personaId: String) {
         syncPipeJob?.cancel()
         syncPipeJob = scope.launch {
-            var retryDelay = 1000L
+            var retryDelay = 2000L
             while (isActive) {
                 try {
-                    Log.d(TAG, "Connecting to Chat Sync Pipe Realtime: chat_sync_pipe_$personaId")
+                    Log.d(TAG, ">>> [REALTIME] Attempting connection for: $personaId")
                     val channel = supabase.realtime.channel("chat_sync_pipe_$personaId")
+                    
                     val pipeFlow = channel.postgresChangeFlow<PostgresAction>(
                         schema = "public"
                     ) {
                         table = "chat_sync_pipe"
                     }
 
+                    // Observe status to update UI
+                    val statusJob = launch {
+                        channel.status.collect { status ->
+                            Log.d(TAG, ">>> [REALTIME] Status changed to: $status")
+                            _isSubscribed.value = (status == RealtimeChannel.Status.SUBSCRIBED)
+                        }
+                    }
+
                     val collectorJob = launch {
                         pipeFlow.collect { action ->
+                            Log.d(TAG, ">>> [REALTIME] Received Action: $action")
                             if (action is PostgresAction.Insert) {
                                 val recipientId = action.record["recipient_id"]?.jsonPrimitive?.content
                                 if (recipientId == personaId) {
@@ -113,21 +131,25 @@ class ChatRepository private constructor(context: Context) {
                         }
                     }
                     
-                    channel.subscribe()
-                    _isSubscribed.value = true
-                    Log.d(TAG, "Successfully subscribed to SyncPipe for $personaId")
+                    Log.d(TAG, ">>> [REALTIME] Calling subscribe()...")
+                    channel.subscribe(blockUntilSubscribed = true)
+                    Log.d(TAG, ">>> [REALTIME] Subscribe call finished.")
                     
-                    // Keep this coroutine alive to manage the collectorJob
-                    // If the channel status changes or we are cancelled, the loop/job will end.
+                    // Immediately fetch any messages that might have arrived while we were offline
+                    fetchOfflineMessages()
+
                     try {
                         awaitCancellation()
                     } finally {
+                        Log.d(TAG, ">>> [REALTIME] Cleaning up channel...")
+                        statusJob.cancel()
                         collectorJob.cancel()
                         channel.unsubscribe()
+                        _isSubscribed.value = false
                     }
                 } catch (e: Exception) {
                     _isSubscribed.value = false
-                    Log.e(TAG, "Chat sync pipe subscription error for $personaId: ${e.message}. Retrying in ${retryDelay}ms")
+                    Log.e(TAG, ">>> [REALTIME] CONNECTION ERROR: ${e.message}")
                     delay(retryDelay)
                     retryDelay = (retryDelay * 2).coerceAtMost(30000L)
                 }
@@ -147,46 +169,121 @@ class ChatRepository private constructor(context: Context) {
                 messageDao.softDeleteMessage(messageId)
                 Log.d(TAG, "Soft-deleted message from pipe (Tombstone): $messageId")
                 ChatApi.deletePipeItem(pipeId)
+            } else if (type == "START_TYPING") {
+                if (payload["conversationId"]?.jsonPrimitive?.content == "friday") {
+                    _isFridayTyping.value = true
+                }
+                ChatApi.deletePipeItem(pipeId)
+            } else if (type == "COMMAND") {
+                val intent = payload["intent"]?.jsonPrimitive?.content
+                val params = payload["parameters"]?.jsonObject?.let { 
+                    // Simple mapping of JsonObject to Map
+                    it.mapValues { (_, v) -> 
+                        when(v) {
+                            is JsonPrimitive -> v.contentOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull
+                            else -> v.toString()
+                        }
+                    }
+                }
+                
+                // Commands still get an acknowledgment message usually
+                val content = payload["content"]?.jsonPrimitive?.content ?: "On it"
+                val conversationId = "friday"
+                val senderId = "friday"
+                val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
+                
+                saveMessageWithTyping(
+                    messageId, conversationId, senderId, content, timestamp, 
+                    typingDurationMs = 300, isPinned = false
+                )
+
+                // Execute local intent
+                withContext(Dispatchers.Main) {
+                    commandExecutor.execute(intent, params)
+                }
+                
+                ChatApi.deletePipeItem(pipeId)
             } else {
-                val conversationId = payload["conversationId"]?.jsonPrimitive?.content ?: return
+                var conversationId = payload["conversationId"]?.jsonPrimitive?.content ?: return
                 val senderId = payload["senderId"]?.jsonPrimitive?.content ?: return
+                
+                // Fix: If the message is sent TO us, the local conversation context is the SENDER
+                val currentPersonaId = storageManager.getString("currentPersonaId")
+                if (conversationId == currentPersonaId) {
+                    conversationId = senderId
+                }
+
+                // Alias Mapping: Ensure conversationId matches UI aliases (e.g., "phesty" instead of "phesty_official")
+                val localConversationId = when (conversationId) {
+                    "baroness_official" -> "baroness"
+                    "phesty_official" -> "phesty"
+                    else -> conversationId
+                }
+                
                 val content = payload["content"]?.jsonPrimitive?.content ?: ""
                 val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
+                val typingDurationMs = payload["typing_duration_ms"]?.jsonPrimitive?.longOrNull ?: 0L
+                val isPinned = payload["isPinned"]?.jsonPrimitive?.booleanOrNull ?: false
+                
                 val replyToId = payload["replyToId"]?.jsonPrimitive?.contentOrNull
                 val replyToContent = payload["replyToContent"]?.jsonPrimitive?.contentOrNull
                 val replyToSenderId = payload["replyToSenderId"]?.jsonPrimitive?.contentOrNull
                 val deliveredAt = payload["deliveredAt"]?.jsonPrimitive?.longOrNull
                 val readAt = payload["readAt"]?.jsonPrimitive?.longOrNull
-                val isPinned = payload["isPinned"]?.jsonPrimitive?.booleanOrNull ?: false
 
-                val entity = MessageEntity(
-                    id = messageId,
-                    conversationId = conversationId,
-                    senderId = senderId,
-                    content = content,
-                    timestamp = timestamp,
-                    status = "SENT",
-                    replyToId = replyToId,
-                    replyToContent = replyToContent,
-                    replyToSenderId = replyToSenderId,
-                    deliveredAt = deliveredAt,
-                    readAt = readAt,
-                    isPinned = isPinned
+                saveMessageWithTyping(
+                    messageId, localConversationId, senderId, content, timestamp, 
+                    typingDurationMs, isPinned, replyToId, replyToContent, 
+                    replyToSenderId, deliveredAt, readAt
                 )
-                
-                // Fix 4: Transactional Pipe Cleanup - ensure DB insert succeeds first
-                try {
-                    messageDao.insertMessage(entity)
-                    Log.d(TAG, "Received message from pipe and saved to DB: $messageId")
-                    
-                    // Cleanup: Delete from sync pipe once consumed
-                    ChatApi.deletePipeItem(pipeId)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to persist message from pipe: ${e.message}")
-                }
+
+                ChatApi.deletePipeItem(pipeId)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error handling pipe message: ${e.message}")
+        }
+    }
+
+    private suspend fun saveMessageWithTyping(
+        messageId: String,
+        conversationId: String,
+        senderId: String,
+        content: String,
+        timestamp: Long,
+        typingDurationMs: Long,
+        isPinned: Boolean,
+        replyToId: String? = null,
+        replyToContent: String? = null,
+        replyToSenderId: String? = null,
+        deliveredAt: Long? = null,
+        readAt: Long? = null
+    ) {
+        if (typingDurationMs > 0 && conversationId == "friday") {
+            _isFridayTyping.value = true
+            delay(typingDurationMs)
+            _isFridayTyping.value = false
+        }
+
+        val entity = MessageEntity(
+            id = messageId,
+            conversationId = conversationId,
+            senderId = senderId,
+            content = content,
+            timestamp = timestamp,
+            status = "SENT",
+            replyToId = replyToId,
+            replyToContent = replyToContent,
+            replyToSenderId = replyToSenderId,
+            deliveredAt = deliveredAt,
+            readAt = readAt,
+            isPinned = isPinned
+        )
+        
+        try {
+            messageDao.insertMessage(entity)
+            Log.d(TAG, "Persisted message from pipe: $messageId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to persist message: ${e.message}")
         }
     }
 
@@ -262,7 +359,8 @@ class ChatRepository private constructor(context: Context) {
     suspend fun broadcastTyping(conversationId: String, isTyping: Boolean) {
         val currentPersonaId = storageManager.getString("currentPersonaId") ?: "unknown"
         try {
-            val channel = supabase.realtime.channel("chat_$conversationId")
+            val sharedChannel = getSharedChannelId(conversationId, currentPersonaId)
+            val channel = supabase.realtime.channel("chat_$sharedChannel")
             channel.broadcast(
                 event = "typing",
                 message = buildJsonObject {
@@ -276,21 +374,49 @@ class ChatRepository private constructor(context: Context) {
     }
 
     fun subscribeToConversation(conversationId: String): Flow<JsonObject> {
-        val channel = supabase.realtime.channel("chat_$conversationId")
+        val flow = MutableSharedFlow<JsonObject>(extraBufferCapacity = 1)
+        
         scope.launch {
+            val currentPersonaId = storageManager.getString("currentPersonaId") ?: "unknown"
+            val sharedChannel = getSharedChannelId(conversationId, currentPersonaId)
+            val channel = supabase.realtime.channel("chat_$sharedChannel")
+            
             try {
                 channel.subscribe()
+                
+                merge(
+                    channel.broadcastFlow<JsonObject>("typing"),
+                    channel.broadcastFlow<JsonObject>("read_receipt")
+                ).collect {
+                    flow.emit(it)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to subscribe to chat channel: ${e.message}")
             }
         }
-        return channel.broadcastFlow<JsonObject>("typing")
+        return flow
+    }
+
+    private fun getSharedChannelId(conversationId: String, currentPersonaId: String): String {
+        if (conversationId == "friday") return "friday_$currentPersonaId"
+        
+        val otherId = when (conversationId) {
+            "baroness" -> "baroness_official"
+            "phesty" -> "phesty_official"
+            else -> conversationId
+        }
+        
+        return if (currentPersonaId < otherId) {
+            "${currentPersonaId}_$otherId"
+        } else {
+            "${otherId}_$currentPersonaId"
+        }
     }
 
     suspend fun fetchMessagesFromServer(conversationId: String) {
+        val currentPersonaId = storageManager.getString("currentPersonaId") ?: return
         try {
             if (conversationId == "friday") {
-                val currentPersonaId = storageManager.getString("currentPersonaId") ?: return
                 val remoteMessages = ChatApi.fetchFridayMessages(currentPersonaId)
                 val entities = remoteMessages.map { dto ->
                     MessageEntity(
@@ -304,12 +430,31 @@ class ChatRepository private constructor(context: Context) {
                     )
                 }
                 messageDao.insertMessages(entities)
+                
+                // Track last seen for proactive pulse checks
+                remoteMessages.maxByOrNull { parseIsoToLong(it.createdAt) }?.createdAt?.let {
+                    storageManager.saveString("last_seen_friday_at", it)
+                }
             } else {
-                val remoteMessages = ChatApi.fetchMessages(conversationId)
+                // Map conversationId alias to full ID for the server query
+                val otherParticipantId = when (conversationId) {
+                    "baroness" -> "baroness_official"
+                    "phesty" -> "phesty_official"
+                    else -> conversationId
+                }
+
+                val remoteMessages = ChatApi.fetchMessages(currentPersonaId, otherParticipantId)
                 val entities = remoteMessages.map { dto ->
+                    val rawConversationId = if (dto.senderId == currentPersonaId) dto.receiverId else dto.senderId
+                    val mappedConversationId = when (rawConversationId) {
+                        "baroness_official" -> "baroness"
+                        "phesty_official" -> "phesty"
+                        else -> rawConversationId
+                    }
+
                     MessageEntity(
                         id = dto.id,
-                        conversationId = dto.conversationId,
+                        conversationId = mappedConversationId,
                         senderId = dto.senderId,
                         content = dto.content,
                         timestamp = parseIsoToLong(dto.createdAt),
@@ -368,7 +513,16 @@ class ChatRepository private constructor(context: Context) {
     }
 
     suspend fun deleteMessageForMe(messageId: String) {
+        // For Friday, we also need to notify the backend/DB if we want it reflected
         messageDao.hardDeleteMessage(messageId)
+        
+        // If it's a Friday message, it's stored in a different table on Supabase
+        // We'll let the SyncWorker handle the remote deletion logic
+        val message = messageDao.getMessageById(messageId)
+        if (message != null) {
+            messageDao.updateMessage(message.copy(isDeleted = true, status = "PENDING"))
+            triggerSync()
+        }
     }
 
     suspend fun deleteMessageForEveryone(messageId: String) {
@@ -439,8 +593,8 @@ class ChatRepository private constructor(context: Context) {
     suspend fun markMessagesAsRead(conversationId: String) {
         val currentPersonaId = storageManager.getString("currentPersonaId") ?: return
         try {
-            // 2. Broadcast to Supabase
-            val channel = supabase.realtime.channel("chat_$conversationId")
+            val sharedChannel = getSharedChannelId(conversationId, currentPersonaId)
+            val channel = supabase.realtime.channel("chat_$sharedChannel")
             channel.broadcast(
                 event = "read_receipt",
                 message = buildJsonObject {
@@ -467,6 +621,47 @@ class ChatRepository private constructor(context: Context) {
             )
             .build()
         workManager.enqueueUniqueWork("ChatSync", ExistingWorkPolicy.REPLACE, workRequest)
+    }
+
+    fun fetchOfflineMessages() {
+        scope.launch {
+            val currentPersonaId = storageManager.getString("currentPersonaId") ?: return@launch
+            
+            // 1. Fetch Friday Proactive Messages
+            val since = storageManager.getString("last_seen_friday_at") ?: "1970-01-01T00:00:00Z"
+            val pendingFriday = ChatApi.fetchPendingFridayMessages(currentPersonaId, since)
+            if (pendingFriday.isNotEmpty()) {
+                val entities = pendingFriday.map { dto ->
+                    MessageEntity(
+                        id = dto.id ?: UUID.randomUUID().toString(),
+                        conversationId = "friday",
+                        senderId = dto.sender,
+                        content = dto.message,
+                        timestamp = parseIsoToLong(dto.createdAt),
+                        status = "SENT",
+                        isPinned = dto.isPinned
+                    )
+                }
+                messageDao.insertMessages(entities)
+                
+                pendingFriday.maxByOrNull { parseIsoToLong(it.createdAt) }?.createdAt?.let {
+                    storageManager.saveString("last_seen_friday_at", it)
+                }
+            }
+
+            // 2. Fetch Human Offline Messages from Sync Pipe
+            val pipeItems = ChatApi.fetchSyncPipe(currentPersonaId)
+            if (pipeItems.isNotEmpty()) {
+                Log.d(TAG, "Fetched ${pipeItems.size} offline items from sync pipe")
+                for (item in pipeItems) {
+                    handlePipeMessage(mapOf(
+                        "id" to JsonPrimitive(item.id),
+                        "recipient_id" to JsonPrimitive(item.recipientId),
+                        "payload" to item.payload
+                    ))
+                }
+            }
+        }
     }
 
     private fun MessageEntity.toDomain(): Message {

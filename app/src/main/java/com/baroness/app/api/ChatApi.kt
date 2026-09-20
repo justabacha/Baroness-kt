@@ -38,13 +38,17 @@ data class FridayMessageDto(
     val sender: String,
     val message: String,
     @SerialName("created_at") val createdAt: String? = null,
-    @SerialName("is_pinned") val isPinned: Boolean = false
+    @SerialName("is_pinned") val isPinned: Boolean = false,
+    @SerialName("is_deleted") val isDeleted: Boolean = false,
+    val reactions: String = "{}"
 )
 
 @Serializable
 data class SyncPipeDto(
+    val id: String? = null,
     @SerialName("recipient_id") val recipientId: String,
-    val payload: JsonObject
+    val payload: JsonObject,
+    @SerialName("created_at") val createdAt: String? = null
 )
 
 @Serializable
@@ -66,7 +70,7 @@ object ChatApi {
 
     suspend fun sendMessage(message: MessageDto): Boolean {
         return try {
-            supabase.postgrest["messages"].insert(message)
+            supabase.postgrest["messages"].upsert(message)
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send message: ${e.message}")
@@ -76,7 +80,7 @@ object ChatApi {
 
     suspend fun sendFridayMessage(message: FridayMessageDto): Boolean {
         return try {
-            supabase.postgrest["friday_messages"].insert(message)
+            supabase.postgrest["friday_messages"].upsert(message)
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send Friday message: ${e.message}")
@@ -100,12 +104,27 @@ object ChatApi {
 
     suspend fun pushToSyncPipe(recipientId: String, payload: JsonObject): Boolean {
         return try {
-            val dto = SyncPipeDto(recipientId, payload)
+            val dto = SyncPipeDto(recipientId = recipientId, payload = payload)
             supabase.postgrest["chat_sync_pipe"].insert(dto)
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to push to sync pipe: ${e.message}")
             false
+        }
+    }
+
+    suspend fun fetchSyncPipe(recipientId: String): List<SyncPipeDto> {
+        return try {
+            supabase.postgrest["chat_sync_pipe"]
+                .select {
+                    filter {
+                        eq("recipient_id", recipientId)
+                    }
+                }
+                .decodeList<SyncPipeDto>()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch sync pipe: ${e.message}")
+            emptyList()
         }
     }
 
@@ -121,12 +140,21 @@ object ChatApi {
         }
     }
 
-    suspend fun fetchMessages(conversationId: String): List<MessageDto> {
+    suspend fun fetchMessages(currentPersonaId: String, otherParticipantId: String): List<MessageDto> {
         return try {
             supabase.postgrest["messages"]
                 .select {
                     filter {
-                        eq("conversation_id", conversationId)
+                        or {
+                            and {
+                                eq("sender_id", currentPersonaId)
+                                eq("receiver_id", otherParticipantId)
+                            }
+                            and {
+                                eq("sender_id", otherParticipantId)
+                                eq("receiver_id", currentPersonaId)
+                            }
+                        }
                     }
                 }
                 .decodeList<MessageDto>()
@@ -147,6 +175,23 @@ object ChatApi {
                 .decodeList<FridayMessageDto>()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch Friday messages: ${e.message}")
+            emptyList()
+        }
+    }
+
+    suspend fun fetchPendingFridayMessages(ownerId: String, since: String): List<FridayMessageDto> {
+        return try {
+            supabase.postgrest["friday_messages"]
+                .select {
+                    filter {
+                        eq("owner_id", ownerId)
+                        gt("created_at", since)
+                        eq("sender", "friday")
+                    }
+                }
+                .decodeList<FridayMessageDto>()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch pending Friday messages: ${e.message}")
             emptyList()
         }
     }

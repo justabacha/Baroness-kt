@@ -14,6 +14,21 @@ class VoiceCacheManager(private val context: Context) {
     init {
         clearTempCache()
         trimCacheIfNeeded()
+        cleanupOldFiles()
+    }
+
+    private fun cleanupOldFiles() {
+        try {
+            val now = System.currentTimeMillis()
+            val maxAge = 24 * 60 * 60 * 1000L // 24 hours
+            staticDir.listFiles()?.forEach { file ->
+                if (now - file.lastModified() > maxAge) {
+                    file.delete()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun isStaticContent(text: String): Boolean {

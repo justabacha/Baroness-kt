@@ -90,28 +90,31 @@ class VoiceCenter(private val context: Context) {
         }
     }
 
+    /**
+     * Splits text into speakable chunks.
+     * Improved to handle ellipses and filter out non-speakable chunks.
+     */
     fun chunkText(text: String): List<String> {
         return text.split(Regex("(?<=[.!?])\\s+"))
-            .filter { it.isNotBlank() }
             .map { it.trim() }
+            .filter { chunk -> 
+                // Ensure chunk contains at least one alphanumeric character
+                chunk.any { it.isLetterOrDigit() }
+            }
     }
 
-    fun speak(text: String, voiceContext: VoiceContext) {
-        Log.d("VoiceCenter", "Speak requested for text: ${text.take(30)}...")
+    fun speak(text: String, voiceContext: VoiceContext, bypassCache: Boolean = false) {
+        Log.d("VoiceCenter", "Speak requested (bypassCache=$bypassCache) for text: ${text.take(30)}...")
         
-        // 1. Cancel any existing speak job BEFORE starting a new one
         currentSpeakJob?.cancel()
-        
-        // 2. Start the new job
         currentSpeakJob = scope.launch(Dispatchers.Main) {
             try {
-                // Stop players but DO NOT call stop() because it would cancel this job
                 stopPlayersOnly()
                 _state.value = VoiceState.LOADING
                 
                 val sentences = chunkText(text)
                 if (sentences.isEmpty()) {
-                    Log.d("VoiceCenter", "No sentences to speak")
+                    Log.d("VoiceCenter", "No valid sentences to speak")
                     _state.value = VoiceState.IDLE
                     return@launch
                 }
@@ -127,22 +130,22 @@ class VoiceCenter(private val context: Context) {
                 var useSystemFallback = false
                 var hasStartedPlaying = false
 
-                for (sentence in sentences) {
-                    Log.d("VoiceCenter", "Processing sentence: $sentence")
-                    val file = withContext(Dispatchers.IO) {
+                // Parallel fetch all sentences
+                val deferredFiles = sentences.map { sentence ->
+                    async(Dispatchers.IO) {
                         try {
-                            if (cacheManager.isStaticContent(sentence)) {
+                            if (!bypassCache && cacheManager.isStaticContent(sentence)) {
                                 val cachedFile = cacheManager.get(sentence, voiceContext.config)
                                 if (cachedFile != null) {
                                     Log.d("VoiceCenter", "Cache hit for: $sentence")
-                                    return@withContext cachedFile
+                                    return@async cachedFile
                                 }
                             }
                             
-                            Log.d("VoiceCenter", "Cache miss, synthesizing: $sentence")
+                            Log.d("VoiceCenter", "Synthesizing: $sentence")
                             val result = provider.synthesize(sentence, voiceContext.config)
                             if (result != null) {
-                                if (cacheManager.isStaticContent(sentence)) {
+                                if (!bypassCache && cacheManager.isStaticContent(sentence)) {
                                     cacheManager.put(sentence, voiceContext.config, result.audioData)
                                 } else {
                                     cacheManager.createTempFile(result.audioData)
@@ -156,7 +159,11 @@ class VoiceCenter(private val context: Context) {
                             null
                         }
                     }
+                }
 
+                // Process results in order as they finish
+                for (deferred in deferredFiles) {
+                    val file = deferred.await()
                     if (file != null && file.exists()) {
                         Log.d("VoiceCenter", "Adding media item: ${file.absolutePath}")
                         player.addMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
@@ -167,8 +174,10 @@ class VoiceCenter(private val context: Context) {
                             hasStartedPlaying = true
                         }
                     } else if (!hasStartedPlaying) {
-                        // If the VERY FIRST chunk fails, we just go to system fallback immediately
+                        Log.e("VoiceCenter", "First chunk failed, triggering system fallback")
                         useSystemFallback = true
+                        // Cancel all other pending fetches if the first one failed
+                        deferredFiles.forEach { it.cancel() }
                         break
                     }
                 }

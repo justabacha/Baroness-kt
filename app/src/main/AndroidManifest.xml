@@ -33,9 +33,25 @@
     <!-- ========== VIBRATE (haptic feedback) ========== -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- ========== ALARMS & TIMERS ========== -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+
     <!-- ========== FOREGROUND SERVICE (for background tasks like voice recording) ========== -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+        </intent>
+        <intent>
+            <action android:name="android.provider.AlarmClock.ACTION_SET_TIMER" />
+        </intent>
+        <intent>
+            <action android:name="android.provider.AlarmClock.ACTION_SET_ALARM" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MainApplication"

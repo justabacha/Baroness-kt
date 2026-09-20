@@ -7,7 +7,9 @@ import androidx.work.WorkerParameters
 import com.baroness.app.api.ChatApi
 import com.baroness.app.api.FridayMessageDto
 import com.baroness.app.api.MessageDto
-import com.baroness.app.api.SyncPipeDto
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.filter.PostgrestFilterBuilder
+import com.baroness.app.config.SupabaseConfig
 import com.baroness.app.data.local.database.AppDatabase
 import com.baroness.app.utils.StorageManager
 import com.baroness.app.utils.formatLongToIso
@@ -59,11 +61,23 @@ class ChatSyncWorker(
     }
 
     private suspend fun syncDeleteMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
-        val remoteSuccess = ChatApi.markMessageAsDeleted(message.id)
-        if (!remoteSuccess) return false
+        return if (message.conversationId == "friday") {
+            try {
+                SupabaseConfig.supabase.postgrest["friday_messages"].delete {
+                    filter {
+                        eq("id", message.id)
+                    }
+                }
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete Friday message remotely: ${e.message}")
+                false
+            }
+        } else {
+            val remoteSuccess = ChatApi.markMessageAsDeleted(message.id)
+            if (!remoteSuccess) return false
 
-        // Notify other participant if human chat
-        if (message.conversationId != "friday") {
+            // Notify other participant if human chat
             val receiverId = when (message.conversationId) {
                 "baroness" -> "baroness_official"
                 "phesty" -> "phesty_official"
@@ -72,25 +86,27 @@ class ChatSyncWorker(
             val pipePayload = buildJsonObject {
                 put("type", "DELETE_MESSAGE")
                 put("messageId", message.id)
-                put("conversationId", message.conversationId)
+                put("conversationId", message.senderId)
             }
             ChatApi.pushToSyncPipe(receiverId, pipePayload)
+            true
         }
-        return true
     }
 
-    private suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
-        // Determine receiver dynamically from the conversation context
+    suspend fun syncHumanMessage(message: com.baroness.app.data.local.database.MessageEntity): Boolean {
+        // 1. Determine receiver dynamically from the conversation context
+        val currentPersonaId = storageManager.getString("currentPersonaId") ?: return false
         val receiverId = when (message.conversationId) {
             "baroness" -> "baroness_official"
             "phesty" -> "phesty_official"
             else -> message.conversationId
         }
         
+        // 2. Persist to central messages table
         val dto = MessageDto(
             id = message.id,
-            conversationId = message.conversationId,
-            senderId = message.senderId,
+            conversationId = "human_chat", // Use a generic identifier or logic as per DB schema
+            senderId = currentPersonaId,
             receiverId = receiverId,
             content = message.content,
             createdAt = formatLongToIso(message.timestamp),
@@ -105,12 +121,12 @@ class ChatSyncWorker(
 
         val sentToMessages = ChatApi.sendMessage(dto)
         
-        // Also push to sync pipe for realtime delivery if receiver is offline
+        // 3. Push to sync pipe for realtime delivery
         val pipePayload = buildJsonObject {
             put("type", "NEW_MESSAGE")
             put("messageId", message.id)
-            put("conversationId", message.conversationId)
-            put("senderId", message.senderId)
+            put("conversationId", currentPersonaId) 
+            put("senderId", currentPersonaId)
             put("content", message.content)
             put("timestamp", message.timestamp)
             message.replyToId?.let { put("replyToId", it) }
@@ -133,7 +149,9 @@ class ChatSyncWorker(
             sender = message.senderId,   // Either user's ID or "friday"
             message = message.content,
             createdAt = formatLongToIso(message.timestamp),
-            isPinned = message.isPinned
+            isPinned = message.isPinned,
+            isDeleted = message.isDeleted,
+            reactions = message.reactions
         )
         return ChatApi.sendFridayMessage(dto)
     }

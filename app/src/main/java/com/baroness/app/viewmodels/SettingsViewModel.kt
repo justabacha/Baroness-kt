@@ -64,6 +64,12 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val voicePitch: StateFlow<Float> = repository.getVoicePitchFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoicePitch())
 
+    val usePersonaVoices: StateFlow<Boolean> = repository.getUsePersonaVoicesFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialUsePersonaVoices())
+
+    val personaName: StateFlow<String> = repository.getPersonaNameFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Phesty")
+
     val directorNote: StateFlow<String> = repository.getDirectorNoteFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialDirectorNote())
 
@@ -189,6 +195,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setVoicePitch(pitch: Float) {
         viewModelScope.launch { repository.saveVoicePitch(pitch) }
+    }
+
+    fun setUsePersonaVoices(use: Boolean) {
+        viewModelScope.launch { repository.saveUsePersonaVoices(use) }
     }
 
     fun setDirectorNote(note: String) {

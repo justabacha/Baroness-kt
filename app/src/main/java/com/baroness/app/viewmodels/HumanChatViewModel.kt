@@ -42,6 +42,11 @@ class HumanChatViewModel(
         fetchParticipant()
         observeTyping()
         observeReadReceipts()
+        
+        // Initial catch-up from server
+        viewModelScope.launch {
+            repository.fetchMessagesFromServer(conversationId)
+        }
     }
 
     private fun observeReadReceipts() {

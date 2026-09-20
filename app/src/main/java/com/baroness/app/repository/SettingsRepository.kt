@@ -1,19 +1,23 @@
 package com.baroness.app.repository
 
 import android.content.Context
+import com.baroness.app.models.UserProfile
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 
 class SettingsRepository(context: Context) {
     private val storageManager = StorageManager(context.applicationContext)
+    private val json = Json { ignoreUnknownKeys = true }
 
     companion object {
         private const val KEY_THEME = "selected_theme"
         private const val KEY_FONT = "selected_font"
         private const val KEY_WALLPAPER = "selected_wallpaper"
         private const val KEY_RECENT_EMOJIS = "recent_emojis"
+        private const val KEY_USER_PROFILE = "userProfile"
         
         // Voice Settings
         private const val KEY_VOICE_ENABLED = "voice_enabled"
@@ -21,6 +25,7 @@ class SettingsRepository(context: Context) {
         private const val KEY_VOICE_ID = "voice_id"
         private const val KEY_VOICE_SPEED = "voice_speed"
         private const val KEY_VOICE_PITCH = "voice_pitch"
+        private const val KEY_USE_PERSONA_VOICES = "use_persona_voices"
         private const val KEY_VOICE_DIRECTOR_NOTE = "voice_director_note"
 
         private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,🤌"
@@ -40,6 +45,16 @@ class SettingsRepository(context: Context) {
 
     fun getRecentEmojisFlow(): Flow<String> = storageManager.getStringFlow(KEY_RECENT_EMOJIS).map { it ?: DEFAULT_EMOJIS }
     suspend fun saveRecentEmojis(emojis: String) = storageManager.saveString(KEY_RECENT_EMOJIS, emojis)
+
+    fun getPersonaNameFlow(): Flow<String> = storageManager.getStringFlow(KEY_USER_PROFILE).map { profileJson ->
+        profileJson?.let {
+            try {
+                json.decodeFromString<UserProfile>(it).displayName
+            } catch (e: Exception) {
+                "Phesty"
+            }
+        } ?: "Phesty"
+    }
 
     // Voice Settings Accessors
     fun getInitialVoiceEnabled(): Boolean = runBlocking { storageManager.getBoolean(KEY_VOICE_ENABLED) ?: true }
@@ -61,6 +76,10 @@ class SettingsRepository(context: Context) {
     fun getInitialVoicePitch(): Float = runBlocking { storageManager.getFloat(KEY_VOICE_PITCH) ?: 1.0f }
     fun getVoicePitchFlow(): Flow<Float> = storageManager.getFloatFlow(KEY_VOICE_PITCH).map { it ?: 1.0f }
     suspend fun saveVoicePitch(pitch: Float) = storageManager.saveFloat(KEY_VOICE_PITCH, pitch)
+
+    fun getInitialUsePersonaVoices(): Boolean = runBlocking { storageManager.getBoolean(KEY_USE_PERSONA_VOICES) ?: true }
+    fun getUsePersonaVoicesFlow(): Flow<Boolean> = storageManager.getBooleanFlow(KEY_USE_PERSONA_VOICES).map { it ?: true }
+    suspend fun saveUsePersonaVoices(use: Boolean) = storageManager.saveBoolean(KEY_USE_PERSONA_VOICES, use)
 
     fun getInitialDirectorNote(): String = runBlocking { storageManager.getString(KEY_VOICE_DIRECTOR_NOTE) ?: "Speak in a clear, natural, and expressive tone." }
     fun getDirectorNoteFlow(): Flow<String> = storageManager.getStringFlow(KEY_VOICE_DIRECTOR_NOTE).map { it ?: "Speak in a clear, natural, and expressive tone." }

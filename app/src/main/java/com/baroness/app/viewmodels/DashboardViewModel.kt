@@ -237,15 +237,39 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     weatherSuggestion = weatherSuggestion ?: "stay in your zone"
                 )
 
-                val voiceConfig = VoiceConfig(
-                    voiceId = settingsRepository.getInitialVoiceId(),
-                    speed = settingsRepository.getInitialVoiceSpeed(),
-                    pitch = settingsRepository.getInitialVoicePitch(),
-                    provider = settingsRepository.getInitialVoiceProvider(),
-                    directorNote = settingsRepository.getInitialDirectorNote()
-                )
+                val usePersona = settingsRepository.getInitialUsePersonaVoices()
+                val persona = profile?.persona ?: "Phesty"
+                
+                val voiceConfig = if (usePersona) {
+                    // Smart Persona Overrides
+                    if (persona.lowercase() == "baroness") {
+                        VoiceConfig(
+                            voiceId = "en-US-marcus",
+                            speed = 1.0f,
+                            pitch = 1.0f,
+                            provider = "murf",
+                            directorNote = "Warm and sophisticated."
+                        )
+                    } else {
+                        VoiceConfig(
+                            voiceId = "aura-asteria-en",
+                            speed = 1.1f,
+                            pitch = 1.0f,
+                            provider = "deepgram",
+                            directorNote = "Playful and friendly."
+                        )
+                    }
+                } else {
+                    VoiceConfig(
+                        voiceId = settingsRepository.getInitialVoiceId(),
+                        speed = settingsRepository.getInitialVoiceSpeed(),
+                        pitch = settingsRepository.getInitialVoicePitch(),
+                        provider = settingsRepository.getInitialVoiceProvider(),
+                        directorNote = settingsRepository.getInitialDirectorNote()
+                    )
+                }
 
-                voiceCenter.speak(message, VoiceContext(voiceConfig))
+                voiceCenter.speak(message, VoiceContext(voiceConfig), bypassCache = true)
                 storage.saveLong(KEY_LAST_ANNOUNCEMENT_TIME, currentTimeMillis)
             }
         }

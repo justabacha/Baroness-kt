@@ -39,7 +39,7 @@ fun AboutContent() {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App name / logo area
+
         Text(
             text = "About Baroness",
             fontFamily = AppFonts.PlayfairDisplay,
@@ -48,8 +48,7 @@ fun AboutContent() {
             color = Color.White,
             textAlign = TextAlign.Center
         )
-        
-        // Tagline
+
         Text(
             text = "A private universe for two.",
             fontFamily = AppFonts.PlayfairDisplay,
@@ -80,10 +79,9 @@ fun AboutContent() {
             textAlign = TextAlign.Center,
             lineHeight = 20.sp
         )
-        
-        // Closing
+
         Text(
-            text = "Built by Phestone with love. For just Phesty and Baroness.",
+            text = "Built by Phestone with love. For just Baroness and Phesty.",
             fontFamily = AppFonts.PlayfairDisplay,
             fontWeight = FontWeight.Normal,
             fontSize = 12.sp,

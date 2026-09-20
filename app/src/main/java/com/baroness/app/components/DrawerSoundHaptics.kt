@@ -32,6 +32,8 @@ fun DrawerSoundHaptics(
     val voicePitch by viewModel.voicePitch.collectAsState()
     val directorNote by viewModel.directorNote.collectAsState()
     val voiceState by viewModel.voiceState.collectAsState()
+    val usePersonaVoices by viewModel.usePersonaVoices.collectAsState()
+    val personaName by viewModel.personaName.collectAsState()
 
     GlassCategoryBox(
         title = "AVIS - SOUND & HAPTICS",
@@ -95,97 +97,114 @@ fun DrawerSoundHaptics(
             if (voiceEnabled) {
                 Divider(color = Color.White.copy(alpha = 0.1f))
 
-                // Provider Selection
-                Column {
-                    Text(
-                        text = "Voice Provider",
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        VoiceProviderOption(
-                            label = "Deepgram",
-                            selected = voiceProvider == "deepgram",
-                            onClick = { viewModel.setVoiceProvider("deepgram") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        VoiceProviderOption(
-                            label = "Murf AI",
-                            selected = voiceProvider == "murf",
-                            onClick = { viewModel.setVoiceProvider("murf") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+                // Smart Persona Toggle
+                VoiceSettingToggle(
+                    label = "Optimize for $personaName",
+                    checked = usePersonaVoices,
+                    onCheckedChange = { viewModel.setUsePersonaVoices(it) }
+                )
 
-                // Voice Selection Row
-                val availableVoices = remember(voiceProvider) {
-                    when (voiceProvider) {
-                        "deepgram" -> listOf(
-                            "aura-asteria-en" to "Asteria (F)",
-                            "aura-luna-en" to "Luna (F)",
-                            "aura-stella-en" to "Stella (F)",
-                            "aura-athena-en" to "Athena (F)",
-                            "aura-hera-en" to "Hera (F)",
-                            "aura-orion-en" to "Orion (M)",
-                            "aura-arcas-en" to "Arcas (M)",
-                            "aura-perseus-en" to "Perseus (M)",
-                            "aura-angus-en" to "Angus (M)",
-                            "aura-orpheus-en" to "Orpheus (M)",
-                            "aura-helios-en" to "Helios (M)",
-                            "aura-zeus-en" to "Zeus (M)"
-                        )
-                        "murf" -> listOf("en-US-marcus" to "Marcus (M)")
-                        "edge" -> listOf("en-US-jenny" to "Jenny (F)")
-                        else -> emptyList()
-                    }
-                }
-
-                if (availableVoices.size > 1) {
+                if (!usePersonaVoices) {
+                    // Provider Selection
                     Column {
                         Text(
-                            text = "Select Voice",
+                            text = "Voice Provider",
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .horizontalScroll(rememberScrollState()),
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            availableVoices.forEach { (id, label) ->
-                                VoiceProviderOption(
-                                    label = label,
-                                    selected = voiceId == id,
-                                    onClick = { viewModel.setVoiceId(id) }
-                                )
+                            VoiceProviderOption(
+                                label = "Deepgram",
+                                selected = voiceProvider == "deepgram",
+                                onClick = { viewModel.setVoiceProvider("deepgram") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            VoiceProviderOption(
+                                label = "Murf AI",
+                                selected = voiceProvider == "murf",
+                                onClick = { viewModel.setVoiceProvider("murf") },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Voice Selection Row
+                    val availableVoices = remember(voiceProvider) {
+                        when (voiceProvider) {
+                            "deepgram" -> listOf(
+                                "aura-asteria-en" to "Asteria (F)",
+                                "aura-luna-en" to "Luna (F)",
+                                "aura-stella-en" to "Stella (F)",
+                                "aura-athena-en" to "Athena (F)",
+                                "aura-hera-en" to "Hera (F)",
+                                "aura-orion-en" to "Orion (M)",
+                                "aura-arcas-en" to "Arcas (M)",
+                                "aura-perseus-en" to "Perseus (M)",
+                                "aura-angus-en" to "Angus (M)",
+                                "aura-orpheus-en" to "Orpheus (M)",
+                                "aura-helios-en" to "Helios (M)",
+                                "aura-zeus-en" to "Zeus (M)"
+                            )
+                            "murf" -> listOf("en-US-marcus" to "Marcus (M)")
+                            "edge" -> listOf("en-US-jenny" to "Jenny (F)")
+                            else -> emptyList()
+                        }
+                    }
+
+                    if (availableVoices.size > 1) {
+                        Column {
+                            Text(
+                                text = "Select Voice",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                availableVoices.forEach { (id, label) ->
+                                    VoiceProviderOption(
+                                        label = label,
+                                        selected = voiceId == id,
+                                        onClick = { viewModel.setVoiceId(id) }
+                                    )
+                                }
                             }
                         }
                     }
+
+                    // Speed Slider
+                    VoiceSlider(
+                        label = "Speed",
+                        value = voiceSpeed,
+                        range = 0.5f..2.0f,
+                        onValueChange = { viewModel.setVoiceSpeed(it) }
+                    )
+
+                    // Pitch Slider
+                    VoiceSlider(
+                        label = "Pitch",
+                        value = voicePitch,
+                        range = 0.5f..1.5f,
+                        onValueChange = { viewModel.setVoicePitch(it) }
+                    )
+                } else {
+                    Text(
+                        text = "Voice settings are automatically optimized for $personaName.",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
-
-                // Speed Slider
-                VoiceSlider(
-                    label = "Speed",
-                    value = voiceSpeed,
-                    range = 0.5f..2.0f,
-                    onValueChange = { viewModel.setVoiceSpeed(it) }
-                )
-
-                // Pitch Slider
-                VoiceSlider(
-                    label = "Pitch",
-                    value = voicePitch,
-                    range = 0.5f..1.5f,
-                    onValueChange = { viewModel.setVoicePitch(it) }
-                )
             }
         }
     }
