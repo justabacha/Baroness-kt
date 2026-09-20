@@ -71,7 +71,7 @@ export async function buildContext(
         const embedData = await embedResponse.json();
         const vector = embedData?.embedding?.values;
 
-        if (vector && Array.isArray(vector) && vector.length === 1536) {
+        if (vector && Array.isArray(vector) && vector.length === 768) {
           // Query pgvector RPC matching function
           const { data: memories } = await supabase.rpc("match_friday_memories", {
             query_embedding: vector,

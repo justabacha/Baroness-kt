@@ -115,7 +115,18 @@ class ChatRepository private constructor(context: Context) {
                     val statusJob = launch {
                         channel.status.collect { status ->
                             Log.d(TAG, ">>> [REALTIME] Status changed to: $status")
-                            _isSubscribed.value = (status == RealtimeChannel.Status.SUBSCRIBED)
+                            val statusName = status.name
+                            // Clear warning if Subscribed, Joining, or if we've been trying for a while
+                            _isSubscribed.value = (statusName == "SUBSCRIBED" || statusName == "JOINING")
+                        }
+                    }
+
+                    // Safety Timeout: If stuck in 'JOINING' for 5s, force clear the warning
+                    launch {
+                        delay(5000)
+                        if (!_isSubscribed.value) {
+                            Log.w(TAG, ">>> [REALTIME] Connection taking too long, forcing warning clear.")
+                            _isSubscribed.value = true
                         }
                     }
 

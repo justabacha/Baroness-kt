@@ -17,6 +17,16 @@
 --   payload: jsonb (NOT NULL)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
+-- Table: friday_entities
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   owner_id: text (NOT NULL)
+--   name: text (NOT NULL)
+--   aliases: ARRAY (NULLABLE, DEFAULT '{}'::text[])
+--   relationship: text (NULLABLE)
+--   last_known_fact: text (NULLABLE)
+--   updated_at: timestamp with time zone (NULLABLE, DEFAULT now())
+--   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+
 -- Table: friday_memories
 --   id: bigint (NOT NULL)
 --   owner_id: text (NOT NULL)
@@ -24,6 +34,10 @@
 --   emotion_tag: text (NULLABLE, DEFAULT 'soft'::text)
 --   is_pinned: boolean (NULLABLE, DEFAULT false)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+--   category: text (NULLABLE)
+--   embedding: USER-DEFINED (NULLABLE)
+--   session_id: uuid (NULLABLE)
+--   follow_up_worthy: boolean (NULLABLE, DEFAULT false)
 
 -- Table: friday_messages
 --   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
@@ -31,6 +45,13 @@
 --   sender: text (NOT NULL)
 --   message: text (NOT NULL)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
+--   session_id: uuid (NULLABLE)
+--   reflected_at: timestamp with time zone (NULLABLE)
+--   is_pinned: boolean (NULLABLE, DEFAULT false)
+--   is_deleted: boolean (NULLABLE, DEFAULT false)
+--   reactions: jsonb (NULLABLE, DEFAULT '{}'::jsonb)
+--   reply_to_id: uuid (NULLABLE)
+--   status: text (NULLABLE, DEFAULT 'SENT'::text)
 
 -- Table: gallery_items
 --   id: bigint (NOT NULL)

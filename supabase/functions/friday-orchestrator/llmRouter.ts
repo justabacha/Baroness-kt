@@ -90,7 +90,7 @@ export async function generateReply(
     }
   }
 
-  // 3. DEGRADED RECOVERY STATE: Natural fallback response
+  // 3. LLM_UNAVAILABLE Safe State Recovery (Spec 03 §5)
   return {
     text: "Hey, having a little trouble thinking straight right now — give me a second and let's try again?",
     providerUsed: "groq",

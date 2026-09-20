@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { classifyMessage } from "./classifier.ts";
 import { buildContext } from "./contextBuilder.ts";
 import { generateReply } from "./llmRouter.ts";
+import { computeDelay, isEmotionallyWeighted } from "./delay.ts";
 
 serve(async (req) => {
   // Handle preflight requests
@@ -93,7 +94,8 @@ serve(async (req) => {
       await supabase.from("friday_messages")
         .update({
           message: acknowledgment,
-          status: "SENT"
+          status: "SENT",
+          is_command: true
         })
         .eq("id", placeholderId);
 
@@ -103,7 +105,7 @@ serve(async (req) => {
         intent: classification.intent,
         parameters: classification.parameters,
         content: acknowledgment,
-        typing_duration_ms: 300,
+        typing_duration_ms: computeDelay({ replyText: acknowledgment, isCommand: true, isEmotionallyWeighted: false }),
       };
 
       await supabase.from("chat_sync_pipe").insert({
@@ -121,14 +123,19 @@ serve(async (req) => {
     // 4.2 Generate LLM Reply
     const { text } = await generateReply(context, userMessage);
 
-    // 4.3 Compute Typing Delay (Characters per MS)
-    const typingDurationMs = Math.round(Math.min(text.length / 0.06, 6000) + 400);
+    // 4.3 Compute Typing Delay (Characters per MS + Emotional Pause)
+    const typingDurationMs = computeDelay({
+      replyText: text,
+      isCommand: false,
+      isEmotionallyWeighted: isEmotionallyWeighted(userMessage)
+    });
 
     // 4.4 Update placeholder with the final message
     await supabase.from("friday_messages")
       .update({
         message: text,
-        status: "SENT"
+        status: "SENT",
+        is_command: false
       })
       .eq("id", placeholderId);
 
