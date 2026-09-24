@@ -1,13 +1,19 @@
 import { AssembledContext } from "./contextBuilder.ts";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkAndIncrement } from "../_shared/rate-limiter.ts";
+import { logEvent } from "../_shared/logger.ts";
 
 export async function generateReply(
   context: AssembledContext,
-  currentMessage: string
-): Promise<{ text: string; providerUsed: "gemini" | "groq" }> {
+  currentMessage: string,
+  supabase?: SupabaseClient,
+  ownerId?: string
+): Promise<{ text: string; providerUsed: "gemini" | "groq" | "none" }> {
+  const startTime = Date.now();
   const groqKey = Deno.env.get("GROQ_API_KEY");
   const geminiKey = Deno.env.get("GEMINI_API_KEY");
 
-  // 1. PRIMARY: Try Groq with your validated configuration settings
+  // 1. PRIMARY: Try Groq with validated configuration settings
   if (groqKey) {
     try {
       const messages = [
@@ -24,7 +30,7 @@ export async function generateReply(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-120b", // Switched back to your validated model
+          model: "openai/gpt-oss-120b",
           messages,
           temperature: 0.6,
           max_tokens: 1024,
@@ -34,7 +40,19 @@ export async function generateReply(
       if (response.ok) {
         const data = await response.json();
         const text = data.choices?.[0]?.message?.content;
+        const usage = data.usage || {};
         if (text) {
+          const latency = Date.now() - startTime;
+          logEvent("chat.reply", {
+            owner_id: ownerId,
+            model: "openai/gpt-oss-120b",
+            provider: "groq",
+            latency_ms: latency,
+            success: true,
+            prompt_tokens: usage.prompt_tokens ?? 0,
+            completion_tokens: usage.completion_tokens ?? 0,
+            total_tokens: usage.total_tokens ?? 0,
+          });
           return { text: text.trim(), providerUsed: "groq" };
         }
       } else {
@@ -46,8 +64,20 @@ export async function generateReply(
     }
   }
 
-  // 2. FALLBACK: Try Gemini if Groq keys hit rate limits or quotas
+  // 2. FALLBACK: Try Gemini if Groq failed, but check rate limits first
   if (geminiKey) {
+    if (supabase && ownerId) {
+      const rateLimit = await checkAndIncrement(supabase, ownerId, "gemini");
+      if (!rateLimit.allowed) {
+        console.warn(`Gemini rate limit exceeded for owner ${ownerId}. Skipping Gemini fallback.`);
+        logEvent("rate_limit.blocked", { owner_id: ownerId, provider: "gemini" });
+        return {
+          text: "Hey, having a little trouble thinking straight right now — give me a second and let's try again?",
+          providerUsed: "none",
+        };
+      }
+    }
+
     try {
       console.log("Groq primary missed, initiating Gemini fallback loop...");
       const contents = context.chatHistory.map((h) => ({
@@ -81,7 +111,19 @@ export async function generateReply(
       if (response.ok) {
         const data = await response.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        const usage = data.usageMetadata || {};
         if (text) {
+          const latency = Date.now() - startTime;
+          logEvent("chat.reply", {
+            owner_id: ownerId,
+            model: "gemini-1.5-flash",
+            provider: "gemini",
+            latency_ms: latency,
+            success: true,
+            prompt_tokens: usage.promptTokenCount ?? 0,
+            completion_tokens: usage.candidatesTokenCount ?? 0,
+            total_tokens: usage.totalTokenCount ?? 0,
+          });
           return { text: text.trim(), providerUsed: "gemini" };
         }
       }
@@ -90,9 +132,20 @@ export async function generateReply(
     }
   }
 
-  // 3. LLM_UNAVAILABLE Safe State Recovery (Spec 03 §5)
+  // 3. Static fallback if both failed
+  logEvent("chat.reply", {
+    owner_id: ownerId,
+    model: "none",
+    provider: "none",
+    latency_ms: Date.now() - startTime,
+    success: false,
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+  });
+
   return {
     text: "Hey, having a little trouble thinking straight right now — give me a second and let's try again?",
-    providerUsed: "groq",
+    providerUsed: "none",
   };
 }

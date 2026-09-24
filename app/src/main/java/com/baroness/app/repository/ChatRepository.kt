@@ -196,19 +196,8 @@ class ChatRepository private constructor(context: Context) {
                         }
                     }
                 }
-                
-                // Commands still get an acknowledgment message usually
-                val content = payload["content"]?.jsonPrimitive?.content ?: "On it"
-                val conversationId = "friday"
-                val senderId = "friday"
-                val timestamp = payload["timestamp"]?.jsonPrimitive?.longOrNull ?: System.currentTimeMillis()
-                
-                saveMessageWithTyping(
-                    messageId, conversationId, senderId, content, timestamp, 
-                    typingDurationMs = 300, isPinned = false
-                )
 
-                // Execute local intent
+                // Execute local intent immediately without creating a temporary "On it" UI bubble
                 withContext(Dispatchers.Main) {
                     commandExecutor.execute(intent, params)
                 }

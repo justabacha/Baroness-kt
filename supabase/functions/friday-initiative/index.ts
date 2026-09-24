@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logEvent } from "../_shared/logger.ts";
 
 serve(async (req) => {
   const internalSecret = req.headers.get("X-Internal-Secret");
@@ -39,7 +40,6 @@ serve(async (req) => {
       const isWindowOpen = force ? (gapHours > 0.001) : (gapHours >= 12 && gapHours <= 18);
 
       if (isWindowOpen) {
-        // Find memories
         let memQuery = supabase.from("friday_memories").select("*").eq("owner_id", ownerId);
         if (!force) memQuery = memQuery.eq("follow_up_worthy", true);
 
@@ -80,6 +80,16 @@ Output ONLY the raw text message.`;
 
         if (resp.ok) {
           const data = await resp.json();
+          const usage = data.usage || {};
+          logEvent("initiative.outreach", {
+            owner_id: ownerId,
+            model: "openai/gpt-oss-120b",
+            provider: "groq",
+            prompt_tokens: usage.prompt_tokens ?? 0,
+            completion_tokens: usage.completion_tokens ?? 0,
+            total_tokens: usage.total_tokens ?? 0,
+          });
+
           const text = data.choices[0].message.content.trim();
           console.log(`>>> [INITIATIVE] Generated: ${text}`);
 

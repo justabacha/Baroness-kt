@@ -120,6 +120,8 @@ object ChatApi {
                     filter {
                         eq("recipient_id", recipientId)
                     }
+                    order("created_at", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                    limit(100)
                 }
                 .decodeList<SyncPipeDto>()
         } catch (e: Exception) {

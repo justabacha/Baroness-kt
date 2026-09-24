@@ -52,6 +52,9 @@
 --   reactions: jsonb (NULLABLE, DEFAULT '{}'::jsonb)
 --   reply_to_id: uuid (NULLABLE)
 --   status: text (NULLABLE, DEFAULT 'SENT'::text)
+--   is_proactive: boolean (NULLABLE, DEFAULT false)
+--   is_command: boolean (NULLABLE, DEFAULT false)
+--   sentiment: text (NULLABLE)
 
 -- Table: gallery_items
 --   id: bigint (NOT NULL)
@@ -83,6 +86,7 @@
 --   updated_at: timestamp with time zone (NULLABLE, DEFAULT now())
 --   avatar_url: text (NULLABLE)
 --   fcm_token: text (NULLABLE)
+--   friday_vibe: text (NULLABLE, DEFAULT 'chilled'::text)
 
 -- Table: typing_status
 --   user_id: text (NOT NULL)
