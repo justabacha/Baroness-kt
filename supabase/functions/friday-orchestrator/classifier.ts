@@ -21,6 +21,16 @@ COMMAND means an EXPLICIT, IMMEDIATE imperative order for the app to control the
 Supported commands:
 - "play_music": playing music or media ("play Alie Gatie Can't Lie", "play some jazz", "play Aslay")
   Parameters for play_music: "query" (song/artist/genre search term), "app" (target app: "youtube").
+- "pause_media": pausing current music or video ("pause", "pause music", "stop music")
+- "resume_media": resuming music or playback ("resume", "continue playing", "unpause")
+- "next_track": skipping to next track ("skip", "next song", "next track")
+- "previous_track": going back to previous track ("previous song", "go back")
+- "set_volume": setting media volume level ("set volume to 80", "volume 50%")
+  Parameters for set_volume: "level" (number 0..100).
+- "volume_up": turning up volume ("volume up", "louder", "turn it up")
+- "volume_down": turning down volume ("volume down", "quieter", "turn it down")
+- "mute": muting audio ("mute", "silence")
+- "unmute": unmuting audio ("unmute")
 - "navigate": directions/navigation ("navigate home", "take me to the airport")
 - "set_timer": setting a countdown timer ("set a timer for 10 minutes")
 - "set_alarm": setting an alarm clock ("set an alarm for 7am")
@@ -38,8 +48,10 @@ Respond with ONLY a JSON object:
 
 Examples:
 "play Alie Gatie Can't Lie" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"},"confidence":0.98}
-"play Aslay on Spotify" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"Aslay","app":"youtube"},"confidence":0.98}
-"play some jazz" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"jazz","app":"youtube"},"confidence":0.98}
+"pause the song" -> {"classification":"COMMAND","intent":"pause_media","parameters":{},"confidence":0.98}
+"skip this track" -> {"classification":"COMMAND","intent":"next_track","parameters":{},"confidence":0.98}
+"set volume to 80%" -> {"classification":"COMMAND","intent":"set_volume","parameters":{"level":80},"confidence":0.98}
+"turn it up" -> {"classification":"COMMAND","intent":"volume_up","parameters":{},"confidence":0.98}
 "I played basketball with my friends" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}
 "Can you set an alarm for 8am?" -> {"classification":"COMMAND","intent":"set_alarm","parameters":{"hour":8,"minute":0},"confidence":0.95}
 "I love playing chess" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}

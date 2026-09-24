@@ -29,6 +29,60 @@ export const ACTION_ALLOWLIST: Record<string, ActionDefinition> = {
     confirmationRequired: false
   },
 
+  // Playback & Volume Control Handlers
+  pause_media: {
+    name: 'pause_media',
+    parameters: {},
+    confirmationRequired: false
+  },
+  resume_media: {
+    name: 'resume_media',
+    parameters: {},
+    confirmationRequired: false
+  },
+  stop_media: {
+    name: 'stop_media',
+    parameters: {},
+    confirmationRequired: false
+  },
+  next_track: {
+    name: 'next_track',
+    parameters: {},
+    confirmationRequired: false
+  },
+  previous_track: {
+    name: 'previous_track',
+    parameters: {},
+    confirmationRequired: false
+  },
+  set_volume: {
+    name: 'set_volume',
+    parameters: {
+      level: { type: 'number', required: true, min: 0, max: 100 }
+    },
+    confirmationRequired: false
+  },
+  volume_up: {
+    name: 'volume_up',
+    parameters: {},
+    confirmationRequired: false
+  },
+  volume_down: {
+    name: 'volume_down',
+    parameters: {},
+    confirmationRequired: false
+  },
+  mute: {
+    name: 'mute',
+    parameters: {},
+    confirmationRequired: false
+  },
+  unmute: {
+    name: 'unmute',
+    parameters: {},
+    confirmationRequired: false
+  },
+
   // Navigation & App Control Handlers
   navigate: {
     name: 'navigate',

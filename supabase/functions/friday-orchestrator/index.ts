@@ -152,8 +152,26 @@ serve(async (req) => {
       const params = classification.parameters || {};
 
       if (actName === "play_music") {
-        const genre = params.genre ? ` (${params.genre})` : "";
-        actionNote = `[System Note]: You just triggered the phone to play music${genre}. Vibe back casually as a friend (e.g. "got u mate, lemme play u some bangers", "putting on some sick tunes for u"). Speak in plain casual text. Do NOT output any JSON or code.`;
+        const queryStr = params.query ? ` (${params.query})` : "";
+        actionNote = `[System Note]: You just triggered the phone to play music${queryStr}. Vibe back casually as a friend (e.g. "got u mate, lemme play u some bangers", "putting on some tunes for u"). Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "pause_media" || actName === "stop_media") {
+        actionNote = `[System Note]: You just paused the music/media. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "resume_media") {
+        actionNote = `[System Note]: You resumed playback. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "next_track") {
+        actionNote = `[System Note]: You skipped to the next song. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "previous_track") {
+        actionNote = `[System Note]: You went back to the previous track. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "set_volume") {
+        actionNote = `[System Note]: You set the volume level to ${params.level || 50}%. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "volume_up") {
+        actionNote = `[System Note]: You turned the volume up. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "volume_down") {
+        actionNote = `[System Note]: You turned the volume down. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "mute") {
+        actionNote = `[System Note]: You muted the audio. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
+      } else if (actName === "unmute") {
+        actionNote = `[System Note]: You unmuted the audio. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
       } else if (actName === "navigate") {
         const dest = params.destination || "their destination";
         actionNote = `[System Note]: You just opened navigation to ${dest} on their phone. Confirm it casually as a friend (e.g. "got u, opening maps to ${dest} now"). Speak in plain casual text. Do NOT output any JSON or code.`;

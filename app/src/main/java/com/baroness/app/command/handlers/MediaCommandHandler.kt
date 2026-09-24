@@ -2,9 +2,11 @@ package com.baroness.app.command.handlers
 
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
+import android.view.KeyEvent
 import com.baroness.app.command.CommandHandler
 import java.net.HttpURLConnection
 import java.net.URL
@@ -13,7 +15,12 @@ import java.util.concurrent.TimeUnit
 
 class MediaCommandHandler(private val context: Context) : CommandHandler {
 
-    private val supportedIntents = setOf("play_music", "play_video", "play_voice_note")
+    private val supportedIntents = setOf(
+        "play_music", "play_video", "play_voice_note",
+        "pause_media", "resume_media", "stop_media",
+        "next_track", "previous_track",
+        "set_volume", "volume_up", "volume_down", "mute", "unmute"
+    )
     private val executor = Executors.newSingleThreadExecutor()
 
     override fun canHandle(intent: String): Boolean {
@@ -25,6 +32,15 @@ class MediaCommandHandler(private val context: Context) : CommandHandler {
             "play_music" -> playMusic(parameters)
             "play_video" -> playVideo(parameters?.get("query") as? String)
             "play_voice_note" -> playVoiceNote(parameters?.get("note_id") as? String)
+            "pause_media", "stop_media" -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PAUSE)
+            "resume_media" -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY)
+            "next_track" -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
+            "previous_track" -> dispatchMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+            "set_volume" -> setVolume(parameters)
+            "volume_up" -> adjustVolume(AudioManager.ADJUST_RAISE)
+            "volume_down" -> adjustVolume(AudioManager.ADJUST_LOWER)
+            "mute" -> toggleMute(true)
+            "unmute" -> toggleMute(false)
             else -> false
         }
     }
@@ -94,6 +110,62 @@ class MediaCommandHandler(private val context: Context) : CommandHandler {
                 Log.e("MediaCommandHandler", "Failed to play music: ${webEx.message}")
                 false
             }
+        }
+    }
+
+    private fun dispatchMediaKey(keyCode: Int): Boolean {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val down = KeyEvent(KeyEvent.ACTION_DOWN, keyCode)
+            val up = KeyEvent(KeyEvent.ACTION_UP, keyCode)
+            audioManager.dispatchMediaKeyEvent(down)
+            audioManager.dispatchMediaKeyEvent(up)
+            true
+        } catch (e: Exception) {
+            Log.e("MediaCommandHandler", "Failed to dispatch media key $keyCode: ${e.message}")
+            false
+        }
+    }
+
+    private fun setVolume(parameters: Map<String, Any?>?): Boolean {
+        val level = (parameters?.get("level")
+            ?: parameters?.get("volume")
+            ?: parameters?.get("volume_percent")) as? Number
+            ?: return false
+
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            val rawVal = level.toFloat()
+            val targetVolume = (rawVal / 100f * maxVolume).toInt().coerceIn(0, maxVolume)
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume, AudioManager.FLAG_SHOW_UI)
+            true
+        } catch (e: Exception) {
+            Log.e("MediaCommandHandler", "Failed to set volume: ${e.message}")
+            false
+        }
+    }
+
+    private fun adjustVolume(direction: Int): Boolean {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, AudioManager.FLAG_SHOW_UI)
+            true
+        } catch (e: Exception) {
+            Log.e("MediaCommandHandler", "Failed to adjust volume: ${e.message}")
+            false
+        }
+    }
+
+    private fun toggleMute(mute: Boolean): Boolean {
+        return try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val flag = if (mute) AudioManager.ADJUST_MUTE else AudioManager.ADJUST_UNMUTE
+            audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, flag, AudioManager.FLAG_SHOW_UI)
+            true
+        } catch (e: Exception) {
+            Log.e("MediaCommandHandler", "Failed to toggle mute state: ${e.message}")
+            false
         }
     }
 
