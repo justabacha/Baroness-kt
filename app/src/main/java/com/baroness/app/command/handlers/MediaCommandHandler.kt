@@ -1,16 +1,20 @@
 package com.baroness.app.command.handlers
 
-import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.MediaStore
 import android.util.Log
 import com.baroness.app.command.CommandHandler
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 class MediaCommandHandler(private val context: Context) : CommandHandler {
 
     private val supportedIntents = setOf("play_music", "play_video", "play_voice_note")
+    private val executor = Executors.newSingleThreadExecutor()
 
     override fun canHandle(intent: String): Boolean {
         return supportedIntents.contains(intent)
@@ -27,40 +31,27 @@ class MediaCommandHandler(private val context: Context) : CommandHandler {
 
     private fun playMusic(parameters: Map<String, Any?>?): Boolean {
         val rawQuery = (parameters?.get("query")
-            ?: parameters?.get("genre")
             ?: parameters?.get("song")
+            ?: parameters?.get("title")
             ?: parameters?.get("artist")
-            ?: parameters?.get("title")) as? String
-
-        var targetApp = (parameters?.get("app")
-            ?: parameters?.get("app_name")
-            ?: parameters?.get("target_app")) as? String
+            ?: parameters?.get("genre")) as? String
 
         var searchQuery = rawQuery?.trim() ?: ""
 
-        if (searchQuery.contains(Regex("(?i)\\bon\\s+spotify\\b"))) {
-            targetApp = "spotify"
-            searchQuery = searchQuery.replace(Regex("(?i)\\s*\\bon\\s+spotify\\b"), "").trim()
-        } else if (searchQuery.contains(Regex("(?i)\\bon\\s+(youtube\\s+music|yt\\s+music|youtube)\\b"))) {
-            targetApp = "youtube"
-            searchQuery = searchQuery.replace(Regex("(?i)\\s*\\bon\\s+(youtube\\s+music|yt\\s+music|youtube)\\b"), "").trim()
-        }
+        // Strip any platform suffixes like "on spotify" or "on youtube"
+        searchQuery = searchQuery
+            .replace(Regex("(?i)\\s*\\bon\\s+(spotify|youtube\\s+music|yt\\s+music|youtube)\\b"), "")
+            .trim()
 
-        val packageName = when (targetApp?.lowercase()?.trim()) {
-            "spotify" -> "com.spotify.music"
-            "youtube", "yt_music", "youtube_music", "yt" -> "com.google.android.apps.youtube.music"
-            else -> null
-        }
+        val packageName = resolveYouTubePackage()
 
-        if (searchQuery.isBlank()) {
+        if (isGenericMusicQuery(searchQuery)) {
             return try {
-                if (packageName != null) {
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
-                    if (launchIntent != null) {
-                        launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context.startActivity(launchIntent)
-                        return true
-                    }
+                val launchIntent = context.packageManager.getLaunchIntentForPackage(packageName)
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(launchIntent)
+                    return true
                 }
                 val intent = Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -73,48 +64,96 @@ class MediaCommandHandler(private val context: Context) : CommandHandler {
             }
         }
 
-        return try {
-            val searchIntent = Intent(MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH).apply {
-                putExtra(SearchManager.QUERY, searchQuery)
-                putExtra(MediaStore.EXTRA_MEDIA_FOCUS, "vnd.android.cursor.item/*")
-                putExtra(MediaStore.EXTRA_MEDIA_TITLE, searchQuery)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-
-                if (packageName != null) {
-                    setPackage(packageName)
-                }
+        // Direct YouTube / YouTube Music watch URL resolution for instant zero-click auto-play
+        val videoId = getYouTubeVideoId(searchQuery)
+        val targetUrl = if (videoId != null) {
+            if (packageName == "com.google.android.apps.youtube.music") {
+                "https://music.youtube.com/watch?v=$videoId"
+            } else {
+                "https://www.youtube.com/watch?v=$videoId"
             }
-            context.startActivity(searchIntent)
+        } else {
+            "https://www.youtube.com/results?search_query=${Uri.encode(searchQuery)}"
+        }
+
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
+                setPackage(packageName)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(intent)
             true
         } catch (e: Exception) {
-            Log.e("MediaCommandHandler", "Play from search failed for package $packageName: ${e.message}")
             try {
-                val ytIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(searchQuery)}")).apply {
-                    setPackage("com.google.android.youtube")
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
-                context.startActivity(ytIntent)
+                context.startActivity(webIntent)
                 true
-            } catch (ytEx: Exception) {
-                try {
-                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com/search?q=${Uri.encode(searchQuery)}")).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(webIntent)
-                    true
-                } catch (webEx: Exception) {
-                    Log.e("MediaCommandHandler", "All media fallbacks failed: ${webEx.message}")
-                    false
-                }
+            } catch (webEx: Exception) {
+                Log.e("MediaCommandHandler", "Failed to play music: ${webEx.message}")
+                false
             }
+        }
+    }
+
+    private fun isGenericMusicQuery(query: String): Boolean {
+        val q = query.lowercase().trim()
+        return q.isBlank() || q == "music" || q == "some music" || q == "a song" || q == "songs" || q == "play music" || q == "something"
+    }
+
+    private fun getYouTubeVideoId(query: String): String? {
+        val future = executor.submit<String?> {
+            try {
+                val url = "https://www.youtube.com/results?search_query=${Uri.encode(query)}"
+                val connection = URL(url).openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                connection.connectTimeout = 2500
+                connection.readTimeout = 2500
+
+                val html = connection.inputStream.bufferedReader().use { it.readText() }
+                val regex = Regex(""""videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"""")
+                val match = regex.find(html)
+                match?.groupValues?.get(1)
+            } catch (e: Exception) {
+                Log.e("MediaCommandHandler", "Failed to resolve YouTube video ID: ${e.message}")
+                null
+            }
+        }
+        return try {
+            future.get(2500, TimeUnit.MILLISECONDS)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun resolveYouTubePackage(): String {
+        return when {
+            isPackageInstalled("com.google.android.apps.youtube.music") -> "com.google.android.apps.youtube.music"
+            isPackageInstalled("com.google.android.youtube") -> "com.google.android.youtube"
+            else -> "com.google.android.apps.youtube.music"
+        }
+    }
+
+    private fun isPackageInstalled(packageName: String): Boolean {
+        return try {
+            context.packageManager.getLaunchIntentForPackage(packageName) != null
+        } catch (e: Exception) {
+            false
         }
     }
 
     private fun playVideo(query: String?): Boolean {
         if (query.isNullOrBlank()) return false
+        val videoId = getYouTubeVideoId(query)
+        val targetUrl = if (videoId != null) {
+            "https://www.youtube.com/watch?v=$videoId"
+        } else {
+            "https://www.youtube.com/results?search_query=${Uri.encode(query)}"
+        }
         return try {
-            val encodedQuery = Uri.encode(query)
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=$encodedQuery")).apply {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
                 setPackage("com.google.android.youtube")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
@@ -122,7 +161,7 @@ class MediaCommandHandler(private val context: Context) : CommandHandler {
             true
         } catch (e: Exception) {
             try {
-                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(query)}")).apply {
+                val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl)).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 context.startActivity(webIntent)

@@ -7,13 +7,15 @@ console.log("=== Running Action Validator Unit Tests ===");
 const res1 = validateAction({
   type: 'COMMAND',
   intent: 'play_music',
-  parameters: { genre: 'jazz', extra_junk: 'should_be_stripped' }
+  parameters: { query: 'Alie Gatie Can\'t Lie', app: 'youtube', genre: 'jazz', extra_junk: 'should_be_stripped' }
 });
 assert.strictEqual(res1.valid, true);
 assert.strictEqual(res1.action?.intent, 'play_music');
+assert.strictEqual(res1.action?.parameters.query, 'Alie Gatie Can\'t Lie');
+assert.strictEqual(res1.action?.parameters.app, 'youtube');
 assert.strictEqual(res1.action?.parameters.genre, 'jazz');
 assert.strictEqual(res1.action?.parameters.extra_junk, undefined, 'Extra parameter should be stripped');
-console.log("✓ Valid play_music with parameter stripping passed");
+console.log("✓ Valid play_music with query, app, genre, and parameter stripping passed");
 
 // Test 2: Valid navigate command
 const res2 = validateAction({

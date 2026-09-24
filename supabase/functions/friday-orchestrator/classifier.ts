@@ -19,7 +19,8 @@ export async function classifyMessage(message: string): Promise<ClassificationRe
 
 COMMAND means an EXPLICIT, IMMEDIATE imperative order for the app to control the phone right now.
 Supported commands:
-- "play_music": playing music or media ("play some jazz", "play music", "play bangers")
+- "play_music": playing music or media ("play Alie Gatie Can't Lie", "play some jazz", "play Aslay")
+  Parameters for play_music: "query" (song/artist/genre search term), "app" (target app: "youtube").
 - "navigate": directions/navigation ("navigate home", "take me to the airport")
 - "set_timer": setting a countdown timer ("set a timer for 10 minutes")
 - "set_alarm": setting an alarm clock ("set an alarm for 7am")
@@ -36,7 +37,9 @@ Respond with ONLY a JSON object:
 {"classification": "COMMAND" | "CONVERSATION", "intent": string | null, "parameters": object | null, "confidence": number}
 
 Examples:
-"play some jazz" -> {"classification":"COMMAND","intent":"play_music","parameters":{"genre":"jazz"},"confidence":0.98}
+"play Alie Gatie Can't Lie" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"},"confidence":0.98}
+"play Aslay on Spotify" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"Aslay","app":"youtube"},"confidence":0.98}
+"play some jazz" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"jazz","app":"youtube"},"confidence":0.98}
 "I played basketball with my friends" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}
 "Can you set an alarm for 8am?" -> {"classification":"COMMAND","intent":"set_alarm","parameters":{"hour":8,"minute":0},"confidence":0.95}
 "I love playing chess" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}

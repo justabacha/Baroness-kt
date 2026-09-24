@@ -72,7 +72,10 @@ This report documents the step-by-step implementation of the FRIDAY V1 Final Arc
 ### 1. Modular Kotlin Command Architecture (`app/src/main/java/com/baroness/app/command/`)
 * **`CommandHandler.kt`**: Clean interface contract (`canHandle`, `execute`).
 * **`MediaCommandHandler.kt`**:
-  - `play_music`: Direct song/artist/genre audio streaming via `MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH` targeted to Spotify or YouTube Music with web search fallback.
+  - **Smart Media Routing**: Multi-parameter fallback checking `query`, `genre`, `song`, `artist`, `title`.
+  - **Automated Package Detection**: Automatically detects phrases like `"on spotify"` or `"on youtube"` inside the search text, sets target package (`com.spotify.music` or `com.google.android.apps.youtube.music`), and strips the `"on app"` suffix from search text.
+  - **Direct Play Execution**: Executes `MediaStore.INTENT_ACTION_MEDIA_PLAY_FROM_SEARCH` with explicit package targeting, starting audio playback immediately.
+  - **Fallback Handling**: If query is empty, launches app directly (`getLaunchIntentForPackage`); if intent fails, falls back to YouTube app/web search.
   - `play_video`: YouTube video search.
   - `play_voice_note`: Internal Baroness app voice note trigger.
 * **`NavigationCommandHandler.kt`**:

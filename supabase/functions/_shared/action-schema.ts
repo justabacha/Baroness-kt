@@ -5,6 +5,10 @@ export const ACTION_ALLOWLIST: Record<string, ActionDefinition> = {
   play_music: {
     name: 'play_music',
     parameters: {
+      query: { type: 'string', required: false },
+      song: { type: 'string', required: false },
+      artist: { type: 'string', required: false },
+      title: { type: 'string', required: false },
       genre: { type: 'string', required: false },
       app: { type: 'string', required: false }
     },
