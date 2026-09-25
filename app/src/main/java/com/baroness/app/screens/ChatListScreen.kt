@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baroness.app.components.ChatEntry
+import com.baroness.app.components.InAppMiniPlayer
 import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.components.GlobalDrawer
 import com.baroness.app.components.TopWarningBanner
@@ -136,6 +137,13 @@ fun ChatListScreen(
             message = warningMessage ?: "",
             showIcon = showWarningIcon,
             onDismiss = { settingsViewModel.dismissWarning() }
+        )
+
+        InAppMiniPlayer(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(bottom = 12.dp)
         )
     }
 }

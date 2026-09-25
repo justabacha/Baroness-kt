@@ -5,6 +5,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -18,6 +19,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,7 +57,9 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.baroness.app.R
 import com.baroness.app.components.EmojiPicker
+import com.baroness.app.components.InAppMiniPlayer
 import com.baroness.app.components.TopWarningBanner
+import com.baroness.app.media.BaronessPlayerManager
 import com.baroness.app.components.DynamicBackground
 import com.baroness.app.components.WallpaperOption
 import com.baroness.app.components.WallpaperSource
@@ -183,7 +190,7 @@ fun ChatRoomScreen(
                                 brush = Brush.verticalGradient(
                                     0.0f to Color.Transparent,
                                     0.60f to Color.Transparent, // Vanish point slightly higher for better duration
-                                    0.88f to Color.Black.copy(alpha = 0.4f), // Smooth liquid curve
+                                    0.88f to Color.Black.copy(alpha = 0.5f), // Smooth liquid curve
                                     1.0f to Color.Black,
                                     startY = 0f,
                                     endY = fadeHorizonPx
@@ -674,6 +681,54 @@ fun ChatRoomScreen(
     }
 }
 
+@Composable
+fun SpinningVinylDisc(
+    albumArtUri: android.net.Uri?,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "vinyl_spin")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    Box(
+        modifier = modifier
+            .size(38.dp)
+            .graphicsLayer {
+                rotationZ = if (isPlaying) rotation else 0f
+            }
+            .background(Color.Black, CircleShape)
+            .border(1.5.dp, Color.White.copy(alpha = 0.8f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (albumArtUri != null) {
+            AsyncImage(
+                model = albumArtUri,
+                contentDescription = "Album Art Disc",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape)
+            )
+        } else {
+            androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                drawCircle(color = Color(0xFF151515))
+                drawCircle(color = Color(0xFF2A2A2A), radius = size.minDimension * 0.38f, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
+                drawCircle(color = Color(0xFF383838), radius = size.minDimension * 0.26f, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
+                drawCircle(color = Color(0xFFFFD700), radius = size.minDimension * 0.14f)
+                drawCircle(color = Color.Black, radius = size.minDimension * 0.05f)
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatTopBar(
@@ -688,12 +743,19 @@ fun ChatTopBar(
     modifier: Modifier = Modifier,
     onTestInject: (() -> Unit)? = null
 ) {
+    val context = LocalContext.current
+    val playerManager = remember { BaronessPlayerManager.getInstance(context) }
+    val currentSong by playerManager.currentSong.collectAsState()
+    val isPlaying by playerManager.isPlaying.collectAsState()
+
     // Sharp, crisp text outline shadow for localized contrast
     val textOutlineShadow = Shadow(
         color = Color.Black,
         offset = Offset(1f, 2f),
         blurRadius = 4f
     )
+
+    val isFridayChat = participant?.id == "friday" || participant?.displayName?.contains("Friday", ignoreCase = true) == true
 
     TopAppBar(
         modifier = modifier,
@@ -703,44 +765,122 @@ fun ChatTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Avatar with crisp dual-border tracing for separation on any wallpaper
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .border(1.5.dp, Color.Black.copy(alpha = 0.75f), CircleShape)
-                        .padding(0.5.dp)
-                        .clip(CircleShape)
-                        .border(1.dp, Color.White.copy(alpha = 0.9f), CircleShape)
-                ) {
-                    if (participant?.avatarUrl != null) {
-                        AsyncImage(
-                            model = participant.avatarUrl,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                if (isFridayChat && currentSong != null) {
+                    val song = currentSong!!
+                    // Spinning Vinyl Disc instead of avatar
+                    SpinningVinylDisc(
+                        albumArtUri = song.albumArtUri,
+                        isPlaying = isPlaying
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = song.title,
+                            style = typography.title.copy(fontSize = 14.sp, shadow = textOutlineShadow),
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                    } else if (participant?.id == "friday") {
-                        AsyncImage(
-                            model = "https://img.icons8.com/fluency/48/artificial-intelligence.png",
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize()
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = song.artist,
+                                style = typography.meta.copy(fontSize = 11.sp, shadow = textOutlineShadow),
+                                color = Color.White.copy(alpha = 0.85f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            IconButton(
+                                onClick = { playerManager.skipPrevious() },
+                                modifier = Modifier.size(22.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SkipPrevious,
+                                    contentDescription = "Previous",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(2.dp))
+
+                            IconButton(
+                                onClick = { playerManager.playPause() },
+                                modifier = Modifier.size(22.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (isPlaying) "Pause" else "Play",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(2.dp))
+
+                            IconButton(
+                                onClick = { playerManager.skipNext() },
+                                modifier = Modifier.size(22.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SkipNext,
+                                    contentDescription = "Next",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    // Avatar with crisp dual-border tracing for separation on any wallpaper
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .border(1.5.dp, Color.Black.copy(alpha = 0.75f), CircleShape)
+                            .padding(0.5.dp)
+                            .clip(CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.9f), CircleShape)
+                    ) {
+                        if (participant?.avatarUrl != null) {
+                            AsyncImage(
+                                model = participant.avatarUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else if (participant?.id == "friday") {
+                            AsyncImage(
+                                model = "https://img.icons8.com/fluency/48/artificial-intelligence.png",
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = participant?.displayName ?: "Loading...",
+                            style = typography.title.copy(shadow = textOutlineShadow),
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = if (participant?.id == "friday") "Friday AI" else "Online",
+                            style = typography.meta.copy(shadow = textOutlineShadow),
+                            color = Color.White.copy(alpha = 0.9f)
                         )
                     }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = participant?.displayName ?: "Loading...",
-                        style = typography.title.copy(shadow = textOutlineShadow),
-                        color = Color.White,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = if (participant?.id == "friday") "Friday AI" else "Online",
-                        style = typography.meta.copy(shadow = textOutlineShadow),
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
                 }
 
                 PinnedMessagesPill(

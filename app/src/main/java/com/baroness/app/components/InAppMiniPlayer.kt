@@ -7,16 +7,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,9 +33,13 @@ fun InAppMiniPlayer(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val playerManager = BaronessPlayerManager.getInstance(context)
+    val playerManager = remember { BaronessPlayerManager.getInstance(context) }
     val currentSong by playerManager.currentSong.collectAsState()
     val isPlaying by playerManager.isPlaying.collectAsState()
+    val isShuffleEnabled by playerManager.isShuffleEnabled.collectAsState()
+    val currentQueue by playerManager.currentQueue.collectAsState()
+
+    var showQueueSheet by remember { mutableStateOf(false) }
 
     AnimatedVisibility(
         visible = currentSong != null,
@@ -86,11 +90,11 @@ fun InAppMiniPlayer(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Track Info
+                // Track Info + Equalizer
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
+                    PhestyText(
                         text = song.title,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Bold,
@@ -100,21 +104,48 @@ fun InAppMiniPlayer(
                         overflow = TextOverflow.Ellipsis,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 11.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        PhestyText(
+                            text = song.artist,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 11.sp
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        EqualizerVisualizer(
+                            isPlaying = isPlaying,
+                            barCount = 5,
+                            barWidth = 2.dp,
+                            barGap = 2.dp,
+                            maxBarHeight = 12.dp,
+                            activeColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                // Shuffle Button
+                IconButton(
+                    onClick = { playerManager.toggleShuffle() },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle",
+                        tint = if (isShuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
 
                 // Previous Track Button
                 IconButton(
                     onClick = { playerManager.skipPrevious() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
@@ -126,7 +157,7 @@ fun InAppMiniPlayer(
                 // Play / Pause Button
                 IconButton(
                     onClick = { playerManager.playPause() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -138,7 +169,7 @@ fun InAppMiniPlayer(
                 // Next Track Button
                 IconButton(
                     onClick = { playerManager.skipNext() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
@@ -147,10 +178,22 @@ fun InAppMiniPlayer(
                     )
                 }
 
+                // Queue Button
+                IconButton(
+                    onClick = { showQueueSheet = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.FormatListBulleted,
+                        contentDescription = "Song Queue",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
                 // Stop / Dismiss Button
                 IconButton(
                     onClick = { playerManager.stop() },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
@@ -160,5 +203,18 @@ fun InAppMiniPlayer(
                 }
             }
         }
+    }
+
+    if (showQueueSheet) {
+        SongQueueSheet(
+            queue = currentQueue,
+            currentSong = currentSong,
+            isPlaying = isPlaying,
+            onSongSelected = { index ->
+                playerManager.seekToItem(index)
+                showQueueSheet = false
+            },
+            onDismiss = { showQueueSheet = false }
+        )
     }
 }
