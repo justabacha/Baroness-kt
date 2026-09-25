@@ -109,14 +109,27 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestNotificationPermission() {
+        val permissions = mutableListOf<String>()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                    NOTIFICATION_PERMISSION_REQUEST_CODE
-                )
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
             }
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.READ_MEDIA_AUDIO)
+            }
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                permissions.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+
+        if (permissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(
+                this,
+                permissions.toTypedArray(),
+                NOTIFICATION_PERMISSION_REQUEST_CODE
+            )
         }
     }
 
