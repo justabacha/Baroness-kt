@@ -58,6 +58,7 @@ Examples:
 "play Alie Gatie Can't Lie" -> {"classification":"COMMAND","actions":[{"intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"}}],"confidence":0.98}
 "pause the song" -> {"classification":"COMMAND","actions":[{"intent":"pause_media","parameters":{}}],"confidence":0.98}
 "what is your name?" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
+"Polo G is fire, we should roll with his track" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
 "I play basketball and football" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
 User message: "${message.replace(/"/g, '\\"')}"`;
 
