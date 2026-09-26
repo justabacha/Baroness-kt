@@ -27,6 +27,8 @@ class BaronessMediaService : MediaSessionService() {
         const val ACTION_PLAY_PAUSE = "com.baroness.app.media.ACTION_PLAY_PAUSE"
         const val ACTION_NEXT = "com.baroness.app.media.ACTION_NEXT"
         const val ACTION_PREVIOUS = "com.baroness.app.media.ACTION_PREVIOUS"
+        const val ACTION_TOGGLE_SHUFFLE = "com.baroness.app.media.ACTION_TOGGLE_SHUFFLE"
+        const val ACTION_TOGGLE_REPEAT = "com.baroness.app.media.ACTION_TOGGLE_REPEAT"
         const val ACTION_STOP = "com.baroness.app.media.ACTION_STOP"
     }
 
@@ -43,6 +45,8 @@ class BaronessMediaService : MediaSessionService() {
             ACTION_PLAY_PAUSE -> playerManager.playPause()
             ACTION_NEXT -> playerManager.skipNext()
             ACTION_PREVIOUS -> playerManager.skipPrevious()
+            ACTION_TOGGLE_SHUFFLE -> playerManager.toggleShuffle()
+            ACTION_TOGGLE_REPEAT -> playerManager.toggleRepeatMode()
             ACTION_STOP -> {
                 playerManager.stop()
                 stopForeground(STOP_FOREGROUND_REMOVE)
@@ -81,30 +85,44 @@ class BaronessMediaService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val prevPending = PendingIntent.getService(
+        val shufflePending = PendingIntent.getService(
             this,
             1,
+            Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_TOGGLE_SHUFFLE },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val prevPending = PendingIntent.getService(
+            this,
+            2,
             Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_PREVIOUS },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val playPausePending = PendingIntent.getService(
             this,
-            2,
+            3,
             Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_PLAY_PAUSE },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val nextPending = PendingIntent.getService(
             this,
-            3,
+            4,
             Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_NEXT },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val repeatPending = PendingIntent.getService(
+            this,
+            5,
+            Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_TOGGLE_REPEAT },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val stopPending = PendingIntent.getService(
             this,
-            4,
+            6,
             Intent(this, BaronessMediaService::class.java).apply { this.action = ACTION_STOP },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -128,10 +146,12 @@ class BaronessMediaService : MediaSessionService() {
             .setContentIntent(pendingOpenApp)
             .setOngoing(isPlaying)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(android.R.drawable.ic_media_previous, "Previous", prevPending)
-            .addAction(playPauseIcon, if (isPlaying) "Pause" else "Play", playPausePending)
-            .addAction(android.R.drawable.ic_media_next, "Next", nextPending)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPending)
+            .addAction(android.R.drawable.ic_menu_rotate, "Shuffle", shufflePending) // Action 0
+            .addAction(android.R.drawable.ic_media_previous, "Previous", prevPending) // Action 1
+            .addAction(playPauseIcon, if (isPlaying) "Pause" else "Play", playPausePending) // Action 2
+            .addAction(android.R.drawable.ic_media_next, "Next", nextPending) // Action 3
+            .addAction(android.R.drawable.ic_menu_revert, "Repeat", repeatPending) // Action 4
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPending) // Action 5
 
         if (albumArtBitmap != null) {
             builder.setLargeIcon(albumArtBitmap)
@@ -140,7 +160,7 @@ class BaronessMediaService : MediaSessionService() {
         if (mediaSession != null) {
             builder.setStyle(
                 MediaStyleNotificationHelper.MediaStyle(mediaSession)
-                    .setShowActionsInCompactView(0, 1, 2)
+                    .setShowActionsInCompactView(1, 2, 3)
             )
         }
 

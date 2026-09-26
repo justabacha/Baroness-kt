@@ -14,12 +14,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.baroness.app.media.LocalMusicSong
+import com.baroness.app.ui.theme.rememberChatTypography
+import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.viewmodels.SettingsViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,9 +32,16 @@ fun SongQueueSheet(
     queue: List<LocalMusicSong>,
     currentSong: LocalMusicSong?,
     isPlaying: Boolean,
+    settingsViewModel: SettingsViewModel? = null,
     onSongSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val effectiveSettingsViewModel: SettingsViewModel = settingsViewModel ?: viewModel(
+        factory = SettingsViewModelFactory(context)
+    )
+    val typography = rememberChatTypography(effectiveSettingsViewModel)
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -51,14 +63,17 @@ fun SongQueueSheet(
             ) {
                 PhestyText(
                     text = "Up Next (${queue.size} songs)",
-                    style = MaterialTheme.typography.titleMedium.copy(
+                    style = typography.title.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = onDismiss) {
-                    PhestyText("Done", color = MaterialTheme.colorScheme.primary)
+                    PhestyText(
+                        text = "Done",
+                        style = typography.body.copy(color = MaterialTheme.colorScheme.primary)
+                    )
                 }
             }
 
@@ -122,8 +137,9 @@ fun SongQueueSheet(
                             Column(modifier = Modifier.weight(1f)) {
                                 PhestyText(
                                     text = song.title,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+                                    style = typography.title.copy(
+                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 14.sp
                                     ),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -131,7 +147,7 @@ fun SongQueueSheet(
                                 )
                                 PhestyText(
                                     text = song.artist,
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = typography.meta.copy(fontSize = 12.sp),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
