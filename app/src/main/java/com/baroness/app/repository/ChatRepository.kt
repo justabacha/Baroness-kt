@@ -193,7 +193,7 @@ class ChatRepository private constructor(context: Context) {
                         val actIntent = obj["intent"]?.jsonPrimitive?.content
                         val actParams: Map<String, Any?> = obj["parameters"]?.jsonObject?.mapValues { (_, v) ->
                             when (v) {
-                                is JsonPrimitive -> v.contentOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull
+                                is JsonPrimitive -> v.intOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull ?: v.contentOrNull
                                 else -> v.toString()
                             }
                         } ?: emptyMap()
@@ -208,7 +208,7 @@ class ChatRepository private constructor(context: Context) {
                     val intent = payload["intent"]?.jsonPrimitive?.content
                     val params = payload["parameters"]?.jsonObject?.mapValues { (_, v) ->
                         when (v) {
-                            is JsonPrimitive -> v.contentOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull
+                            is JsonPrimitive -> v.intOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull ?: v.contentOrNull
                             else -> v.toString()
                         }
                     }

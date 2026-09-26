@@ -38,8 +38,11 @@ Supported commands:
 - "mute": muting audio ("mute", "silence")
 - "unmute": unmuting audio ("unmute")
 - "navigate": directions/navigation ("navigate home", "take me to the airport")
-- "set_timer": setting a countdown timer ("set a timer for 10 minutes")
+  Parameters for navigate: "destination" (string).
+- "set_timer": setting a countdown timer ("set a timer for 1 minute")
+  Parameters for set_timer: "minutes" (number, required).
 - "set_alarm": setting an alarm clock ("set an alarm for 7am")
+  Parameters for set_alarm: "hour" (number 0..23, required), "minute" (number 0..59, optional default 0).
 
 MULTI-COMMAND CHAINING: If the user message contains multiple sequential commands (e.g. "resume the music and play the next song" or "set volume to 80 and play lofi"), include ALL corresponding command actions in sequence inside the "actions" array!
 
@@ -53,13 +56,13 @@ Respond with ONLY a JSON object:
 {"classification": "COMMAND" | "CONVERSATION", "actions": [{"intent": string, "parameters": object}], "confidence": number}
 
 Examples:
+"set a timer for 1 minute" -> {"classification":"COMMAND","actions":[{"intent":"set_timer","parameters":{"minutes":1}}],"confidence":0.99}
+"set an alarm for 7am" -> {"classification":"COMMAND","actions":[{"intent":"set_alarm","parameters":{"hour":7,"minute":0}}],"confidence":0.99}
 "resume the music and play the next song" -> {"classification":"COMMAND","actions":[{"intent":"resume_media","parameters":{}},{"intent":"next_track","parameters":{}}],"confidence":0.98}
 "set volume to 80 and play lofi" -> {"classification":"COMMAND","actions":[{"intent":"set_volume","parameters":{"level":80}},{"intent":"play_music","parameters":{"query":"lofi","app":"youtube"}}],"confidence":0.98}
 "play Alie Gatie Can't Lie" -> {"classification":"COMMAND","actions":[{"intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"}}],"confidence":0.98}
-"pause the song" -> {"classification":"COMMAND","actions":[{"intent":"pause_media","parameters":{}}],"confidence":0.98}
 "what is your name?" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
 "Polo G is fire, we should roll with his track" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
-"I play basketball and football" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
 User message: "${message.replace(/"/g, '\\"')}"`;
 
   try {

@@ -11,6 +11,7 @@ import com.baroness.app.data.local.dao.ReactionDao
 import com.baroness.app.data.local.dao.RatingDao
 import com.baroness.app.data.local.dao.SyncQueueDao
 import com.baroness.app.data.local.dao.MessageDao
+import com.baroness.app.data.local.dao.ClockDao
 
 @Database(
     entities = [
@@ -18,9 +19,10 @@ import com.baroness.app.data.local.dao.MessageDao
         ReactionEntity::class,
         RatingEntity::class,
         SyncQueueItem::class,
-        MessageEntity::class
+        MessageEntity::class,
+        ClockItemEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,10 +32,26 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ratingDao(): RatingDao
     abstract fun syncQueueDao(): SyncQueueDao
     abstract fun messageDao(): MessageDao
+    abstract fun clockDao(): ClockDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `clock_items` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `triggerTimeMs` INTEGER NOT NULL,
+                        `label` TEXT NOT NULL,
+                        `isActive` INTEGER NOT NULL DEFAULT 1,
+                        `createdAtMs` INTEGER NOT NULL
+                    )
+                """.trimIndent())
+            }
+        }
 
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -84,7 +102,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "baroness_wishlist.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

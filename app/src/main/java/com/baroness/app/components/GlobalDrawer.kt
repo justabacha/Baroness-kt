@@ -189,6 +189,16 @@ fun GlobalDrawer(
                             hazeState = hazeState
                         )
 
+                        // CLOCK & REMINDERS Section
+                        DrawerClock(
+                            isExpanded = expandedCategory == "CLOCK",
+                            onToggle = {
+                                expandedCategory = if (expandedCategory == "CLOCK") null else "CLOCK"
+                            },
+                            viewModel = viewModel,
+                            hazeState = hazeState
+                        )
+
                         // NOTIFICATIONS Section
                         DrawerNotifications(
                             isExpanded = expandedCategory == "NOTIFICATIONS",

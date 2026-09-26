@@ -28,6 +28,12 @@ class SettingsRepository(context: Context) {
         private const val KEY_USE_PERSONA_VOICES = "use_persona_voices"
         private const val KEY_VOICE_DIRECTOR_NOTE = "voice_director_note"
 
+        // Clock Settings
+        private const val KEY_CLOCK_VOICE_ANNOUNCE = "clock_voice_announce"
+        private const val KEY_ALARM_SOUND_OPTION = "alarm_sound_option"
+        private const val KEY_TIMER_CHIME_OPTION = "timer_chime_option"
+        private const val KEY_ALARM_VIBRATION_PATTERN = "alarm_vibration_pattern"
+
         private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,🤌"
     }
 
@@ -84,4 +90,21 @@ class SettingsRepository(context: Context) {
     fun getInitialDirectorNote(): String = runBlocking { storageManager.getString(KEY_VOICE_DIRECTOR_NOTE) ?: "Speak in a clear, natural, and expressive tone." }
     fun getDirectorNoteFlow(): Flow<String> = storageManager.getStringFlow(KEY_VOICE_DIRECTOR_NOTE).map { it ?: "Speak in a clear, natural, and expressive tone." }
     suspend fun saveDirectorNote(note: String) = storageManager.saveString(KEY_VOICE_DIRECTOR_NOTE, note)
+
+    // Clock Settings Accessors
+    fun getInitialClockVoiceAnnounce(): Boolean = runBlocking { storageManager.getBoolean(KEY_CLOCK_VOICE_ANNOUNCE) ?: true }
+    fun getClockVoiceAnnounceFlow(): Flow<Boolean> = storageManager.getBooleanFlow(KEY_CLOCK_VOICE_ANNOUNCE).map { it ?: true }
+    suspend fun saveClockVoiceAnnounce(enabled: Boolean) = storageManager.saveBoolean(KEY_CLOCK_VOICE_ANNOUNCE, enabled)
+
+    fun getInitialAlarmSoundOption(): String = runBlocking { storageManager.getString(KEY_ALARM_SOUND_OPTION) ?: "default_alarm" }
+    fun getAlarmSoundOptionFlow(): Flow<String> = storageManager.getStringFlow(KEY_ALARM_SOUND_OPTION).map { it ?: "default_alarm" }
+    suspend fun saveAlarmSoundOption(option: String) = storageManager.saveString(KEY_ALARM_SOUND_OPTION, option)
+
+    fun getInitialTimerChimeOption(): String = runBlocking { storageManager.getString(KEY_TIMER_CHIME_OPTION) ?: "chime_chime" }
+    fun getTimerChimeOptionFlow(): Flow<String> = storageManager.getStringFlow(KEY_TIMER_CHIME_OPTION).map { it ?: "chime_chime" }
+    suspend fun saveTimerChimeOption(option: String) = storageManager.saveString(KEY_TIMER_CHIME_OPTION, option)
+
+    fun getInitialAlarmVibrationPattern(): String = runBlocking { storageManager.getString(KEY_ALARM_VIBRATION_PATTERN) ?: "wave" }
+    fun getAlarmVibrationPatternFlow(): Flow<String> = storageManager.getStringFlow(KEY_ALARM_VIBRATION_PATTERN).map { it ?: "wave" }
+    suspend fun saveAlarmVibrationPattern(pattern: String) = storageManager.saveString(KEY_ALARM_VIBRATION_PATTERN, pattern)
 }

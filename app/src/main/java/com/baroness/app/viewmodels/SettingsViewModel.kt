@@ -73,6 +73,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val directorNote: StateFlow<String> = repository.getDirectorNoteFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialDirectorNote())
 
+    // CLOCK SETTINGS
+    val clockVoiceAnnounce: StateFlow<Boolean> = repository.getClockVoiceAnnounceFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialClockVoiceAnnounce())
+
+    val alarmSoundOption: StateFlow<String> = repository.getAlarmSoundOptionFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialAlarmSoundOption())
+
+    val timerChimeOption: StateFlow<String> = repository.getTimerChimeOptionFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialTimerChimeOption())
+
+    val alarmVibrationPattern: StateFlow<String> = repository.getAlarmVibrationPatternFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialAlarmVibrationPattern())
+
     // Voice State
     val voiceState = voiceCenter.state
 
@@ -205,6 +218,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { repository.saveDirectorNote(note) }
     }
 
+    // CLOCK Actions
+    fun setClockVoiceAnnounce(enabled: Boolean) {
+        viewModelScope.launch { repository.saveClockVoiceAnnounce(enabled) }
+    }
+
+    fun setAlarmSoundOption(option: String) {
+        viewModelScope.launch { repository.saveAlarmSoundOption(option) }
+    }
+
+    fun setTimerChimeOption(option: String) {
+        viewModelScope.launch { repository.saveTimerChimeOption(option) }
+    }
+
+    fun setAlarmVibrationPattern(pattern: String) {
+        viewModelScope.launch { repository.saveAlarmVibrationPattern(pattern) }
+    }
+
     fun previewVoice() {
         if (voiceState.value != com.baroness.app.voice.VoiceState.IDLE) return
         
@@ -215,7 +245,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             provider = voiceProvider.value,
             directorNote = directorNote.value
         )
-        voiceCenter.speak("This is a preview of AVIA with your current AVIS settings. How do I sound?", VoiceContext(config))
+        voiceCenter.speak("This is a preview of AVIA with your current AVIS settings. How do I sound ?", VoiceContext(config))
     }
 
     fun stopVoice() {

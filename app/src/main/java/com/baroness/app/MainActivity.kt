@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
 
                 val context = androidx.compose.ui.platform.LocalContext.current
                 LaunchedEffect(Unit) {
+                    com.baroness.app.utils.NotificationCenter.setViewModel(notificationViewModel)
                     WishlistRepository.getInstance(context).setNotificationViewModel(notificationViewModel)
                 }
 

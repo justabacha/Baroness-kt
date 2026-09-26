@@ -15,13 +15,23 @@ export function validateAction(raw: ClassifierResult): ValidationResult {
   const cleaned: Record<string, unknown> = {};
 
   for (const [key, schema] of Object.entries(definition.parameters)) {
-    const value = params[key];
+    let value = params[key];
+
+    // Alias mapping (e.g. length -> minutes)
+    if ((value === undefined || value === null) && key === 'minutes' && params['length'] !== undefined) {
+      value = params['length'];
+    }
 
     if (value === undefined || value === null) {
       if (schema.required) {
         return { valid: false, reason: `missing ${key}` };
       }
       continue;
+    }
+
+    // Auto-coerce string numbers to number type (e.g. "1" -> 1)
+    if (schema.type === 'number' && typeof value === 'string' && !isNaN(Number(value))) {
+      value = Number(value);
     }
 
     if (typeof value !== schema.type) {
