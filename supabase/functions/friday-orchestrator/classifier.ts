@@ -1,8 +1,14 @@
 import { validateAction } from "../_shared/action-validator.ts";
 import { logEvent } from "../_shared/logger.ts";
 
+export interface ClassificationAction {
+  intent: string;
+  parameters: Record<string, unknown>;
+}
+
 export interface ClassificationResult {
   classification: "COMMAND" | "CONVERSATION";
+  actions: ClassificationAction[];
   intent: string | null;
   parameters: Record<string, unknown> | null;
   confidence: number;
@@ -12,10 +18,10 @@ export async function classifyMessage(message: string): Promise<ClassificationRe
   const apiKey = Deno.env.get("GROQ_API_KEY");
   if (!apiKey) {
     console.error("Missing GROQ_API_KEY environment variable.");
-    return { classification: "CONVERSATION", intent: null, parameters: null, confidence: 1.0 };
+    return { classification: "CONVERSATION", actions: [], intent: null, parameters: null, confidence: 1.0 };
   }
 
-  const prompt = `You are a fast, precise intent classifier for a personal AI companion app. Classify the user's message as exactly one of: COMMAND or CONVERSATION.
+  const prompt = `You are a fast, precise intent classifier for a personal AI companion app named Friday. Classify the user's message as exactly one of: COMMAND or CONVERSATION.
 
 COMMAND means an EXPLICIT, IMMEDIATE imperative order for the app to control the phone right now.
 Supported commands:
@@ -35,27 +41,24 @@ Supported commands:
 - "set_timer": setting a countdown timer ("set a timer for 10 minutes")
 - "set_alarm": setting an alarm clock ("set an alarm for 7am")
 
+MULTI-COMMAND CHAINING: If the user message contains multiple sequential commands (e.g. "resume the music and play the next song" or "set volume to 80 and play lofi"), include ALL corresponding command actions in sequence inside the "actions" array!
+
 CONVERSATION means anything else, including:
 - Mentions of sports or games ("I love playing football", "let's play a game")
-- Narrative or past/future statements ("I played music yesterday", "did you play that song?")
-- Questions or inquiries ("can you play music?", "how do I set an alarm?")
-- Incomplete requests or general banter ("I want to listen to music later", "what time is it?")
-
-If you are not 100% sure it is an immediate phone control command, classify as CONVERSATION.
+- Questions and inquiries ("who are you?", "what is your name?", "can you play music?")
+- Questions or general banter ("I want to listen to music later", "what time is it?")
+If you are not 100% sure the user is giving a COMMAND, classify it as CONVERSATION.
 
 Respond with ONLY a JSON object:
-{"classification": "COMMAND" | "CONVERSATION", "intent": string | null, "parameters": object | null, "confidence": number}
+{"classification": "COMMAND" | "CONVERSATION", "actions": [{"intent": string, "parameters": object}], "confidence": number}
 
 Examples:
-"play Alie Gatie Can't Lie" -> {"classification":"COMMAND","intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"},"confidence":0.98}
-"pause the song" -> {"classification":"COMMAND","intent":"pause_media","parameters":{},"confidence":0.98}
-"skip this track" -> {"classification":"COMMAND","intent":"next_track","parameters":{},"confidence":0.98}
-"set volume to 80%" -> {"classification":"COMMAND","intent":"set_volume","parameters":{"level":80},"confidence":0.98}
-"turn it up" -> {"classification":"COMMAND","intent":"volume_up","parameters":{},"confidence":0.98}
-"I played basketball with my friends" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}
-"Can you set an alarm for 8am?" -> {"classification":"COMMAND","intent":"set_alarm","parameters":{"hour":8,"minute":0},"confidence":0.95}
-"I love playing chess" -> {"classification":"CONVERSATION","intent":null,"parameters":null,"confidence":0.99}
-
+"resume the music and play the next song" -> {"classification":"COMMAND","actions":[{"intent":"resume_media","parameters":{}},{"intent":"next_track","parameters":{}}],"confidence":0.98}
+"set volume to 80 and play lofi" -> {"classification":"COMMAND","actions":[{"intent":"set_volume","parameters":{"level":80}},{"intent":"play_music","parameters":{"query":"lofi","app":"youtube"}}],"confidence":0.98}
+"play Alie Gatie Can't Lie" -> {"classification":"COMMAND","actions":[{"intent":"play_music","parameters":{"query":"Alie Gatie Can't Lie","app":"youtube"}}],"confidence":0.98}
+"pause the song" -> {"classification":"COMMAND","actions":[{"intent":"pause_media","parameters":{}}],"confidence":0.98}
+"what is your name?" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
+"I play basketball and football" -> {"classification":"CONVERSATION","actions":[],"confidence":0.99}
 User message: "${message.replace(/"/g, '\\"')}"`;
 
   try {
@@ -90,38 +93,56 @@ User message: "${message.replace(/"/g, '\\"')}"`;
     const resultText = data.choices?.[0]?.message?.content;
     if (!resultText) throw new Error("Empty response from Groq");
 
-    const parsed: ClassificationResult = JSON.parse(resultText);
+    const parsed = JSON.parse(resultText);
 
     if (parsed.classification === "COMMAND" && parsed.confidence < 0.7) {
-      return { classification: "CONVERSATION", intent: null, parameters: null, confidence: 1.0 };
+      return { classification: "CONVERSATION", actions: [], intent: null, parameters: null, confidence: 1.0 };
     }
 
     if (parsed.classification === "COMMAND") {
-      const validation = validateAction({
-        type: "COMMAND",
-        intent: parsed.intent ?? undefined,
-        parameters: parsed.parameters ?? undefined,
-      });
+      const rawActions = Array.isArray(parsed.actions) ? parsed.actions : [];
+      if (rawActions.length === 0 && parsed.intent) {
+        rawActions.push({ intent: parsed.intent, parameters: parsed.parameters || {} });
+      }
 
-      if (!validation.valid) {
-        logEvent("chat.action_validation_failed", {
-          reason: validation.reason,
-          action_name: parsed.intent ?? undefined,
+      const validActions: ClassificationAction[] = [];
+      for (const act of rawActions) {
+        const validation = validateAction({
+          type: "COMMAND",
+          intent: act.intent ?? undefined,
+          parameters: act.parameters ?? undefined,
         });
-        return { classification: "CONVERSATION", intent: null, parameters: null, confidence: 1.0 };
+
+        if (validation.valid && validation.action) {
+          validActions.push({
+            intent: validation.action.intent,
+            parameters: validation.action.parameters,
+          });
+        }
+      }
+
+      if (validActions.length === 0) {
+        return { classification: "CONVERSATION", actions: [], intent: null, parameters: null, confidence: 1.0 };
       }
 
       return {
         classification: "COMMAND",
-        intent: validation.action!.intent,
-        parameters: validation.action!.parameters,
+        actions: validActions,
+        intent: validActions[0].intent,
+        parameters: validActions[0].parameters,
         confidence: parsed.confidence,
       };
     }
 
-    return parsed;
+    return {
+      classification: "CONVERSATION",
+      actions: [],
+      intent: null,
+      parameters: null,
+      confidence: parsed.confidence ?? 1.0,
+    };
   } catch (err) {
     console.error("Classifier failed, defaulting to CONVERSATION:", err.message);
-    return { classification: "CONVERSATION", intent: null, parameters: null, confidence: 1.0 };
+    return { classification: "CONVERSATION", actions: [], intent: null, parameters: null, confidence: 1.0 };
   }
 }

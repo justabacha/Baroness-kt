@@ -186,20 +186,37 @@ class ChatRepository private constructor(context: Context) {
                 }
                 ChatApi.deletePipeItem(pipeId)
             } else if (type == "COMMAND") {
-                val intent = payload["intent"]?.jsonPrimitive?.content
-                val params = payload["parameters"]?.jsonObject?.let { 
-                    // Simple mapping of JsonObject to Map
-                    it.mapValues { (_, v) -> 
-                        when(v) {
+                val actionsJson = payload["actions"]?.jsonArray
+                if (actionsJson != null && actionsJson.isNotEmpty()) {
+                    val actionsList: List<Map<String, Any?>> = actionsJson.mapNotNull { element ->
+                        val obj = element.jsonObject
+                        val actIntent = obj["intent"]?.jsonPrimitive?.content
+                        val actParams: Map<String, Any?> = obj["parameters"]?.jsonObject?.mapValues { (_, v) ->
+                            when (v) {
+                                is JsonPrimitive -> v.contentOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull
+                                else -> v.toString()
+                            }
+                        } ?: emptyMap()
+                        if (actIntent != null) {
+                            mapOf("intent" to actIntent, "parameters" to actParams)
+                        } else null
+                    }
+                    withContext(Dispatchers.Main) {
+                        commandExecutor.executeActions(actionsList)
+                    }
+                } else {
+                    val intent = payload["intent"]?.jsonPrimitive?.content
+                    val params = payload["parameters"]?.jsonObject?.mapValues { (_, v) ->
+                        when (v) {
                             is JsonPrimitive -> v.contentOrNull ?: v.longOrNull ?: v.doubleOrNull ?: v.booleanOrNull
                             else -> v.toString()
                         }
                     }
-                }
 
-                // Execute local intent immediately without creating a temporary "On it" UI bubble
-                withContext(Dispatchers.Main) {
-                    commandExecutor.execute(intent, params)
+                    // Execute local intent immediately without creating a temporary "On it" UI bubble
+                    withContext(Dispatchers.Main) {
+                        commandExecutor.execute(intent, params)
+                    }
                 }
                 
                 ChatApi.deletePipeItem(pipeId)

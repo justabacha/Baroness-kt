@@ -26,4 +26,14 @@ class LocalCommandExecutor(context: Context) {
             Log.w("LocalCommandExecutor", "No registered handler found for intent: $intentName")
         }
     }
+
+    fun executeActions(actions: List<Map<String, Any?>>) {
+        Log.d("LocalCommandExecutor", "Executing multi-action chain (${actions.size} actions)")
+        for (action in actions) {
+            val intent = action["intent"] as? String ?: continue
+            @Suppress("UNCHECKED_CAST")
+            val params = action["parameters"] as? Map<String, Any?>
+            execute(intent, params)
+        }
+    }
 }

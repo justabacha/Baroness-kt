@@ -115,31 +115,31 @@ serve(async (req) => {
     const classification = await classifyMessage(userMessage);
     let actionNote: string | undefined = undefined;
 
-    if (classification.classification === "COMMAND") {
-      const { error: actionReqError } = await supabase
-        .from("friday_action_requests")
-        .insert({
+    if (classification.classification === "COMMAND" && classification.actions && classification.actions.length > 0) {
+      for (const act of classification.actions) {
+        await supabase
+          .from("friday_action_requests")
+          .insert({
+            owner_id: ownerId,
+            session_id: sessionId,
+            action_name: act.intent,
+            parameters: act.parameters ?? {},
+            status: "dispatched",
+          });
+
+        logEvent("chat.action_dispatched", {
           owner_id: ownerId,
           session_id: sessionId,
-          action_name: classification.intent!,
-          parameters: classification.parameters ?? {},
-          status: "dispatched",
+          action_name: act.intent,
         });
-      if (actionReqError) {
-        console.error("Failed to record action request:", actionReqError.message);
       }
-
-      logEvent("chat.action_dispatched", {
-        owner_id: ownerId,
-        session_id: sessionId,
-        action_name: classification.intent!,
-      });
 
       const commandPayload = {
         type: "COMMAND",
         messageId: placeholderId,
-        intent: classification.intent,
-        parameters: classification.parameters,
+        actions: classification.actions,
+        intent: classification.actions[0].intent,
+        parameters: classification.actions[0].parameters,
       };
 
       const { error: commandPipeError } = await supabase.from("chat_sync_pipe").insert({
@@ -148,43 +148,8 @@ serve(async (req) => {
       });
       if (commandPipeError) throw commandPipeError;
 
-      const actName = classification.intent;
-      const params = classification.parameters || {};
-
-      if (actName === "play_music") {
-        const queryStr = params.query ? ` (${params.query})` : "";
-        actionNote = `[System Note]: You just triggered the phone to play music${queryStr}. Vibe back casually as a friend (e.g. "got u mate, lemme play u some bangers", "putting on some tunes for u"). Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "pause_media" || actName === "stop_media") {
-        actionNote = `[System Note]: You just paused the music/media. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "resume_media") {
-        actionNote = `[System Note]: You resumed playback. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "next_track") {
-        actionNote = `[System Note]: You skipped to the next song. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "previous_track") {
-        actionNote = `[System Note]: You went back to the previous track. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "set_volume") {
-        actionNote = `[System Note]: You set the volume level to ${params.level || 50}%. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "volume_up") {
-        actionNote = `[System Note]: You turned the volume up. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "volume_down") {
-        actionNote = `[System Note]: You turned the volume down. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "mute") {
-        actionNote = `[System Note]: You muted the audio. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "unmute") {
-        actionNote = `[System Note]: You unmuted the audio. Confirm casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "navigate") {
-        const dest = params.destination || "their destination";
-        actionNote = `[System Note]: You just opened navigation to ${dest} on their phone. Confirm it casually as a friend (e.g. "got u, opening maps to ${dest} now"). Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "set_timer") {
-        const mins = params.minutes || "";
-        actionNote = `[System Note]: You just set a timer for ${mins} minutes on their phone. Confirm it casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else if (actName === "set_alarm") {
-        const h = params.hour !== undefined ? params.hour : "";
-        const m = params.minute !== undefined ? String(params.minute).padStart(2, "0") : "00";
-        actionNote = `[System Note]: You just set an alarm for ${h}:${m} on their phone. Confirm it casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      } else {
-        actionNote = `[System Note]: Action '${actName}' was triggered on their phone. Confirm it casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
-      }
+      const actionListStr = classification.actions.map(a => a.intent).join(" then ");
+      actionNote = `[System Note]: You just executed action(s): '${actionListStr}' on their phone. Confirm it casually as a friend. Speak in plain casual text. Do NOT output any JSON or code.`;
     }
 
     // 4. Conversation & Response Path
