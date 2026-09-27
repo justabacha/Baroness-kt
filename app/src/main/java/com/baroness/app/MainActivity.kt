@@ -45,6 +45,7 @@ import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.screens.ChatListScreen
 import com.baroness.app.screens.ChatRoomScreen
+import com.baroness.app.screens.settings.SettingsCenterScreen
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
@@ -64,11 +65,12 @@ class MainActivity : ComponentActivity() {
         requestNotificationPermission()
 
         setContent {
-            BaronessAppTheme {
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = SettingsViewModelFactory(this)
+            )
+
+            BaronessAppTheme(settingsViewModel = settingsViewModel) {
                 val notificationViewModel: NotificationViewModel = viewModel()
-                val settingsViewModel: SettingsViewModel = viewModel(
-                    factory = SettingsViewModelFactory(this)
-                )
                 
                 val currentNotification by notificationViewModel.currentNotification.collectAsStateWithLifecycle()
                 val navController = rememberNavController()
@@ -230,7 +232,10 @@ fun AppNavigation(
             PhotosScreen(navController)
         }
         composable("Wishlist") {
-            WishlistScreen(navController)
+            WishlistScreen(navController, settingsViewModel = settingsViewModel)
+        }
+        composable("settings") {
+            SettingsCenterScreen(navController, settingsViewModel = settingsViewModel)
         }
     }
 }
