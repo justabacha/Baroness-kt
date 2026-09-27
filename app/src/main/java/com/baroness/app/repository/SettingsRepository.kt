@@ -35,19 +35,34 @@ class SettingsRepository(context: Context) {
         private const val KEY_ALARM_VIBRATION_PATTERN = "alarm_vibration_pattern"
 
         private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,🤌"
+
+        private val VALID_WALLPAPER_IDS = setOf(
+            "sunrise", "light_hours", "accent_bulb", "green_street",
+            "sky_street", "beautiful_skies", "mountain_view", "phesty_point", "user_wallpaper"
+        )
+
+        private fun sanitizeWallpaper(rawId: String?): String {
+            if (rawId == null) return "sunrise"
+            return if (rawId in VALID_WALLPAPER_IDS) rawId else "sunrise"
+        }
+
+        private fun sanitizeTheme(rawId: String?): String {
+            if (rawId == null) return "lavender"
+            return if (com.baroness.app.models.SettingsOptions.themes.any { it.id == rawId }) rawId else "lavender"
+        }
     }
 
-    fun getInitialTheme(): String = runBlocking { storageManager.getString(KEY_THEME) ?: "lavender" }
-    fun getThemeFlow(): Flow<String> = storageManager.getStringFlow(KEY_THEME).map { it ?: "lavender" }
-    suspend fun saveTheme(id: String) = storageManager.saveString(KEY_THEME, id)
+    fun getInitialTheme(): String = runBlocking { sanitizeTheme(storageManager.getString(KEY_THEME)) }
+    fun getThemeFlow(): Flow<String> = storageManager.getStringFlow(KEY_THEME).map { sanitizeTheme(it) }
+    suspend fun saveTheme(id: String) = storageManager.saveString(KEY_THEME, sanitizeTheme(id))
 
     fun getInitialFont(): String = runBlocking { storageManager.getString(KEY_FONT) ?: "playfairdisplay_regular" }
     fun getFontFlow(): Flow<String> = storageManager.getStringFlow(KEY_FONT).map { it ?: "playfairdisplay_regular" }
     suspend fun saveFont(id: String) = storageManager.saveString(KEY_FONT, id)
 
-    fun getInitialWallpaper(): String = runBlocking { storageManager.getString(KEY_WALLPAPER) ?: "sunrise" }
-    fun getWallpaperFlow(): Flow<String> = storageManager.getStringFlow(KEY_WALLPAPER).map { it ?: "sunrise" }
-    suspend fun saveWallpaper(id: String) = storageManager.saveString(KEY_WALLPAPER, id)
+    fun getInitialWallpaper(): String = runBlocking { sanitizeWallpaper(storageManager.getString(KEY_WALLPAPER)) }
+    fun getWallpaperFlow(): Flow<String> = storageManager.getStringFlow(KEY_WALLPAPER).map { sanitizeWallpaper(it) }
+    suspend fun saveWallpaper(id: String) = storageManager.saveString(KEY_WALLPAPER, sanitizeWallpaper(id))
 
     fun getRecentEmojisFlow(): Flow<String> = storageManager.getStringFlow(KEY_RECENT_EMOJIS).map { it ?: DEFAULT_EMOJIS }
     suspend fun saveRecentEmojis(emojis: String) = storageManager.saveString(KEY_RECENT_EMOJIS, emojis)

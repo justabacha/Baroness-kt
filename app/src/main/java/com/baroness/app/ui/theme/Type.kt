@@ -151,13 +151,29 @@ object AppFonts {
     }
 }
 
-// Set of Material typography styles to start with
-val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+/**
+ * Builds a dynamic Material 3 Typography suite using the given FontFamily and base FontWeight.
+ */
+fun buildTypography(fontFamily: FontFamily, baseWeight: FontWeight = FontWeight.Normal): Typography {
+    val default = Typography()
+    return Typography(
+        displayLarge = default.displayLarge.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        displayMedium = default.displayMedium.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        displaySmall = default.displaySmall.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        headlineLarge = default.headlineLarge.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        headlineMedium = default.headlineMedium.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        headlineSmall = default.headlineSmall.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        titleLarge = default.titleLarge.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        titleMedium = default.titleMedium.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        titleSmall = default.titleSmall.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        bodyLarge = default.bodyLarge.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        bodyMedium = default.bodyMedium.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        bodySmall = default.bodySmall.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        labelLarge = default.labelLarge.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        labelMedium = default.labelMedium.copy(fontFamily = fontFamily, fontWeight = baseWeight),
+        labelSmall = default.labelSmall.copy(fontFamily = fontFamily, fontWeight = baseWeight)
     )
-)
+}
+
+// Default Material typography fallback
+val Typography = buildTypography(FontFamily.Default, FontWeight.Normal)

@@ -73,25 +73,9 @@ fun ProfileSetupScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .imePadding()
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.image_45),
-            contentDescription = "Background",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.2f))
-                .graphicsLayer {
-                    if (android.os.Build.VERSION.SDK_INT >= 31) {
-                        renderEffect = BlurEffect(8f, 8f)
-                    }
-                }
-        )
 
         Column(
             modifier = Modifier

@@ -27,22 +27,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.baroness.app.R
+import com.baroness.app.components.DynamicBackground
 import com.baroness.app.components.EdgeGlowEffect
 import com.baroness.app.components.EmojiPicker
 import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.components.wishlist.*
+import com.baroness.app.viewmodels.SettingsViewModel
 import com.baroness.app.viewmodels.WishlistViewModel
-
-private val BACKGROUND_IMAGE = R.drawable.image_15
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WishlistScreen(
     navController: NavController,
+    settingsViewModel: SettingsViewModel? = null,
     viewModel: WishlistViewModel = viewModel(
         factory = WishlistViewModelFactory(LocalContext.current)
     )
 ) {
+    val activeWallpaperId = settingsViewModel?.activeWallpaper?.collectAsStateWithLifecycle()?.value ?: "sunrise"
     val wishes by viewModel.wishes.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
@@ -79,11 +81,9 @@ fun WishlistScreen(
     val pullToRefreshState = rememberPullToRefreshState()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = BACKGROUND_IMAGE),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
+        DynamicBackground(
+            activeWallpaperId = activeWallpaperId,
+            dimmed = true
         )
 
         EdgeGlowEffect(visible = warningState.isActive)
@@ -100,7 +100,7 @@ fun WishlistScreen(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = Color(0xFFff4d6d),
+                    color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 4.dp,
                     modifier = Modifier.size(48.dp)
                 )

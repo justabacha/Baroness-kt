@@ -13,17 +13,6 @@ data class AppTheme(
     val label: String             // Display name with emoji
 )
 
-data class FontOption(
-    val id: String,
-    val name: String
-)
-
-data class WallpaperOption(
-    val id: String,
-    val name: String,
-    val colors: List<Color>
-)
-
 object AppColors {
     val textPrimary = Color(0xFFF3EEFE)
     val textSoft = Color(0xFFCDC6E6)
@@ -97,19 +86,5 @@ object SettingsOptions {
                 bubbleUserColor = Color(0x1AFFFFFF),
             label = "🌊 Deep Ocean"
         )
-    )
-
-    val fonts = listOf(
-        FontOption("system", "System"),
-        FontOption("inter", "Inter"),
-        FontOption("serif", "Serif"),
-        FontOption("monospace", "Monospace")
-    )
-
-    val wallpapers = listOf(
-        WallpaperOption("default", "Dark Gradient", listOf(Color(0xFF1A1A2E), Color(0xFF16213E))),
-        WallpaperOption("midnight", "Midnight Blue", listOf(Color(0xFF0F0F1A), Color(0xFF1A1A2E))),
-        WallpaperOption("deep_space", "Deep Space", listOf(Color(0xFF000000), Color(0xFF1B1B2F))),
-        WallpaperOption("slate", "Solid Slate", listOf(Color(0xFF202020), Color(0xFF202020)))
     )
 }

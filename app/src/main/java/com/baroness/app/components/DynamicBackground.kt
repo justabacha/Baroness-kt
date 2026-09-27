@@ -42,7 +42,11 @@ val prebundledWallpapers = listOf(
 )
 
 @Composable
-fun DynamicBackground(activeWallpaperId: String, dimmed: Boolean = true, hazeState: HazeState? = null) {
+fun DynamicBackground(
+    activeWallpaperId: String,
+    dimmed: Boolean = true,
+    hazeState: HazeState? = null
+) {
     val context = LocalContext.current
     val wallpaper = remember(activeWallpaperId) {
         val prebundled = prebundledWallpapers.find { it.id == activeWallpaperId }
@@ -60,7 +64,11 @@ fun DynamicBackground(activeWallpaperId: String, dimmed: Boolean = true, hazeSta
         val painter = when (wallpaper.source) {
             WallpaperSource.PREBUNDLED -> painterResource(id = wallpaper.resId!!)
             WallpaperSource.USER_GALLERY -> {
-                val bitmap = BitmapFactory.decodeFile(wallpaper.filePath!!)
+                val bitmap = try {
+                    BitmapFactory.decodeFile(wallpaper.filePath!!)
+                } catch (e: Throwable) {
+                    null
+                }
                 if (bitmap != null) BitmapPainter(bitmap.asImageBitmap()) else painterResource(id = R.drawable.image_39)
             }
         }

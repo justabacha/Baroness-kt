@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,7 +103,7 @@ fun WishItem(
             )
             Text(
                 text = if (!isPlanning) "!! DUSTED" else "PLANNING",
-                color = if (!isPlanning) Color(0xFFff4d6d) else Color(0xFF4CAF50),
+                color = if (!isPlanning) MaterialTheme.colorScheme.primary else Color(0xFF4CAF50),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp,

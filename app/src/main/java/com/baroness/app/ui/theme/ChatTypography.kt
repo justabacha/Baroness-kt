@@ -1,7 +1,6 @@
 package com.baroness.app.ui.theme
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -12,14 +11,17 @@ import com.baroness.app.viewmodels.SettingsViewModel
 
 @Composable
 fun rememberChatTypography(settingsViewModel: SettingsViewModel? = null): ChatTypography {
-    val activeFontId = settingsViewModel?.activeFont?.collectAsStateWithLifecycle()?.value ?: "system"
-    val (fontFamily, fontWeight) = AppFonts.resolve(activeFontId)
-        ?: Pair(FontFamily.Default, FontWeight.Normal)
+    if (settingsViewModel != null) {
+        val activeFontId = settingsViewModel.activeFont.collectAsStateWithLifecycle().value
+        val (fontFamily, fontWeight) = AppFonts.resolve(activeFontId)
+            ?: Pair(FontFamily.Default, FontWeight.Normal)
 
-    return ChatTypography(
-        fontFamily = fontFamily,
-        baseWeight = fontWeight
-    )
+        return ChatTypography(
+            fontFamily = fontFamily,
+            baseWeight = fontWeight
+        )
+    }
+    return LocalBaronessTypography.current
 }
 
 class ChatTypography(

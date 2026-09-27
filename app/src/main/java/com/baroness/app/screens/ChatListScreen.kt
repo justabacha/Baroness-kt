@@ -73,7 +73,7 @@ fun ChatListScreen(
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F12))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
