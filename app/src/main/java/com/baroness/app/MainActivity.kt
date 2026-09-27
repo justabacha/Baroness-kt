@@ -46,6 +46,7 @@ import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.screens.ChatListScreen
 import com.baroness.app.screens.ChatRoomScreen
 import com.baroness.app.screens.settings.SettingsCenterScreen
+import com.baroness.app.screens.settings.ProfileSettingsPage
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
 import com.baroness.app.viewmodels.NotificationViewModel
@@ -236,6 +237,9 @@ fun AppNavigation(
         }
         composable("settings") {
             SettingsCenterScreen(navController, settingsViewModel = settingsViewModel)
+        }
+        composable("settings/profile") {
+            ProfileSettingsPage(navController)
         }
     }
 }

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.components.DynamicBackground
 import com.baroness.app.data.AvatarRepository
@@ -79,18 +80,21 @@ fun SettingsCenterScreen(
     val json = remember { Json { ignoreUnknownKeys = true } }
     var userProfile by remember { mutableStateOf<UserProfile?>(null) }
 
-    LaunchedEffect(Unit) {
-        val profileJson = storage.getString("userProfile")
-        val profile = profileJson?.let {
-            try { json.decodeFromString<UserProfile>(it) } catch (_: Exception) { null }
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(currentEntry) {
+        if (currentEntry?.destination?.route == "settings") {
+            val profileJson = storage.getString("userProfile")
+            val profile = profileJson?.let {
+                try { json.decodeFromString<UserProfile>(it) } catch (_: Exception) { null }
+            }
+            val updatedProfile = if (profile != null && profile.avatar != null) {
+                val localPath = avatarRepository.getCachedAvatar(profile.avatar)
+                profile.copy(avatar = localPath ?: profile.avatar)
+            } else {
+                profile
+            }
+            userProfile = updatedProfile
         }
-        val updatedProfile = if (profile != null && profile.avatar != null) {
-            val localPath = avatarRepository.getCachedAvatar(profile.avatar)
-            profile.copy(avatar = localPath ?: profile.avatar)
-        } else {
-            profile
-        }
-        userProfile = updatedProfile
     }
 
     Box(
@@ -154,7 +158,11 @@ fun SettingsCenterScreen(
                         category = category,
                         hazeState = hazeState,
                         onClick = {
-                            // Category sub-screen navigation placeholder for Phase 2+
+                            if (category.id == "profile") {
+                                navController.navigate("settings/profile") {
+                                    launchSingleTop = true
+                                }
+                            }
                         }
                     )
                 }
