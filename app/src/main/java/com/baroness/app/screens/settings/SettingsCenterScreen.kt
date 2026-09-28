@@ -158,10 +158,9 @@ fun SettingsCenterScreen(
                         category = category,
                         hazeState = hazeState,
                         onClick = {
-                            if (category.id == "profile") {
-                                navController.navigate("settings/profile") {
-                                    launchSingleTop = true
-                                }
+                            when (category.id) {
+                                "profile" -> navController.navigate("settings/profile") { launchSingleTop = true }
+                                "appearance" -> navController.navigate("settings/appearance") { launchSingleTop = true }
                             }
                         }
                     )
