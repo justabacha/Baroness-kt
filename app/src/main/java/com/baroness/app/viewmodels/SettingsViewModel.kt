@@ -52,9 +52,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val voiceEnabled: StateFlow<Boolean> = repository.getVoiceEnabledFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceEnabled())
 
-    val voiceProvider: StateFlow<String> = repository.getVoiceProviderFlow()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceProvider())
-
     val voiceId: StateFlow<String> = repository.getVoiceIdFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialVoiceId())
 
@@ -184,20 +181,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { repository.saveVoiceEnabled(enabled) }
     }
 
-    fun setVoiceProvider(provider: String) {
-        viewModelScope.launch { 
-            repository.saveVoiceProvider(provider)
-            // Set sensible default voice for the provider
-            val defaultId = when(provider) {
-                "murf" -> "en-US-marcus"
-                "deepgram" -> "aura-asteria-en"
-                "edge" -> "en-US-JennyNeural"
-                else -> "aura-asteria-en"
-            }
-            repository.saveVoiceId(defaultId)
-        }
-    }
-
     fun setVoiceId(id: String) {
         viewModelScope.launch { repository.saveVoiceId(id) }
     }
@@ -242,7 +225,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             voiceId = voiceId.value,
             speed = voiceSpeed.value,
             pitch = voicePitch.value,
-            provider = voiceProvider.value,
             directorNote = directorNote.value
         )
         voiceCenter.speak("This is a preview of AVIA with your current AVIS settings. How do I sound ?", VoiceContext(config))

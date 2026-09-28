@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.baroness.app.viewmodels.SettingsViewModel
+import com.baroness.app.voice.VoiceRegistry
 import com.baroness.app.voice.VoiceState
 import dev.chrisbanes.haze.HazeState
 
@@ -26,7 +27,6 @@ fun DrawerSoundHaptics(
     hazeState: HazeState
 ) {
     val voiceEnabled by viewModel.voiceEnabled.collectAsState()
-    val voiceProvider by viewModel.voiceProvider.collectAsState()
     val voiceId by viewModel.voiceId.collectAsState()
     val voiceSpeed by viewModel.voiceSpeed.collectAsState()
     val voicePitch by viewModel.voicePitch.collectAsState()
@@ -105,97 +105,61 @@ fun DrawerSoundHaptics(
                 )
 
                 if (!usePersonaVoices) {
-                    // Provider Selection
+                    val selectedVoice = VoiceRegistry.resolve(voiceId)
                     Column {
                         Text(
-                            text = "Voice Provider",
+                            text = "Select Voice",
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            VoiceProviderOption(
-                                label = "Deepgram",
-                                selected = voiceProvider == "deepgram",
-                                onClick = { viewModel.setVoiceProvider("deepgram") },
-                                modifier = Modifier.weight(1f)
-                            )
-                            VoiceProviderOption(
-                                label = "Murf AI",
-                                selected = voiceProvider == "murf",
-                                onClick = { viewModel.setVoiceProvider("murf") },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    // Voice Selection Row
-                    val availableVoices = remember(voiceProvider) {
-                        when (voiceProvider) {
-                            "deepgram" -> listOf(
-                                "aura-asteria-en" to "Asteria (F)",
-                                "aura-luna-en" to "Luna (F)",
-                                "aura-stella-en" to "Stella (F)",
-                                "aura-athena-en" to "Athena (F)",
-                                "aura-hera-en" to "Hera (F)",
-                                "aura-orion-en" to "Orion (M)",
-                                "aura-arcas-en" to "Arcas (M)",
-                                "aura-perseus-en" to "Perseus (M)",
-                                "aura-angus-en" to "Angus (M)",
-                                "aura-orpheus-en" to "Orpheus (M)",
-                                "aura-helios-en" to "Helios (M)",
-                                "aura-zeus-en" to "Zeus (M)"
-                            )
-                            "murf" -> listOf("en-US-marcus" to "Marcus (M)")
-                            "edge" -> listOf("en-US-jenny" to "Jenny (F)")
-                            else -> emptyList()
-                        }
-                    }
-
-                    if (availableVoices.size > 1) {
-                        Column {
+                        VoiceRegistry.voices.groupBy { it.provider }.forEach { (provider, voices) ->
                             Text(
-                                text = "Select Voice",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
+                                text = if (provider == "deepgram") "Deepgram voices" else "Murf voices",
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(top = 8.dp)
                             )
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(top = 8.dp)
+                                    .padding(top = 4.dp)
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                availableVoices.forEach { (id, label) ->
-                                    VoiceProviderOption(
-                                        label = label,
-                                        selected = voiceId == id,
-                                        onClick = { viewModel.setVoiceId(id) }
+                                voices.forEach { voice ->
+                                    VoiceOptionChip(
+                                        label = voice.name,
+                                        selected = voiceId == voice.id,
+                                        onClick = { viewModel.setVoiceId(voice.id) }
                                     )
                                 }
                             }
                         }
                     }
 
-                    // Speed Slider
                     VoiceSlider(
                         label = "Speed",
                         value = voiceSpeed,
                         range = 0.5f..2.0f,
+                        enabled = selectedVoice.provider == "murf",
                         onValueChange = { viewModel.setVoiceSpeed(it) }
                     )
 
-                    // Pitch Slider
                     VoiceSlider(
                         label = "Pitch",
                         value = voicePitch,
                         range = 0.5f..1.5f,
+                        enabled = selectedVoice.provider == "murf",
                         onValueChange = { viewModel.setVoicePitch(it) }
                     )
+                    if (selectedVoice.provider != "murf") {
+                        Text(
+                            text = "Speed and pitch adjustments are available for Murf voices.",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                    }
                 } else {
                     Text(
                         text = "Voice settings are automatically optimized for $personaName.",
@@ -236,7 +200,7 @@ fun VoiceSettingToggle(
 }
 
 @Composable
-fun VoiceProviderOption(
+fun VoiceOptionChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -262,6 +226,7 @@ fun VoiceSlider(
     label: String,
     value: Float,
     range: ClosedFloatingPointRange<Float>,
+    enabled: Boolean = true,
     onValueChange: (Float) -> Unit
 ) {
     Column {
@@ -270,12 +235,13 @@ fun VoiceSlider(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = label, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
-            Text(text = "%.1fx".format(value), color = Color.White, fontSize = 12.sp)
+            Text(text = "%.1fx".format(value), color = Color.White.copy(alpha = if (enabled) 1f else 0.4f), fontSize = 12.sp)
         }
         Slider(
             value = value,
             onValueChange = onValueChange,
             valueRange = range,
+            enabled = enabled,
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = Color.White,

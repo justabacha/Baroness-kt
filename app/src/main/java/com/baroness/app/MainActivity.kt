@@ -252,5 +252,8 @@ fun AppNavigation(
         composable("settings/appearance/wallpaper") {
             WallpaperSettingsPage(navController, settingsViewModel = settingsViewModel)
         }
+        composable("settings/sound") {
+            SoundHapticsSettingsPage(navController, settingsViewModel = settingsViewModel)
+        }
     }
 }

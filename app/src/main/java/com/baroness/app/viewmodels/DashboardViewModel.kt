@@ -247,7 +247,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             voiceId = "en-US-marcus",
                             speed = 1.0f,
                             pitch = 1.0f,
-                            provider = "murf",
                             directorNote = "Warm and sophisticated."
                         )
                     } else {
@@ -255,7 +254,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             voiceId = "aura-asteria-en",
                             speed = 1.1f,
                             pitch = 1.0f,
-                            provider = "deepgram",
                             directorNote = "Playful and friendly."
                         )
                     }
@@ -264,7 +262,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         voiceId = settingsRepository.getInitialVoiceId(),
                         speed = settingsRepository.getInitialVoiceSpeed(),
                         pitch = settingsRepository.getInitialVoicePitch(),
-                        provider = settingsRepository.getInitialVoiceProvider(),
                         directorNote = settingsRepository.getInitialDirectorNote()
                     )
                 }

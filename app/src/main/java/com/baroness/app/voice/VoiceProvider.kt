@@ -34,8 +34,10 @@ class BaronessVoiceProvider(private val baseClient: OkHttpClient) : VoiceProvide
                 {
                   "text": "$escapedText",
                   "provider": "${voiceConfig.provider}",
-                  "voice": "${voiceConfig.voiceId}",
-                  "directorNote": "$escapedNote"
+                  "voice": "${voiceConfig.voice.id}",
+                  "directorNote": "$escapedNote",
+                  "murfRate": ${voiceConfig.murfRate},
+                  "murfPitch": ${voiceConfig.murfPitch}
                 }
             """.trimIndent()
 
@@ -76,22 +78,7 @@ class BaronessVoiceProvider(private val baseClient: OkHttpClient) : VoiceProvide
     }
 
     override fun getAvailableVoices(): List<VoiceOption> {
-        return listOf(
-            VoiceOption("aura-asteria-en", "Asteria (F)", "Female", "deepgram"),
-            VoiceOption("aura-luna-en", "Luna (F)", "Female", "deepgram"),
-            VoiceOption("aura-stella-en", "Stella (F)", "Female", "deepgram"),
-            VoiceOption("aura-athena-en", "Athena (F)", "Female", "deepgram"),
-            VoiceOption("aura-hera-en", "Hera (F)", "Female", "deepgram"),
-            VoiceOption("aura-orion-en", "Orion (M)", "Male", "deepgram"),
-            VoiceOption("aura-arcas-en", "Arcas (M)", "Male", "deepgram"),
-            VoiceOption("aura-perseus-en", "Perseus (M)", "Male", "deepgram"),
-            VoiceOption("aura-angus-en", "Angus (M)", "Male", "deepgram"),
-            VoiceOption("aura-orpheus-en", "Orpheus (M)", "Male", "deepgram"),
-            VoiceOption("aura-helios-en", "Helios (M)", "Male", "deepgram"),
-            VoiceOption("aura-zeus-en", "Zeus (M)", "Male", "deepgram"),
-            VoiceOption("en-US-marcus", "Marcus (M)", "Male", "murf"),
-            VoiceOption("en-US-jenny", "Jenny (F)", "Female", "edge")
-        )
+        return VoiceRegistry.voices
     }
 
     override fun isAvailable(): Boolean = true

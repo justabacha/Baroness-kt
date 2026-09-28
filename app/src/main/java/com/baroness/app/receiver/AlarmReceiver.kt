@@ -196,12 +196,11 @@ class AlarmReceiver : BroadcastReceiver() {
             voiceId = settingsRepo.getInitialVoiceId(),
             speed = settingsRepo.getInitialVoiceSpeed(),
             pitch = settingsRepo.getInitialVoicePitch(),
-            provider = settingsRepo.getInitialVoiceProvider(),
             directorNote = settingsRepo.getInitialDirectorNote()
         )
         val voiceCenter = VoiceCenter(context.applicationContext)
         val announcementText = "Yoo mate, your $label timer is finished!"
-        Log.i("AlarmReceiver", "Friday speaking timer announcement with AI voice (${voiceConfig.provider}/${voiceConfig.voiceId}): $announcementText")
+        Log.i("AlarmReceiver", "Friday speaking timer announcement with AI voice (${voiceConfig.provider}/${voiceConfig.voice.id}): $announcementText")
         voiceCenter.speak(announcementText, VoiceContext(voiceConfig))
     }
 }

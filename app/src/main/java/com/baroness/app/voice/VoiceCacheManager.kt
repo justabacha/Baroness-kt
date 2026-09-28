@@ -54,7 +54,7 @@ class VoiceCacheManager(private val context: Context) {
     }
 
     private fun getFileName(text: String, config: VoiceConfig): String {
-        val rawKey = "${config.provider}_${config.voiceId}_${text.trim().lowercase()}"
+        val rawKey = cacheIdentity(text, config)
         return md5(rawKey) + ".mp3"
     }
 
@@ -125,5 +125,18 @@ class VoiceCacheManager(private val context: Context) {
     private fun md5(input: String): String {
         val md = MessageDigest.getInstance("MD5")
         return md.digest(input.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
+    companion object {
+        internal fun cacheIdentity(text: String, config: VoiceConfig): String =
+            listOf(
+                config.provider,
+                config.voice.id,
+                config.speed.toString(),
+                config.pitch.toString(),
+                config.language,
+                config.directorNote.orEmpty(),
+                text.trim().lowercase()
+            ).joinToString("") { "${it.length}:$it" }
     }
 }

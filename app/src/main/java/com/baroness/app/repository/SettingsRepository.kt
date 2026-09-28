@@ -3,6 +3,7 @@ package com.baroness.app.repository
 import android.content.Context
 import com.baroness.app.models.UserProfile
 import com.baroness.app.utils.StorageManager
+import com.baroness.app.voice.VoiceRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
@@ -21,7 +22,7 @@ class SettingsRepository(context: Context) {
         
         // Voice Settings
         private const val KEY_VOICE_ENABLED = "voice_enabled"
-        private const val KEY_VOICE_PROVIDER = "voice_provider"
+        private const val LEGACY_KEY_VOICE_PROVIDER = "voice_provider"
         private const val KEY_VOICE_ID = "voice_id"
         private const val KEY_VOICE_SPEED = "voice_speed"
         private const val KEY_VOICE_PITCH = "voice_pitch"
@@ -82,13 +83,20 @@ class SettingsRepository(context: Context) {
     fun getVoiceEnabledFlow(): Flow<Boolean> = storageManager.getBooleanFlow(KEY_VOICE_ENABLED).map { it ?: true }
     suspend fun saveVoiceEnabled(enabled: Boolean) = storageManager.saveBoolean(KEY_VOICE_ENABLED, enabled)
 
-    fun getInitialVoiceProvider(): String = runBlocking { storageManager.getString(KEY_VOICE_PROVIDER) ?: "deepgram" }
-    fun getVoiceProviderFlow(): Flow<String> = storageManager.getStringFlow(KEY_VOICE_PROVIDER).map { it ?: "deepgram" }
-    suspend fun saveVoiceProvider(provider: String) = storageManager.saveString(KEY_VOICE_PROVIDER, provider)
-
-    fun getInitialVoiceId(): String = runBlocking { storageManager.getString(KEY_VOICE_ID) ?: "aura-asteria-en" }
-    fun getVoiceIdFlow(): Flow<String> = storageManager.getStringFlow(KEY_VOICE_ID).map { it ?: "aura-asteria-en" }
-    suspend fun saveVoiceId(id: String) = storageManager.saveString(KEY_VOICE_ID, id)
+    fun getInitialVoiceId(): String = runBlocking {
+        val storedId = storageManager.getString(KEY_VOICE_ID)
+        val voiceId = VoiceRegistry.sanitize(storedId)
+        if (storedId != voiceId) storageManager.saveString(KEY_VOICE_ID, voiceId)
+        storageManager.remove(LEGACY_KEY_VOICE_PROVIDER)
+        voiceId
+    }
+    fun getVoiceIdFlow(): Flow<String> = storageManager.getStringFlow(KEY_VOICE_ID).map {
+        VoiceRegistry.sanitize(it)
+    }
+    suspend fun saveVoiceId(id: String) {
+        storageManager.saveString(KEY_VOICE_ID, VoiceRegistry.sanitize(id))
+        storageManager.remove(LEGACY_KEY_VOICE_PROVIDER)
+    }
 
     fun getInitialVoiceSpeed(): Float = runBlocking { storageManager.getFloat(KEY_VOICE_SPEED) ?: 1.0f }
     fun getVoiceSpeedFlow(): Flow<Float> = storageManager.getFloatFlow(KEY_VOICE_SPEED).map { it ?: 1.0f }

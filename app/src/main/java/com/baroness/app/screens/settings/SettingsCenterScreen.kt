@@ -161,6 +161,7 @@ fun SettingsCenterScreen(
                             when (category.id) {
                                 "profile" -> navController.navigate("settings/profile") { launchSingleTop = true }
                                 "appearance" -> navController.navigate("settings/appearance") { launchSingleTop = true }
+                                "sound" -> navController.navigate("settings/sound") { launchSingleTop = true }
                             }
                         }
                     )
