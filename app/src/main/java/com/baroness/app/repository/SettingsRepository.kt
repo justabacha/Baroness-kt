@@ -35,6 +35,9 @@ class SettingsRepository(context: Context) {
         private const val KEY_TIMER_CHIME_OPTION = "timer_chime_option"
         private const val KEY_ALARM_VIBRATION_PATTERN = "alarm_vibration_pattern"
 
+        // Notification Settings
+        private const val KEY_IN_APP_BANNERS_ENABLED = "in_app_banners_enabled"
+
         private const val DEFAULT_EMOJIS = "❤️,👍,👎,😂,‼️,❓,🤌"
 
         private val VALID_WALLPAPER_IDS = setOf(
@@ -130,4 +133,9 @@ class SettingsRepository(context: Context) {
     fun getInitialAlarmVibrationPattern(): String = runBlocking { storageManager.getString(KEY_ALARM_VIBRATION_PATTERN) ?: "wave" }
     fun getAlarmVibrationPatternFlow(): Flow<String> = storageManager.getStringFlow(KEY_ALARM_VIBRATION_PATTERN).map { it ?: "wave" }
     suspend fun saveAlarmVibrationPattern(pattern: String) = storageManager.saveString(KEY_ALARM_VIBRATION_PATTERN, pattern)
+
+    // Notification Settings Accessors
+    fun getInitialInAppBannersEnabled(): Boolean = runBlocking { storageManager.getBoolean(KEY_IN_APP_BANNERS_ENABLED) ?: true }
+    fun getInAppBannersEnabledFlow(): Flow<Boolean> = storageManager.getBooleanFlow(KEY_IN_APP_BANNERS_ENABLED).map { it ?: true }
+    suspend fun saveInAppBannersEnabled(enabled: Boolean) = storageManager.saveBoolean(KEY_IN_APP_BANNERS_ENABLED, enabled)
 }

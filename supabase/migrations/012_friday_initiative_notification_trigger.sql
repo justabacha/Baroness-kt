@@ -22,6 +22,7 @@ BEGIN
                 url := 'https://wckluymkbqxdmipzaiff.supabase.co/functions/v1/notify-trigger',
                 body := json_build_object(
                     'event', 'INSERT',
+                    'notification_type', 'friday_proactive',
                     'record', json_build_object(
                         'creator_id', 'friday_official', -- Mock sender ID for the trigger
                         'text', NEW.message,

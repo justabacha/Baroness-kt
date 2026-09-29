@@ -162,6 +162,8 @@ fun SettingsCenterScreen(
                                 "profile" -> navController.navigate("settings/profile") { launchSingleTop = true }
                                 "appearance" -> navController.navigate("settings/appearance") { launchSingleTop = true }
                                 "sound" -> navController.navigate("settings/sound") { launchSingleTop = true }
+                                "friday" -> navController.navigate("settings/friday") { launchSingleTop = true }
+                                "notifications" -> navController.navigate("settings/notifications") { launchSingleTop = true }
                             }
                         }
                     )

@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
@@ -67,6 +68,7 @@ fun ProfileSettingsPage(
     // Track initial values for dirty-state calculation
     var initialName by remember { mutableStateOf("") }
     var initialAvatarUri by remember { mutableStateOf<Uri?>(null) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isLoadingProfile) {
         if (!isLoadingProfile) {
@@ -347,7 +349,119 @@ fun ProfileSettingsPage(
                             )
                         }
                     }
+
+                    // Account & Session Card (Logout)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.05f)
+                        ),
+                        border = cardBorder
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = "ACCOUNT & SESSION",
+                                color = Color.White,
+                                fontFamily = AppFonts.PlayfairDisplay,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                letterSpacing = 0.5.sp
+                            )
+
+                            Text(
+                                text = "Logging out clears local session state and unregisters push notifications for this device.",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 13.sp
+                            )
+
+                            OutlinedButton(
+                                onClick = { showLogoutDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f)),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color(0xFFFF5252)
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = "Log Out",
+                                    tint = Color(0xFFFF5252),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "LOG OUT",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+                    }
                 }
+            }
+
+            // Logout Confirmation Dialog
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = {
+                        Text(
+                            text = "Log out of Baroness?",
+                            color = Color.White,
+                            fontFamily = AppFonts.PlayfairDisplay,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "You'll need to sign in again to access this profile on this device.",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showLogoutDialog = false
+                                viewModel.onLogout {
+                                    navController.navigate("gate") {
+                                        popUpTo(0) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = "LOG OUT",
+                                color = Color(0xFFFF5252),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showLogoutDialog = false }
+                        ) {
+                            Text(
+                                text = "CANCEL",
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    },
+                    containerColor = Color(0xFF1E1E1E),
+                    shape = RoundedCornerShape(20.dp)
+                )
             }
 
             // Live Mock Preview Bar on top of Keyboard when editing

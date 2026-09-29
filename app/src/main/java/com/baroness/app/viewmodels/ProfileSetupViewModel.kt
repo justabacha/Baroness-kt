@@ -147,6 +147,17 @@ class ProfileSetupViewModel(
 
     fun onLogout(callback: () -> Unit) {
         viewModelScope.launch {
+            val personaId = currentPersonaId.ifBlank { storageManager.getString("currentPersonaId") ?: "" }
+            if (!personaId.isNullOrBlank()) {
+                try {
+                    withContext(Dispatchers.IO) {
+                        ProfileManager.updateFcmToken(personaId, "")
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("ProfileSetupViewModel", "Remote FCM token cleanup failed during logout: ${e.message}", e)
+                }
+            }
+            storageManager.remove("fcm_token")
             storageManager.remove("vibe_persona")
             storageManager.remove("userProfile")
             storageManager.remove("currentPersonaId")

@@ -1,14 +1,18 @@
 package com.baroness.app.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.baroness.app.data.models.NotificationData
+import com.baroness.app.repository.SettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-class NotificationViewModel : ViewModel() {
+class NotificationViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = SettingsRepository(application)
     private val _currentNotification = MutableStateFlow<NotificationData?>(null)
     val currentNotification = _currentNotification.asStateFlow()
 
@@ -17,6 +21,9 @@ class NotificationViewModel : ViewModel() {
 
     fun showInAppNotification(data: NotificationData) {
         viewModelScope.launch {
+            val enabled = repository.getInAppBannersEnabledFlow().first()
+            if (!enabled) return@launch
+
             queue.add(data)
             processQueue()
         }

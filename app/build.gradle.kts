@@ -1,4 +1,5 @@
 import java.util.Properties
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 
 plugins {
     alias(libs.plugins.android.application)
@@ -16,8 +17,8 @@ android {
         applicationId = "com.baroness.app"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -50,6 +51,14 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+extensions.configure<ApplicationAndroidComponentsExtension> {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("baroness-v${android.defaultConfig.versionName}.apk")
+        }
     }
 }
 

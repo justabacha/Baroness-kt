@@ -8,14 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,10 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.navigation.NavController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,6 +31,9 @@ import androidx.work.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.baroness.app.components.notification.InAppNotification
+import com.baroness.app.phestydrop.data.PhestyDropInfo
+import com.baroness.app.phestydrop.manager.PhestyDropManager
+import com.baroness.app.phestydrop.ui.PhestyDropSheet
 import com.baroness.app.repository.WishlistRepository
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
@@ -48,6 +45,7 @@ import com.baroness.app.screens.ChatRoomScreen
 import com.baroness.app.screens.settings.*
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
+import com.baroness.app.utils.StorageManager
 import com.baroness.app.viewmodels.NotificationViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
 import com.baroness.app.viewmodels.SettingsViewModelFactory
@@ -88,16 +86,20 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.fillMaxSize()) {
                         AppEntryPoint(navController, settingsViewModel)
 
+                        val inAppBannersEnabled by settingsViewModel.inAppBannersEnabled.collectAsStateWithLifecycle()
+
                         // In-App Notification Overlay
-                        currentNotification?.let { data ->
-                            InAppNotification(
-                                data = data,
-                                onDismiss = { notificationViewModel.dismiss() },
-                                onClick = { route ->
-                                    notificationViewModel.dismiss()
-                                    route?.let { navController.navigate(it) }
-                                }
-                            )
+                        if (inAppBannersEnabled) {
+                            currentNotification?.let { data ->
+                                InAppNotification(
+                                    data = data,
+                                    onDismiss = { notificationViewModel.dismiss() },
+                                    onClick = { route ->
+                                        notificationViewModel.dismiss()
+                                        route?.let { navController.navigate(it) }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -158,8 +160,11 @@ fun AppEntryPoint(
     settingsViewModel: SettingsViewModel
 ) {
     var startDestination by remember { mutableStateOf<String?>(null) }
+    var pendingPhestyDrop by remember { mutableStateOf<PhestyDropInfo?>(null) }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val sessionManager = SessionManager(context)
+    val storageManager = remember { StorageManager(context) }
 
     LaunchedEffect(Unit) {
         val destination = withContext(Dispatchers.IO) {
@@ -180,6 +185,15 @@ fun AppEntryPoint(
             ExistingPeriodicWorkPolicy.KEEP,
             syncRequest
         )
+
+        // PhestyDrop Startup Auto-Check
+        val autoUpdateEnabled = storageManager.getBoolean("phestydrop_auto_update") ?: true
+        val drop = PhestyDropManager.checkForDrop()
+        if (drop != null) {
+            if (drop.isMandatory || autoUpdateEnabled) {
+                pendingPhestyDrop = drop
+            }
+        }
     }
 
     if (startDestination == null) {
@@ -192,6 +206,14 @@ fun AppEntryPoint(
             navController = navController,
             settingsViewModel = settingsViewModel
         )
+
+        // Display PhestyDrop Sheet if update detected
+        pendingPhestyDrop?.let { dropInfo ->
+            PhestyDropSheet(
+                dropInfo = dropInfo,
+                onDismiss = { pendingPhestyDrop = null }
+            )
+        }
     }
 }
 
@@ -254,6 +276,12 @@ fun AppNavigation(
         }
         composable("settings/sound") {
             SoundHapticsSettingsPage(navController, settingsViewModel = settingsViewModel)
+        }
+        composable("settings/friday") {
+            FridaySettingsPage(navController)
+        }
+        composable("settings/notifications") {
+            NotificationSettingsPage(navController, settingsViewModel = settingsViewModel)
         }
     }
 }

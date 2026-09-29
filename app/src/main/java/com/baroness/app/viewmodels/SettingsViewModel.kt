@@ -83,6 +83,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val alarmVibrationPattern: StateFlow<String> = repository.getAlarmVibrationPatternFlow()
         .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialAlarmVibrationPattern())
 
+    // NOTIFICATION SETTINGS
+    val inAppBannersEnabled: StateFlow<Boolean> = repository.getInAppBannersEnabledFlow()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, repository.getInitialInAppBannersEnabled())
+
     // Voice State
     val voiceState = voiceCenter.state
 
@@ -216,6 +220,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setAlarmVibrationPattern(pattern: String) {
         viewModelScope.launch { repository.saveAlarmVibrationPattern(pattern) }
+    }
+
+    // NOTIFICATION Actions
+    fun setInAppBannersEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.saveInAppBannersEnabled(enabled) }
     }
 
     fun previewVoice() {

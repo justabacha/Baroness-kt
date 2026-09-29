@@ -23,7 +23,7 @@ object ProfileManager {
 
     suspend fun updateFcmToken(id: String, token: String) {
         val jsonBody = JSONObject().apply {
-            put("fcm_token", token)
+            put("fcm_token", if (token.isBlank()) JSONObject.NULL else token)
             put("updated_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US).apply {
                 timeZone = java.util.TimeZone.getTimeZone("UTC")
             }.format(java.util.Date()))
