@@ -17,6 +17,21 @@
 --   payload: jsonb (NOT NULL)
 --   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
+-- Table: friday_action_requests
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   owner_id: text (NOT NULL)
+--   session_id: uuid (NULLABLE)
+--   action_name: text (NOT NULL)
+--   parameters: jsonb (NOT NULL)
+--   status: text (NOT NULL, DEFAULT 'dispatched'::text)
+--   created_at: timestamp with time zone (NOT NULL, DEFAULT now())
+
+-- Table: friday_api_usage
+--   owner_id: text (NOT NULL)
+--   provider: text (NOT NULL)
+--   day: date (NOT NULL, DEFAULT CURRENT_DATE)
+--   call_count: integer (NOT NULL, DEFAULT 0)
+
 -- Table: friday_entities
 --   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
 --   owner_id: text (NOT NULL)
@@ -38,6 +53,18 @@
 --   embedding: USER-DEFINED (NULLABLE)
 --   session_id: uuid (NULLABLE)
 --   follow_up_worthy: boolean (NULLABLE, DEFAULT false)
+--   importance: smallint (NOT NULL, DEFAULT 3)
+--   confidence: smallint (NOT NULL, DEFAULT 3)
+--   status: text (NOT NULL, DEFAULT 'active'::text)
+--   last_reinforced_at: timestamp with time zone (NULLABLE)
+
+-- Table: friday_memory_history
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   memory_id: bigint (NOT NULL)
+--   change_type: text (NOT NULL)
+--   previous_text: text (NULLABLE)
+--   reason: text (NULLABLE)
+--   changed_at: timestamp with time zone (NOT NULL, DEFAULT now())
 
 -- Table: friday_messages
 --   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
@@ -55,6 +82,14 @@
 --   is_proactive: boolean (NULLABLE, DEFAULT false)
 --   is_command: boolean (NULLABLE, DEFAULT false)
 --   sentiment: text (NULLABLE)
+
+-- Table: friday_sessions
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   owner_id: text (NOT NULL)
+--   started_at: timestamp with time zone (NOT NULL, DEFAULT now())
+--   ended_at: timestamp with time zone (NULLABLE)
+--   summary: text (NULLABLE)
+--   status: text (NOT NULL, DEFAULT 'active'::text)
 
 -- Table: gallery_items
 --   id: bigint (NOT NULL)
@@ -78,6 +113,16 @@
 --   id: integer (NOT NULL, DEFAULT nextval('migration_history_id_seq'::regclass))
 --   name: text (NOT NULL)
 --   applied_at: timestamp with time zone (NULLABLE, DEFAULT now())
+
+-- Table: phestydrop_releases
+--   id: uuid (NOT NULL, DEFAULT gen_random_uuid())
+--   version_code: integer (NOT NULL)
+--   version_name: text (NOT NULL)
+--   download_url: text (NOT NULL)
+--   changelog: text (NULLABLE)
+--   is_mandatory: boolean (NULLABLE, DEFAULT false)
+--   min_supported_version_code: integer (NULLABLE, DEFAULT 1)
+--   created_at: timestamp with time zone (NULLABLE, DEFAULT now())
 
 -- Table: profiles
 --   id: text (NOT NULL)
@@ -119,10 +164,6 @@
 
 
 -- RLS Policies
--- Policy: Allow public access to profiles on profiles (ALL)
--- Policy: Enable all for current_user on profiles (ALL)
--- Policy: Public profiles are viewable by everyone on profiles (SELECT)
--- Policy: Users can insert or update their own profile on profiles (ALL)
 -- Policy: wishlist_items_select on wishlist_items (SELECT)
 -- Policy: wishlist_items_insert on wishlist_items (INSERT)
 -- Policy: wishlist_items_update on wishlist_items (UPDATE)
@@ -139,13 +180,12 @@
 -- Policy: gallery_items_insert on gallery_items (INSERT)
 -- Policy: gallery_items_update on gallery_items (UPDATE)
 -- Policy: gallery_items_delete on gallery_items (DELETE)
--- Policy: Allow read memories on friday_memories (SELECT)
--- Policy: Allow insert memories on friday_memories (INSERT)
--- Policy: Allow update memories on friday_memories (UPDATE)
--- Policy: Allow delete memories on friday_memories (DELETE)
 -- Policy: Allow all operations on typing_status on typing_status (ALL)
 -- Policy: Allow public access to messages on messages (ALL)
--- Policy: Allow public access to AI messages on friday_messages (ALL)
--- Policy: Allow public access to sync pipe on chat_sync_pipe (ALL)
 -- Policy: Allow public access to backup log on backup_log (ALL)
--- Policy: Allow public to read access keys on access_keys (SELECT)
+-- Policy: Allow public select on access_keys on access_keys (SELECT)
+-- Policy: Allow public access to profiles on profiles (ALL)
+-- Policy: Allow public access to AI messages on friday_messages (ALL)
+-- Policy: Allow public access to friday_memories on friday_memories (ALL)
+-- Policy: Allow public access to sync pipe on chat_sync_pipe (ALL)
+-- Policy: Allow public read access to phestydrop_releases on phestydrop_releases (SELECT)

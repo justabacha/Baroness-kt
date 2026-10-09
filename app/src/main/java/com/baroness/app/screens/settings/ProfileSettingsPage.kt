@@ -51,9 +51,8 @@ fun ProfileSettingsPage(
 ) {
     val context = LocalContext.current
     val storageManager = remember { StorageManager(context) }
-    val currentPersonaId by produceState(initialValue = "phesty_official") {
-        value = storageManager.getString("currentPersonaId") ?: "phesty_official"
-    }
+    val userSession = remember { com.baroness.app.utils.UserSessionManager(context) }
+    val currentPersonaId = remember { userSession.currentUserId }
 
     val viewModel: ProfileSetupViewModel = viewModel(
         factory = ProfileSetupViewModelFactory(context, currentPersonaId)

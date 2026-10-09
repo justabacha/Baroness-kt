@@ -22,8 +22,12 @@ class UserSessionManager(context: Context) {
     val isPhesty: Boolean get() = currentUserId == "phesty_official"
     val isBaroness: Boolean get() = currentUserId == "baroness_official"
 
-    fun setUser(userId: String, userKey: String) {
+    fun setUser(userId: String, userKey: String = if (userId.contains("phesty", ignoreCase = true)) "P" else "B") {
         currentUserId = userId
         currentUserKey = userKey
+    }
+
+    fun clearSession() {
+        prefs.edit().clear().apply()
     }
 }

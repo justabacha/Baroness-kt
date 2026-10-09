@@ -66,7 +66,8 @@ class ProfileSetupViewModel(
                         val cachedPath = avatarRepository.getCachedAvatar(avatarUrl)
                         avatarUri.value = cachedPath?.let { Uri.parse(it) } ?: avatarUrl?.toUri()
                         existingAvatarUrl.value = avatarUrl
-                        val updatedProfile = UserProfile(displayName ?: "", avatarUrl ?: "", "", currentPersonaId)
+                        val personaLabel = if (currentPersonaId.contains("baroness", ignoreCase = true)) "Baroness" else "Phesty"
+                        val updatedProfile = UserProfile(displayName ?: "", avatarUrl ?: "", personaLabel, currentPersonaId)
                         storageManager.saveString("userProfile", json.encodeToString(updatedProfile))
                     }
                 } catch (_: Exception) {
@@ -157,10 +158,12 @@ class ProfileSetupViewModel(
                     android.util.Log.e("ProfileSetupViewModel", "Remote FCM token cleanup failed during logout: ${e.message}", e)
                 }
             }
+            com.baroness.app.utils.UserSessionManager(appContext).clearSession()
             storageManager.remove("fcm_token")
             storageManager.remove("vibe_persona")
             storageManager.remove("userProfile")
             storageManager.remove("currentPersonaId")
+            storageManager.remove("auth_token")
             callback()
         }
     }

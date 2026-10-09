@@ -1,27 +1,25 @@
 package com.baroness.app.modules
 
 import android.content.Context
+import com.baroness.app.config.SupabaseConfig
 import com.baroness.app.models.UserProfile
 import com.baroness.app.utils.StorageManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 class AuthManager(private val context: Context) {
-    @Suppress("unused")
     private val storageManager = StorageManager(context)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
-
-    private val supabaseUrl = "https://wckluymkbqxdmipzaiff.supabase.co"
-    private val supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indja2x1eW1rYnF4ZG1pcHphaWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjM3NjAsImV4cCI6MjA5MzM5OTc2MH0.y3murBfcZtgluuPd_uFBut4Ky3Wl8WAHVCp-kA1u9sU"
-    private val json = Json { ignoreUnknownKeys = true }
 
     sealed class GateResult {
         data class Success(val userProfile: UserProfile?, val currentPersonaId: String) : GateResult()
@@ -31,39 +29,61 @@ class AuthManager(private val context: Context) {
     suspend fun checkGate(persona: String, inputPass: String): GateResult {
         return withContext(Dispatchers.IO) {
             try {
-                // 1. Check access key
-                val accessUrl = "$supabaseUrl/rest/v1/access_keys?id=eq.$persona&select=secret_key"
-                val accessRequest = Request.Builder()
-                    .url(accessUrl)
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
+                val verifyUrl = "${SupabaseConfig.SUPABASE_URL}/functions/v1/verify-passkey"
+
+                val jsonPayload = JSONObject().apply {
+                    put("persona", persona)
+                    put("passkey", inputPass)
+                }.toString()
+
+                val requestBody = jsonPayload.toRequestBody("application/json".toMediaType())
+
+                val request = Request.Builder()
+                    .url(verifyUrl)
+                    .post(requestBody)
+                    .header("apikey", SupabaseConfig.SUPABASE_ANON_KEY)
+                    .header("Authorization", "Bearer ${SupabaseConfig.SUPABASE_ANON_KEY}")
                     .build()
 
-                val accessResponse = client.newCall(accessRequest).execute()
-                if (!accessResponse.isSuccessful) {
-                    return@withContext GateResult.Error("Network error: ${accessResponse.code}")
+                val response = client.newCall(request).execute()
+                val responseBody = response.body?.string() ?: ""
+
+                if (!response.isSuccessful) {
+                    val errorMsg = try {
+                        JSONObject(responseBody).optString("error", null)
+                    } catch (e: Exception) {
+                        null
+                    } ?: "Network error: ${response.code}"
+                    return@withContext GateResult.Error(errorMsg)
                 }
 
-                val accessBody = accessResponse.body?.string() ?: "[]"
-                val storedKey = extractSecretKey(accessBody)
-
-                if (storedKey == null || storedKey != inputPass) {
-                    return@withContext GateResult.Error("Invalid pass key, blud!")
+                val jsonObj = JSONObject(responseBody)
+                if (jsonObj.has("error") && !jsonObj.isNull("error")) {
+                    return@withContext GateResult.Error(jsonObj.getString("error"))
                 }
 
-                val currentPersonaId = "${persona}_official"
+                val token = jsonObj.optString("token", null)
+                if (!token.isNullOrBlank()) {
+                    try {
+                        storageManager.saveString("auth_token", token)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
 
-                // 2. Check profile
-                val profileUrl = "$supabaseUrl/rest/v1/profiles?id=eq.$currentPersonaId&select=display_name,avatar_url,persona"
-                val profileRequest = Request.Builder()
-                    .url(profileUrl)
-                    .header("apikey", supabaseKey)
-                    .header("Authorization", "Bearer $supabaseKey")
-                    .build()
+                val personaBase = persona.lowercase().replace("_official", "")
+                val currentPersonaId = jsonObj.optString("currentPersonaId", "${personaBase}_official")
 
-                val profileResponse = client.newCall(profileRequest).execute()
-                val profileBody = profileResponse.body?.string() ?: "[]"
-                val userProfile = extractProfile(profileBody, currentPersonaId)
+                val profileObj = jsonObj.optJSONObject("userProfile")
+                val userProfile = if (profileObj != null) {
+                    val avatar = if (profileObj.isNull("avatarUrl")) null else profileObj.optString("avatarUrl", null)?.takeIf { it.isNotBlank() }
+                    UserProfile(
+                        displayName = profileObj.optString("displayName", ""),
+                        avatar = avatar,
+                        persona = profileObj.optString("persona", personaBase),
+                        id = profileObj.optString("personaId", currentPersonaId)
+                    )
+                } else null
 
                 GateResult.Success(userProfile, currentPersonaId)
             } catch (e: Exception) {
@@ -71,25 +91,5 @@ class AuthManager(private val context: Context) {
             }
         }
     }
-
-    private fun extractSecretKey(jsonArray: String): String? {
-        val trimmed = jsonArray.trim()
-        if (trimmed == "[]") return null
-        val keyPattern = "\"secret_key\"\\s*:\\s*\"([^\"]+)\"".toRegex()
-        return keyPattern.find(trimmed)?.groupValues?.get(1)
-    }
-
-    private fun extractProfile(jsonArray: String, personaId: String): UserProfile? {
-        val trimmed = jsonArray.trim()
-        if (trimmed == "[]") return null
-        val displayName = extractJsonString(trimmed, "display_name") ?: ""
-        val avatarUrl = extractJsonString(trimmed, "avatar_url")
-        val persona = extractJsonString(trimmed, "persona") ?: ""
-        return UserProfile(displayName, avatarUrl, persona, personaId)
-    }
-
-    private fun extractJsonString(json: String, key: String): String? {
-        val pattern = "\"$key\"\\s*:\\s*\"([^\"]*)\"".toRegex()
-        return pattern.find(json)?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }
-    }
 }
+

@@ -101,10 +101,8 @@ fun ChatRoomScreen(
     val activeWallpaperId by settingsViewModel.activeWallpaper.collectAsStateWithLifecycle()
     val activeThemeId by settingsViewModel.activeTheme.collectAsStateWithLifecycle()
     
-    val storageManager = remember { com.baroness.app.utils.StorageManager(context) }
-    val currentPersonaId by produceState(initialValue = "phesty_official") {
-        value = storageManager.getString("currentPersonaId") ?: "phesty_official"
-    }
+    val userSession = remember { com.baroness.app.utils.UserSessionManager(context) }
+    val currentPersonaId = remember { userSession.currentUserId }
 
     val chatTypography = rememberChatTypography(settingsViewModel)
     val clipboardManager = LocalClipboardManager.current

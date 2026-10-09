@@ -283,5 +283,8 @@ fun AppNavigation(
         composable("settings/notifications") {
             NotificationSettingsPage(navController, settingsViewModel = settingsViewModel)
         }
+        composable("settings/privacy") {
+            PrivacySettingsPage(navController)
+        }
     }
 }

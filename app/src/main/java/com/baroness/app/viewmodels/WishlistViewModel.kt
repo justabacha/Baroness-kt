@@ -83,10 +83,12 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val _warningState = MutableStateFlow(WarningState())
     val warningState: StateFlow<WarningState> = _warningState.asStateFlow()
 
-    private val _currentUserKey = MutableStateFlow("P")
+    private val userSession = com.baroness.app.utils.UserSessionManager(appContext)
+
+    private val _currentUserKey = MutableStateFlow(userSession.currentUserKey)
     val currentUserKey: StateFlow<String> = _currentUserKey.asStateFlow()
 
-    private val _currentUserId = MutableStateFlow("phesty_official")
+    private val _currentUserId = MutableStateFlow(userSession.currentUserId)
     val currentUserId: StateFlow<String> = _currentUserId.asStateFlow()
 
     val userNames: StateFlow<Map<String, String>> = repository.profiles.map { profileMap ->

@@ -39,6 +39,9 @@ class GateViewModel(private val context: Context) : ViewModel() {
             when (result) {
                 is AuthManager.GateResult.Success -> {
                     val storage = StorageManager(context)
+                    val userSession = com.baroness.app.utils.UserSessionManager(context)
+                    userSession.setUser(result.currentPersonaId)
+
                     storage.saveString("vibe_persona", persona)
                     storage.saveString("currentPersonaId", result.currentPersonaId)
                     result.userProfile?.let { profile ->

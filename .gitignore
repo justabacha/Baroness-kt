@@ -20,7 +20,7 @@ local.properties
 .env
 supabase/.temp/
 supabase/.env
-
+tests
 # Build Artifacts & PhestyDrop Output
 *.apk
 PhestyDrop/
