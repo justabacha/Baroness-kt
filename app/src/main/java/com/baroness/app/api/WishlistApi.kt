@@ -13,6 +13,7 @@ private const val TAG = "WishlistApi"
 @Serializable
 data class WishDto(
     val id: Long? = null,
+    @SerialName("client_uuid") val clientUuid: String? = null,
     val text: String,
     @SerialName("wish_date") val wishDate: String,
     val status: String,
@@ -23,6 +24,7 @@ data class WishDto(
 
 @Serializable
 data class WishInsertDto(
+    @SerialName("client_uuid") val clientUuid: String,
     val text: String,
     @SerialName("wish_date") val wishDate: String,
     val status: String,
@@ -33,6 +35,7 @@ data class WishInsertDto(
 @Serializable
 data class ReactionDto(
     @SerialName("wish_id") val wishId: Long,
+    @SerialName("wish_client_uuid") val wishClientUuid: String,
     @SerialName("persona_id") val personaId: String,
     val emoji: String
 )
@@ -40,6 +43,7 @@ data class ReactionDto(
 @Serializable
 data class RatingDto(
     @SerialName("wish_id") val wishId: Long,
+    @SerialName("wish_client_uuid") val wishClientUuid: String,
     @SerialName("persona_id") val personaId: String,
     val rating: Int
 )
@@ -50,6 +54,7 @@ object WishlistApi {
 
     // ─── CREATE ───
     suspend fun createWish(
+        clientUuid: String,
         text: String,
         wishDate: String,
         status: String,
@@ -60,6 +65,7 @@ object WishlistApi {
             Log.d(TAG, "Creating wish in Supabase: text=$text, creator=$creatorId")
 
             val wishInsert = WishInsertDto(
+                clientUuid = clientUuid,
                 text = text,
                 wishDate = wishDate,
                 status = status,
@@ -68,7 +74,8 @@ object WishlistApi {
             )
 
             val result = supabase.postgrest["wishlist_items"]
-                .insert(wishInsert) {
+                .upsert(wishInsert) {
+                    onConflict = "client_uuid"
                     select()
                 }
                 .decodeSingleOrNull<WishDto>()
@@ -86,16 +93,16 @@ object WishlistApi {
     }
 
     // ─── UPDATE ───
-    suspend fun updateWish(wishId: Long, status: String, updatedAt: Long): Boolean {
+    suspend fun updateWish(serverId: Long, status: String, updatedAt: Long): Boolean {
         return try {
-            Log.d(TAG, "Updating wish $wishId: status=$status")
+            Log.d(TAG, "Updating wish $serverId: status=$status")
 
             supabase.postgrest["wishlist_items"]
                 .update({
                     set("status", status)
                     set("updated_at", formatLongToIso(updatedAt))
                 }) {
-                    filter { eq("id", wishId) }
+                    filter { eq("id", serverId) }
                 }
 
             Log.d(TAG, "Update success")
@@ -107,13 +114,13 @@ object WishlistApi {
     }
 
     // ─── DELETE ───
-    suspend fun deleteWish(wishId: Long): Boolean {
+    suspend fun deleteWish(serverId: Long): Boolean {
         return try {
-            Log.d(TAG, "Deleting wish $wishId")
+            Log.d(TAG, "Deleting wish $serverId")
 
             supabase.postgrest["wishlist_items"]
                 .delete {
-                    filter { eq("id", wishId) }
+                    filter { eq("id", serverId) }
                 }
 
             Log.d(TAG, "Delete success")
@@ -126,7 +133,7 @@ object WishlistApi {
 
     suspend fun upsertReaction(reaction: ReactionDto): Boolean {
         return try {
-            Log.d(TAG, "Upserting reaction: wish=${reaction.wishId}")
+            Log.d(TAG, "Upserting reaction: wish=${reaction.wishClientUuid}")
 
             supabase.postgrest["wishlist_reactions"]
                 .upsert(reaction) {
@@ -143,7 +150,7 @@ object WishlistApi {
 
     suspend fun upsertRating(rating: RatingDto): Boolean {
         return try {
-            Log.d(TAG, "Upserting rating: wish=${rating.wishId}")
+            Log.d(TAG, "Upserting rating: wish=${rating.wishClientUuid}")
 
             supabase.postgrest["wishlist_ratings"]
                 .upsert(rating) {
@@ -172,7 +179,7 @@ object WishlistApi {
             result
         } catch (e: Exception) {
             Log.e(TAG, "Fetch failed: ${e.message}", e)
-            emptyList()
+            throw e
         }
     }
 
@@ -188,7 +195,7 @@ object WishlistApi {
             result
         } catch (e: Exception) {
             Log.e(TAG, "Fetch reactions failed: ${e.message}", e)
-            emptyList()
+            throw e
         }
     }
 
@@ -204,7 +211,7 @@ object WishlistApi {
             result
         } catch (e: Exception) {
             Log.e(TAG, "Fetch ratings failed: ${e.message}", e)
-            emptyList()
+            throw e
         }
     }
 }

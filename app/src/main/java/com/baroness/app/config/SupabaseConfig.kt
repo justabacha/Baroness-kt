@@ -1,5 +1,7 @@
 package com.baroness.app.config
 
+import com.baroness.app.auth.AuthTokenInterceptor
+import com.baroness.app.auth.SessionTokenCache
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
@@ -14,14 +16,18 @@ object SupabaseConfig {
 
     val supabase: SupabaseClient by lazy {
         createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY) {
+            accessToken = { SessionTokenCache.getValidTokenOrRefresh() }
             install(Postgrest)
             install(Realtime)
             install(Storage)
         }
     }
 
-    val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(AuthTokenInterceptor())
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
 }

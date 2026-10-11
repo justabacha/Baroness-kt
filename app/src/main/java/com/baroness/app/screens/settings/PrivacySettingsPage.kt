@@ -29,12 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.baroness.app.models.UserProfile
-import com.baroness.app.modules.ProfileManager
 import com.baroness.app.ui.theme.AppFonts
 import com.baroness.app.utils.StorageManager
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -463,28 +460,14 @@ fun PrivacySettingsPage(
                     onClick = {
                         showResetDialog = false
                         scope.launch {
-                            val targetPersonaId = currentPersonaId ?: storageManager.getString("currentPersonaId") ?: ""
-                            if (targetPersonaId.isNotBlank()) {
-                                try {
-                                    withContext(Dispatchers.IO) {
-                                        ProfileManager.updateFcmToken(targetPersonaId, "")
-                                    }
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
+                            try {
+                                com.baroness.app.auth.SessionLifecycleManager.logout(context)
+                            } finally {
+                                Toast.makeText(context, "Session cleared. Returning to Vault Gate...", Toast.LENGTH_SHORT).show()
+                                navController.navigate("gate") {
+                                    popUpTo(0) { inclusive = true }
+                                    launchSingleTop = true
                                 }
-                            }
-                            com.baroness.app.utils.UserSessionManager(context).clearSession()
-                            storageManager.remove("fcm_token")
-                            storageManager.remove("vibe_persona")
-                            storageManager.remove("userProfile")
-                            storageManager.remove("currentPersonaId")
-                            storageManager.remove("auth_token")
-
-                            Toast.makeText(context, "Session cleared. Returning to Vault Gate...", Toast.LENGTH_SHORT).show()
-
-                            navController.navigate("gate") {
-                                popUpTo(0) { inclusive = true }
-                                launchSingleTop = true
                             }
                         }
                     }

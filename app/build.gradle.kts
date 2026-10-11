@@ -99,6 +99,10 @@ dependencies {
     // Image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+    // Avatar cropping
+    implementation("com.github.yalantis:ucrop:2.2.11")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
     // ViewModel & Navigation
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-process:2.8.7")

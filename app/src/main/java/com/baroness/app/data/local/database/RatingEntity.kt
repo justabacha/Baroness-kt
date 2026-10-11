@@ -4,10 +4,10 @@ import androidx.room.Entity
 
 @Entity(
     tableName = "ratings",
-    primaryKeys = ["wishId", "personaId"]
+    primaryKeys = ["wishClientUuid", "personaId"]
 )
 data class RatingEntity(
-    val wishId: Long,
+    val wishClientUuid: String,
     val personaId: String,
-    val rating: Int           // 1-5
+    val rating: Int
 )

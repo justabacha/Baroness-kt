@@ -3,7 +3,7 @@ package com.baroness.app.workers
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.baroness.app.utils.SyncManager
+import com.baroness.app.repository.WishlistRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
@@ -17,10 +17,10 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
-            val syncManager = SyncManager(applicationContext)
+            val repository = WishlistRepository.getInstance(applicationContext)
             try {
                 Log.d(TAG, "SyncWorker started: Processing queue")
-                syncManager.processQueue()
+                repository.processSyncQueue()
                 Log.d(TAG, "SyncWorker finished: Queue processed")
                 Result.success()
             } catch (e: Exception) {

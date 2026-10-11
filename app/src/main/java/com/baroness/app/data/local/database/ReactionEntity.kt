@@ -1,14 +1,13 @@
 package com.baroness.app.data.local.database
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "reactions",
-    primaryKeys = ["wishId", "personaId"]   // composite key
+    primaryKeys = ["wishClientUuid", "personaId"]
 )
 data class ReactionEntity(
-    val wishId: Long,
-    val personaId: String,   // "phesty_official" or "baroness_official"
+    val wishClientUuid: String,
+    val personaId: String,
     val emoji: String
 )

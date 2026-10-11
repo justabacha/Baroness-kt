@@ -46,4 +46,7 @@ interface MessageDao {
 
     @Query("UPDATE messages SET isPinned = :isPinned WHERE id = :messageId")
     suspend fun updatePinnedStatus(messageId: String, isPinned: Boolean)
+
+    @Query("DELETE FROM messages")
+    suspend fun clearAll()
 }

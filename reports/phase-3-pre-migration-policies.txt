@@ -1,0 +1,39 @@
+Snapshot query:
+SELECT schemaname, tablename, policyname, cmd, roles, qual, with_check
+FROM pg_policies
+WHERE schemaname IN ('public', 'storage')
+ORDER BY tablename, policyname;
+
+Observed at: 2026-10-10 01:34:02.296194+00 (database UTC)
+
+schemaname	tablename	policyname	cmd	roles	qual	with_check
+public	backup_log	Allow public access to backup log	ALL	{public}	true	true
+public	chat_sync_pipe	Allow public access to sync pipe	ALL	{public}	true	true
+public	friday_memories	Allow public access to friday_memories	ALL	{public}	true	true
+public	friday_messages	Allow public access to AI messages	ALL	{public}	true	true
+public	gallery_items	gallery_items_delete	DELETE	{public}	true	NULL
+public	gallery_items	gallery_items_insert	INSERT	{public}	NULL	true
+public	gallery_items	gallery_items_select	SELECT	{public}	true	NULL
+public	gallery_items	gallery_items_update	UPDATE	{public}	true	NULL
+public	messages	Allow public access to messages	ALL	{public}	true	true
+public	phestydrop_releases	Allow public read access to phestydrop_releases	SELECT	{anon,authenticated}	true	NULL
+public	profiles	Allow public access to profiles	ALL	{public}	true	true
+public	typing_status	Allow all operations on typing_status	ALL	{public}	true	NULL
+public	wishlist_items	wishlist_items_delete	DELETE	{public}	true	NULL
+public	wishlist_items	wishlist_items_insert	INSERT	{public}	NULL	true
+public	wishlist_items	wishlist_items_select	SELECT	{public}	true	NULL
+public	wishlist_items	wishlist_items_update	UPDATE	{public}	true	NULL
+public	wishlist_ratings	wishlist_ratings_delete	DELETE	{public}	true	NULL
+public	wishlist_ratings	wishlist_ratings_insert	INSERT	{public}	NULL	true
+public	wishlist_ratings	wishlist_ratings_select	SELECT	{public}	true	NULL
+public	wishlist_ratings	wishlist_ratings_update	UPDATE	{public}	true	NULL
+public	wishlist_reactions	wishlist_reactions_delete	DELETE	{public}	true	NULL
+public	wishlist_reactions	wishlist_reactions_insert	INSERT	{public}	NULL	true
+public	wishlist_reactions	wishlist_reactions_select	SELECT	{public}	true	NULL
+public	wishlist_reactions	wishlist_reactions_update	UPDATE	{public}	true	NULL
+storage	objects	Allow Delete	DELETE	{public}	(bucket_id = 'avatars'::text)	NULL
+storage	objects	Allow Update	UPDATE	{public}	(bucket_id = 'avatars'::text)	NULL
+storage	objects	Allow Upload	INSERT	{public}	NULL	(bucket_id = 'avatars'::text)
+storage	objects	Anyone can upload an avatar	INSERT	{public}	NULL	(bucket_id = 'avatars'::text)
+storage	objects	Avatar images are publicly accessible	SELECT	{public}	(bucket_id = 'avatars'::text)	NULL
+storage	objects	Public Access	SELECT	{public}	(bucket_id = 'avatars'::text)	NULL

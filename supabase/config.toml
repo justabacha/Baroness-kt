@@ -413,9 +413,7 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
 
 [functions.friday-pending-messages]
-# Gateway JWT verification is intentionally disabled (verify_jwt = false) because custom persona JWTs are verified inside the function code via _shared/jwt.ts.
-verify_jwt = false
+verify_jwt = true
 
 [functions.verify-passkey]
-verify_jwt = false
-
+verify_jwt = true

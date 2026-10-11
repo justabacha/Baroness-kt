@@ -4,22 +4,18 @@ import android.content.Context
 import com.baroness.app.config.SupabaseConfig
 import com.baroness.app.models.UserProfile
 import com.baroness.app.utils.StorageManager
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 class AuthManager(private val context: Context) {
     private val storageManager = StorageManager(context)
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val client = SupabaseConfig.client
 
     sealed class GateResult {
         data class Success(val userProfile: UserProfile?, val currentPersonaId: String) : GateResult()
@@ -50,7 +46,7 @@ class AuthManager(private val context: Context) {
 
                 if (!response.isSuccessful) {
                     val errorMsg = try {
-                        JSONObject(responseBody).optString("error", null)
+                        JSONObject(responseBody).optString("error").takeIf { it.isNotBlank() }
                     } catch (e: Exception) {
                         null
                     } ?: "Network error: ${response.code}"
@@ -62,12 +58,40 @@ class AuthManager(private val context: Context) {
                     return@withContext GateResult.Error(jsonObj.getString("error"))
                 }
 
-                val token = jsonObj.optString("token", null)
+                val token = jsonObj.optString("token").takeIf { it.isNotBlank() }
                 if (!token.isNullOrBlank()) {
                     try {
-                        storageManager.saveString("auth_token", token)
+                        val refreshToken = if (jsonObj.isNull("refresh_token")) null else {
+                            jsonObj.optString("refresh_token").takeIf { it.isNotBlank() }
+                        }
+                        val expiresIn = if (jsonObj.has("expires_in") && !jsonObj.isNull("expires_in")) {
+                            jsonObj.optLong("expires_in", -1L).takeIf { it > 0L }
+                        } else {
+                            null
+                        }
+                        if (refreshToken == null || expiresIn == null) {
+                            Log.w(
+                                "AuthManager",
+                                "Login response omitted refresh_token or expires_in; automatic refresh is unavailable"
+                            )
+                        }
+                        val expiresAt = expiresIn?.let {
+                            System.currentTimeMillis() + it * 1000L
+                        }
+                        storageManager.saveAuthSession(token, refreshToken, expiresAt)
+                        com.baroness.app.auth.SessionTokenCache.init(context)
+                        com.baroness.app.auth.SessionTokenCache.setSession(
+                            token,
+                            refreshToken,
+                            expiresAt
+                        )
+                        if (refreshToken != null && expiresAt != null &&
+                            expiresAt <= System.currentTimeMillis() + 60 * 60 * 1000L
+                        ) {
+                            com.baroness.app.auth.SessionTokenCache.refreshIfNeeded(force = true)
+                        }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e("AuthManager", "Failed to persist the Auth session", e)
                     }
                 }
 
@@ -76,7 +100,9 @@ class AuthManager(private val context: Context) {
 
                 val profileObj = jsonObj.optJSONObject("userProfile")
                 val userProfile = if (profileObj != null) {
-                    val avatar = if (profileObj.isNull("avatarUrl")) null else profileObj.optString("avatarUrl", null)?.takeIf { it.isNotBlank() }
+                    val avatar = if (profileObj.isNull("avatarUrl")) null else {
+                        profileObj.optString("avatarUrl").takeIf { it.isNotBlank() }
+                    }
                     UserProfile(
                         displayName = profileObj.optString("displayName", ""),
                         avatar = avatar,
@@ -92,4 +118,3 @@ class AuthManager(private val context: Context) {
         }
     }
 }
-

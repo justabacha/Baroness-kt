@@ -9,8 +9,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReactionDao {
-    @Query("SELECT * FROM reactions WHERE wishId = :wishId")
-    fun getReactionsForWish(wishId: Long): Flow<List<ReactionEntity>>
+    @Query("SELECT * FROM reactions WHERE wishClientUuid = :uuid")
+    fun getReactionsForWish(uuid: String): Flow<List<ReactionEntity>>
 
     @Query("SELECT * FROM reactions")
     fun getAllReactions(): Flow<List<ReactionEntity>>
@@ -18,9 +18,12 @@ interface ReactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReaction(reaction: ReactionEntity)
 
-    @Query("DELETE FROM reactions WHERE wishId = :wishId AND personaId = :personaId")
-    suspend fun deleteReaction(wishId: Long, personaId: String)
+    @Query("DELETE FROM reactions WHERE wishClientUuid = :uuid AND personaId = :personaId")
+    suspend fun deleteReaction(uuid: String, personaId: String)
 
-    @Query("DELETE FROM reactions WHERE wishId = :wishId")
-    suspend fun deleteReactionsForWish(wishId: Long)
+    @Query("DELETE FROM reactions WHERE wishClientUuid = :uuid")
+    suspend fun deleteReactionsForWish(uuid: String)
+
+    @Query("DELETE FROM reactions")
+    suspend fun clearAll()
 }

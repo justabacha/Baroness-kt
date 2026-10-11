@@ -16,6 +16,7 @@ import com.baroness.app.api.FridayMessageDto
 import com.baroness.app.api.MessageDto
 import com.baroness.app.api.ProfileDto
 import com.baroness.app.config.SupabaseConfig
+import com.baroness.app.auth.SessionTokenCache
 import com.baroness.app.data.local.dao.MessageDao
 import com.baroness.app.data.local.database.AppDatabase
 import com.baroness.app.data.local.database.MessageEntity
@@ -55,18 +56,31 @@ class ChatRepository private constructor(context: Context) {
         scope.launch {
             setupNetworkListener(context)
             setupLifecycleObserver()
-            
-            // Fix 2: Reactive Identity Handling with change detection
-            storageManager.getStringFlow("currentPersonaId")
-                .distinctUntilChanged()
-                .collect { personaId ->
-                    if (personaId != null) {
-                        restartSyncPipeSubscription(personaId)
-                    } else {
-                        syncPipeJob?.cancel()
+
+            launch {
+                storageManager.getStringFlow("currentPersonaId")
+                    .distinctUntilChanged()
+                    .collect { personaId ->
+                        if (personaId != null) {
+                            restartSyncPipeSubscription(personaId)
+                        } else {
+                            syncPipeJob?.cancel()
+                            _isSubscribed.value = false
+                        }
+                    }
+            }
+
+            launch {
+                SessionTokenCache.tokenRefreshedFlow.collect {
+                    val personaId = storageManager.getString("currentPersonaId")
+                    if (personaId.isNullOrBlank()) {
                         _isSubscribed.value = false
+                    } else {
+                        Log.d(TAG, "Auth token refreshed; restarting chat sync-pipe subscription")
+                        restartSyncPipeSubscription(personaId)
                     }
                 }
+            }
         }
     }
 
@@ -97,8 +111,9 @@ class ChatRepository private constructor(context: Context) {
     }
 
     private fun restartSyncPipeSubscription(personaId: String) {
-        syncPipeJob?.cancel()
+        val previousJob = syncPipeJob
         syncPipeJob = scope.launch {
+            previousJob?.cancelAndJoin()
             var retryDelay = 2000L
             while (isActive) {
                 try {
@@ -115,18 +130,9 @@ class ChatRepository private constructor(context: Context) {
                     val statusJob = launch {
                         channel.status.collect { status ->
                             Log.d(TAG, ">>> [REALTIME] Status changed to: $status")
-                            val statusName = status.name
-                            // Clear warning if Subscribed, Joining, or if we've been trying for a while
-                            _isSubscribed.value = (statusName == "SUBSCRIBED" || statusName == "JOINING")
-                        }
-                    }
-
-                    // Safety Timeout: If stuck in 'JOINING' for 5s, force clear the warning
-                    launch {
-                        delay(5000)
-                        if (!_isSubscribed.value) {
-                            Log.w(TAG, ">>> [REALTIME] Connection taking too long, forcing warning clear.")
-                            _isSubscribed.value = true
+                            // Never mask a stalled join: only SUBSCRIBED means the channel is live.
+                            _isSubscribed.value =
+                                status == RealtimeChannel.Status.SUBSCRIBED
                         }
                     }
 
@@ -669,19 +675,22 @@ class ChatRepository private constructor(context: Context) {
     }
 
     fun triggerSync() {
-        val workRequest = OneTimeWorkRequestBuilder<ChatSyncWorker>()
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            )
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                WorkRequest.MIN_BACKOFF_MILLIS,
-                TimeUnit.MILLISECONDS
-            )
-            .build()
-        workManager.enqueueUniqueWork("ChatSync", ExistingWorkPolicy.REPLACE, workRequest)
+        scope.launch {
+            if (storageManager.getString("auth_token").isNullOrBlank()) return@launch
+            val workRequest = OneTimeWorkRequestBuilder<ChatSyncWorker>()
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    WorkRequest.MIN_BACKOFF_MILLIS,
+                    TimeUnit.MILLISECONDS
+                )
+                .build()
+            workManager.enqueueUniqueWork("ChatSync", ExistingWorkPolicy.REPLACE, workRequest)
+        }
     }
 
     fun fetchOfflineMessages() {

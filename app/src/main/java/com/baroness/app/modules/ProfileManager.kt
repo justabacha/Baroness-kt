@@ -2,24 +2,20 @@ package com.baroness.app.modules
 
 import android.content.Context
 import android.net.Uri
+import com.baroness.app.config.SupabaseConfig
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 object ProfileManager {
 
-    private const val SUPABASE_URL = "https://wckluymkbqxdmipzaiff.supabase.co"
-    private const val SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indja2x1eW1rYnF4ZG1pcHphaWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjM3NjAsImV4cCI6MjA5MzM5OTc2MH0.y3murBfcZtgluuPd_uFBut4Ky3Wl8WAHVCp-kA1u9sU"
+    private const val SUPABASE_URL = SupabaseConfig.SUPABASE_URL
+    private const val SUPABASE_KEY = SupabaseConfig.SUPABASE_ANON_KEY
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val client = SupabaseConfig.client
 
     suspend fun updateFcmToken(id: String, token: String) {
         val jsonBody = JSONObject().apply {
@@ -75,15 +71,19 @@ object ProfileManager {
         newImageUri?.let { uri ->
             // Delete old avatar if exists
             existingAvatarUrl?.let { oldUrl ->
-                if (oldUrl.contains("storage/v1/object/public/avatars")) {
-                    val oldFileName = oldUrl.substringAfterLast("/")
-                    deleteAvatar(oldFileName)
+                val avatarPathMarker = "/storage/v1/object/public/avatars/"
+                if (oldUrl.contains(avatarPathMarker)) {
+                    val oldObjectPath = oldUrl.substringAfter(avatarPathMarker)
+                    if (oldObjectPath.isNotBlank()) {
+                        deleteAvatar(oldObjectPath)
+                    }
                 }
             }
 
             // Upload new file
             val fileName = "avatar_${System.currentTimeMillis()}.jpg"
-            val uploadedUrl = uploadAvatar(context, uri, fileName)
+            val objectPath = "$currentPersonaId/$fileName"
+            val uploadedUrl = uploadAvatar(context, uri, objectPath)
             finalAvatarUrl = uploadedUrl
         }
 
@@ -96,9 +96,10 @@ object ProfileManager {
         return ProfileResult(displayName, finalAvatarUrl, assignedPersona)
     }
 
-    private suspend fun uploadAvatar(context: Context, uri: Uri, fileName: String): String {
+    private suspend fun uploadAvatar(context: Context, uri: Uri, objectPath: String): String {
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: throw Exception("Failed to read image")
+        val fileName = objectPath.substringAfterLast("/")
 
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -110,7 +111,7 @@ object ProfileManager {
             .build()
 
         val request = Request.Builder()
-            .url("$SUPABASE_URL/storage/v1/object/avatars/$fileName")
+            .url("$SUPABASE_URL/storage/v1/object/avatars/$objectPath")
             .header("apikey", SUPABASE_KEY)
             .header("Authorization", "Bearer $SUPABASE_KEY")
             .post(requestBody)
@@ -121,12 +122,12 @@ object ProfileManager {
             throw Exception("Upload failed: ${response.code}")
         }
 
-        return "$SUPABASE_URL/storage/v1/object/public/avatars/$fileName"
+        return "$SUPABASE_URL/storage/v1/object/public/avatars/$objectPath"
     }
 
-    private fun deleteAvatar(fileName: String) {
+    private fun deleteAvatar(objectPath: String) {
         val request = Request.Builder()
-            .url("$SUPABASE_URL/storage/v1/object/avatars/$fileName")
+            .url("$SUPABASE_URL/storage/v1/object/avatars/$objectPath")
             .header("apikey", SUPABASE_KEY)
             .header("Authorization", "Bearer $SUPABASE_KEY")
             .delete()

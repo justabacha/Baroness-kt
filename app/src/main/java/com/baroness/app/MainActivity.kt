@@ -35,6 +35,7 @@ import com.baroness.app.phestydrop.data.PhestyDropInfo
 import com.baroness.app.phestydrop.manager.PhestyDropManager
 import com.baroness.app.phestydrop.ui.PhestyDropSheet
 import com.baroness.app.repository.WishlistRepository
+import com.baroness.app.auth.SessionTokenCache
 import com.baroness.app.screens.DashboardScreen
 import com.baroness.app.screens.GateScreen
 import com.baroness.app.screens.ProfileSetupScreen
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
             )
 
             BaronessAppTheme(settingsViewModel = settingsViewModel) {
+                SessionTokenCache.init(applicationContext)
                 val notificationViewModel: NotificationViewModel = viewModel()
                 
                 val currentNotification by notificationViewModel.currentNotification.collectAsStateWithLifecycle()
@@ -172,20 +174,6 @@ fun AppEntryPoint(
         }
         startDestination = destination
 
-        // Register periodic background sync
-        val syncRequest = PeriodicWorkRequestBuilder<com.baroness.app.workers.SyncWorker>(15, java.util.concurrent.TimeUnit.MINUTES)
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            )
-            .build()
-        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-            "periodic_wishlist_sync",
-            ExistingPeriodicWorkPolicy.KEEP,
-            syncRequest
-        )
-
         // PhestyDrop Startup Auto-Check
         val autoUpdateEnabled = storageManager.getBoolean("phestydrop_auto_update") ?: true
         val drop = PhestyDropManager.checkForDrop()
@@ -223,11 +211,48 @@ fun AppNavigation(
     navController: androidx.navigation.NavHostController,
     settingsViewModel: SettingsViewModel
 ) {
+    val reauthRequired by SessionTokenCache.reauthRequired.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(reauthRequired) {
+        if (reauthRequired) {
+            withContext(Dispatchers.IO) {
+                com.baroness.app.auth.SessionLifecycleManager.logout(context, revokeServerSession = false)
+            }
+            withContext(Dispatchers.Main) {
+                navController.navigate("gate") {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+            SessionTokenCache.clearReauthenticationRequest()
+        }
+    }
+
     NavHost(navController = navController, startDestination = startDestination) {
         composable("gate") {
             GateScreen(navController)
         }
         composable("dashboard") {
+            LaunchedEffect(Unit) {
+                if (!StorageManager(context).getString("auth_token").isNullOrBlank()) {
+                    val syncRequest = PeriodicWorkRequestBuilder<com.baroness.app.workers.SyncWorker>(
+                        15,
+                        java.util.concurrent.TimeUnit.MINUTES
+                    )
+                        .setConstraints(
+                            Constraints.Builder()
+                                .setRequiredNetworkType(NetworkType.CONNECTED)
+                                .build()
+                        )
+                        .build()
+                    WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                        "periodic_wishlist_sync",
+                        ExistingPeriodicWorkPolicy.KEEP,
+                        syncRequest
+                    )
+                }
+            }
             DashboardScreen(navController, settingsViewModel = settingsViewModel)
         }
         composable(

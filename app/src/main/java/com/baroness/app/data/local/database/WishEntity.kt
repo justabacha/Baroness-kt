@@ -5,13 +5,13 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "wishes")
 data class WishEntity(
-    @PrimaryKey
-    val id: Long,
+    @PrimaryKey val clientUuid: String,
+    val serverId: Long?,
     val text: String,
-    val wishDate: String,          // "yyyy-MM-dd"
-    val status: String,            // "planning" or "dusted"
-    val creatorId: String,         // "phesty_official" or "baroness_official"
-    val createdAt: Long,            // timestamp
-    val updatedAt: Long = System.currentTimeMillis(), // last modified timestamp
-    val syncStatus: String = "synced"  // "synced" | "pending_create" | "pending_update" | "pending_delete"
+    val wishDate: String,
+    val status: String,
+    val creatorId: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val syncStatus: String
 )

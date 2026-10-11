@@ -1,6 +1,5 @@
 package com.baroness.app.screens
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -47,7 +46,6 @@ fun WishlistScreen(
     val activeWallpaperId = settingsViewModel?.activeWallpaper?.collectAsStateWithLifecycle()?.value ?: "sunrise"
     val wishes by viewModel.wishes.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
-    val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val selectedDate by viewModel.selectedDate.collectAsStateWithLifecycle()
     val calendarVisible by viewModel.calendarVisible.collectAsStateWithLifecycle()
@@ -88,97 +86,73 @@ fun WishlistScreen(
 
         EdgeGlowEffect(visible = warningState.isActive)
 
-        AnimatedVisibility(
-            visible = isInitialLoading,
-            enter = fadeIn(),
-            exit = fadeOut()
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = { viewModel.refreshWishes() },
+            state = pullToRefreshState,
+            modifier = Modifier.fillMaxSize()
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp, bottom = 8.dp)
             ) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 4.dp,
-                    modifier = Modifier.size(48.dp)
+                WishlistHeader(
+                    stats = stats,
+                    avatarP = userAvatars["P"],
+                    avatarB = userAvatars["B"],
+                    modifier = Modifier.fillMaxWidth()
                 )
-            }
-        }
 
-        AnimatedVisibility(
-            visible = !isInitialLoading,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refreshWishes() },
-                state = pullToRefreshState,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Column(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                WishlistInput(
+                    text = inputText,
+                    onTextChange = { inputText = it },
+                    selectedDate = selectedDate,
+                    onCalendarClick = { viewModel.toggleCalendar(true) },
+                    onCalendarPositioned = { position ->
+                        viewModel.setCalendarAnchor(position)
+                    },
+                    onCast = {
+                        if (inputText.isNotBlank()) {
+                            viewModel.createWish(inputText.trim(), selectedDate ?: "")
+                            if (selectedDate != null) {
+                                inputText = ""
+                                viewModel.setSelectedDate(null)
+                            }
+                        } else {
+                            viewModel.triggerWarning("Please enter a wish first")
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 16.dp, bottom = 8.dp)
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
-                    WishlistHeader(
-                        stats = stats,
-                        avatarP = userAvatars["P"],
-                        avatarB = userAvatars["B"],
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    WishlistInput(
-                        text = inputText,
-                        onTextChange = { inputText = it },
-                        selectedDate = selectedDate,
-                        onCalendarClick = { viewModel.toggleCalendar(true) },
-                        onCalendarPositioned = { position ->
-                            viewModel.setCalendarAnchor(position)
-                        },
-                        onCast = {
-                            if (inputText.isNotBlank()) {
-                                viewModel.createWish(inputText.trim(), selectedDate ?: "")
-                                if (selectedDate != null) {
-                                    inputText = ""
-                                    viewModel.setSelectedDate(null)
-                                }
-                            } else {
-                                viewModel.triggerWarning("Please enter a wish first")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        contentPadding = PaddingValues(bottom = 16.dp)
-                    ) {
-                        itemsIndexed(
-                            items = wishes,
-                            key = { _, wish -> wish.id }
-                        ) { index, wish ->
-                            WishItem(
-                                wish = wish,
-                                index = index,
-                                currentUserKey = currentUserKey,
-                                onDust = { viewModel.dustWish(it) },
-                                onDelete = { viewModel.toggleConfirmDialog(true, it) },
-                                onOpenEmoji = { viewModel.toggleEmojiPicker(true, it) },
-                                onOpenRating = { viewModel.toggleRatingModal(true, wish) },
-                                onUploadPhotos = { viewModel.togglePhotoModal(true) }
-                            )
-                        }
+                    itemsIndexed(
+                        items = wishes,
+                        key = { _, wish -> wish.clientUuid }
+                    ) { index, wish ->
+                        WishItem(
+                            wish = wish,
+                            index = index,
+                            currentUserKey = currentUserKey,
+                            onDust = { viewModel.dustWish(it) },
+                            onDelete = { viewModel.toggleConfirmDialog(true, it) },
+                            onRetry = { viewModel.retryWish(it) },
+                            onOpenEmoji = { viewModel.toggleEmojiPicker(true, it) },
+                            onOpenRating = { viewModel.toggleRatingModal(true, wish) },
+                            onUploadPhotos = { viewModel.togglePhotoModal(true) }
+                        )
                     }
                 }
             }
@@ -216,7 +190,7 @@ fun WishlistScreen(
                 userNames = userNames,
                 onDismiss = { viewModel.toggleRatingModal(false) },
                 onRate = { rating ->
-                    viewModel.saveRating(ratingWish!!.id, rating)
+                    viewModel.saveRating(ratingWish!!.clientUuid, rating)
                     viewModel.toggleRatingModal(false)
                 }
             )

@@ -1,7 +1,9 @@
 package com.baroness.app.screens
 
+import android.app.Activity
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -37,7 +39,9 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.R
+import com.baroness.app.utils.AvatarCrop
 import com.baroness.app.viewmodels.ProfileSetupViewModel
+import com.yalantis.ucrop.UCrop
 
 @Composable
 fun ProfileSetupScreen(
@@ -57,10 +61,25 @@ fun ProfileSetupScreen(
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                UCrop.getOutput(data)?.let { viewModel.setSelectedImage(it) }
+            }
+        } else if (data != null) {
+            UCrop.getError(data)?.let { error ->
+                Log.e("ProfileSetupScreen", "Avatar crop failed", error)
+            }
+        }
+    }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { viewModel.setSelectedImage(it) }
+        uri?.let { cropLauncher.launch(AvatarCrop.createIntent(context, it)) }
     }
 
     if (isLoadingProfile) {

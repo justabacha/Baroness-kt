@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 data class WarningState(
     val message: String? = null,
@@ -43,9 +44,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
             initialValue = WishStats(0, 0)
         )
 
-    private val _isInitialLoading = MutableStateFlow(true)
-    val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
-
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
@@ -62,8 +60,8 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val _emojiVisible = MutableStateFlow(false)
     val emojiVisible: StateFlow<Boolean> = _emojiVisible.asStateFlow()
 
-    private val _activeWishId = MutableStateFlow<Long?>(null)
-    val activeWishId: StateFlow<Long?> = _activeWishId.asStateFlow()
+    private val _activeWishId = MutableStateFlow<String?>(null)
+    val activeWishId: StateFlow<String?> = _activeWishId.asStateFlow()
 
     private val _ratingVisible = MutableStateFlow(false)
     val ratingVisible: StateFlow<Boolean> = _ratingVisible.asStateFlow()
@@ -74,8 +72,8 @@ class WishlistViewModel(context: Context) : ViewModel() {
     private val _confirmVisible = MutableStateFlow(false)
     val confirmVisible: StateFlow<Boolean> = _confirmVisible.asStateFlow()
 
-    private val _pendingDeleteId = MutableStateFlow<Long?>(null)
-    val pendingDeleteId: StateFlow<Long?> = _pendingDeleteId.asStateFlow()
+    private val _pendingDeleteId = MutableStateFlow<String?>(null)
+    val pendingDeleteId: StateFlow<String?> = _pendingDeleteId.asStateFlow()
 
     private val _photoModalVisible = MutableStateFlow(false)
     val photoModalVisible: StateFlow<Boolean> = _photoModalVisible.asStateFlow()
@@ -118,17 +116,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
             loadUserIdentity()
         }
 
-        viewModelScope.launch {
-            wishes.collect { list ->
-                if (list.isNotEmpty()) {
-                    _isInitialLoading.value = false
-                }
-            }
-        }
-        viewModelScope.launch {
-            kotlinx.coroutines.delay(300)
-            _isInitialLoading.value = false
-        }
     }
 
     private suspend fun loadUserIdentity() {
@@ -143,7 +130,7 @@ class WishlistViewModel(context: Context) : ViewModel() {
     fun toggleCalendar(visible: Boolean) { _calendarVisible.value = visible }
     fun setCalendarAnchor(position: Offset) { _calendarAnchor.value = position }
 
-    fun toggleEmojiPicker(visible: Boolean, wishId: Long? = null) {
+    fun toggleEmojiPicker(visible: Boolean, wishId: String? = null) {
         _emojiVisible.value = visible
         _activeWishId.value = wishId
     }
@@ -153,7 +140,7 @@ class WishlistViewModel(context: Context) : ViewModel() {
         _ratingWish.value = wish
     }
 
-    fun toggleConfirmDialog(visible: Boolean, wishId: Long? = null) {
+    fun toggleConfirmDialog(visible: Boolean, wishId: String? = null) {
         _confirmVisible.value = visible
         _pendingDeleteId.value = wishId
     }
@@ -186,14 +173,15 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
 
         viewModelScope.launch {
-            val tempId = -System.currentTimeMillis()
+            val clientUuid = UUID.randomUUID().toString()
             val userId = _currentUserId.value
             val creator = _currentUserKey.value
 
             Log.d("WishlistVM", "Creating wish as $userId (key=$creator)")
 
             val newWish = Wish(
-                id = tempId,
+                clientUuid = clientUuid,
+                serverId = null,
                 text = text,
                 date = date,
                 status = "planning",
@@ -215,7 +203,6 @@ class WishlistViewModel(context: Context) : ViewModel() {
                 Log.e("WishlistVM", "Refresh failed: ${e.message}")
             } finally {
                 _isRefreshing.value = false
-                _isInitialLoading.value = false
             }
         }
     }
@@ -226,20 +213,28 @@ class WishlistViewModel(context: Context) : ViewModel() {
                 repository.fetchRemoteWishes()
             } catch (e: Exception) {
                 Log.e("WishlistVM", "Background sync failed: ${e.message}")
-            } finally {
-                _isInitialLoading.value = false
             }
         }
     }
 
-    fun deleteWish(wishId: Long) {
+    fun deleteWish(wishId: String) {
         viewModelScope.launch {
             repository.deleteWish(wishId)
         }
     }
 
-    fun dustWish(wishId: Long) {
-        val wish = wishes.value.find { it.id == wishId } ?: return
+    fun retryWish(wishId: String) {
+        viewModelScope.launch {
+            repository.retryWishSync(wishId)
+        }
+    }
+
+    fun dustWish(wishId: String) {
+        val wish = wishes.value.find { it.clientUuid == wishId } ?: return
+        if (wish.syncStatus != "synced") {
+            Log.w("WishlistVM", "Ignoring dust action for unsynced wish id=$wishId")
+            return
+        }
         val today = getTodayDate()
         
         if (wish.date > today) {
@@ -252,14 +247,22 @@ class WishlistViewModel(context: Context) : ViewModel() {
         }
     }
 
-    fun saveReaction(wishId: Long, emoji: String) {
+    fun saveReaction(wishId: String, emoji: String) {
+        if (wishes.value.find { it.clientUuid == wishId }?.syncStatus != "synced") {
+            Log.w("WishlistVM", "Ignoring reaction for unsynced wish id=$wishId")
+            return
+        }
         viewModelScope.launch {
             val personaId = _currentUserId.value
             repository.saveReaction(wishId, personaId, emoji)
         }
     }
 
-    fun saveRating(wishId: Long, rating: Int) {
+    fun saveRating(wishId: String, rating: Int) {
+        if (wishes.value.find { it.clientUuid == wishId }?.syncStatus != "synced") {
+            Log.w("WishlistVM", "Ignoring rating for unsynced wish id=$wishId")
+            return
+        }
         viewModelScope.launch {
             val personaId = _currentUserId.value
             repository.saveRating(wishId, personaId, rating)

@@ -28,7 +28,7 @@ fun RatingModal(
     onDismiss: () -> Unit,
     onRate: (Int) -> Unit
 ) {
-    var rating by remember(wish.id) { mutableIntStateOf(wish.ratings[currentUserKey] ?: 0) }
+    var rating by remember(wish.clientUuid) { mutableIntStateOf(wish.ratings[currentUserKey] ?: 0) }
 
     val otherUserKey = if (currentUserKey == "P") "B" else "P"
     val otherRating = wish.ratings[otherUserKey] ?: 0

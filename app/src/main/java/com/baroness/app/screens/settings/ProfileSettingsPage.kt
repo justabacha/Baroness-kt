@@ -1,6 +1,8 @@
 package com.baroness.app.screens.settings
 
+import android.app.Activity
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,9 +42,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.baroness.app.screens.ProfileSetupViewModelFactory
+import com.baroness.app.utils.AvatarCrop
 import com.baroness.app.ui.theme.AppFonts
 import com.baroness.app.utils.StorageManager
 import com.baroness.app.viewmodels.ProfileSetupViewModel
+import com.yalantis.ucrop.UCrop
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -80,10 +84,25 @@ fun ProfileSettingsPage(
         name.trim() != initialName || avatarUri != initialAvatarUri
     }
 
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                UCrop.getOutput(data)?.let { viewModel.setSelectedImage(it) }
+            }
+        } else if (data != null) {
+            UCrop.getError(data)?.let { error ->
+                Log.e("ProfileSettingsPage", "Avatar crop failed", error)
+            }
+        }
+    }
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { viewModel.setSelectedImage(it) }
+        uri?.let { cropLauncher.launch(AvatarCrop.createIntent(context, it)) }
     }
 
     val accentColor = MaterialTheme.colorScheme.primary

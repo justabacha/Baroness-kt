@@ -1,7 +1,5 @@
-// Gateway JWT verification is intentionally disabled in config.toml (verify_jwt = false); authentication is enforced inside this function via _shared/jwt.ts.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest } from "../_shared/jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,13 +12,49 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // 1. Authenticate and extract caller persona from verified JWT
-  const authResult = await authenticateRequest(req);
-  if (authResult instanceof Response) {
-    return authResult;
+  const authorization = req.headers.get("Authorization");
+  if (!authorization?.toLowerCase().startsWith("bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Missing or invalid Authorization header" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
-  const { callerPersona } = authResult;
+  const token = authorization.slice(7).trim();
+  if (!token) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Empty Bearer token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("friday-pending-messages Auth configuration is incomplete");
+    return new Response(
+      JSON.stringify({ error: "Server authentication configuration error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Invalid Auth session" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  const persona = user.app_metadata?.persona;
+  if (typeof persona !== "string" || !persona) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized: Token missing persona claim" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+  const callerPersona = persona;
 
   // 2. Validate query parameters
   const url = new URL(req.url);
@@ -43,11 +77,6 @@ serve(async (req: Request) => {
   }
 
   // 4. Query Friday pending messages scoped strictly to verified caller persona
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
-
   try {
     const { data: messages, error } = await supabase
       .from("friday_messages")

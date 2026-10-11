@@ -8,6 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,21 +28,33 @@ import com.baroness.app.components.PhestyText
 import com.baroness.app.models.Wish
 import com.baroness.app.utils.formatDateLabel
 
+private sealed class ItemSyncState {
+    object Synced : ItemSyncState()
+    object Pending : ItemSyncState()
+    object Failed : ItemSyncState()
+}
+
 @Composable
 fun WishItem(
     wish: Wish,
     index: Int,
     currentUserKey: String,
-    onDust: (Long) -> Unit,
-    onDelete: (Long) -> Unit,
-    onOpenEmoji: (Long) -> Unit,
+    onDust: (String) -> Unit,
+    onDelete: (String) -> Unit,
+    onRetry: (String) -> Unit,
+    onOpenEmoji: (String) -> Unit,
     onOpenRating: () -> Unit,
     onUploadPhotos: () -> Unit
 ) {
     val isPlanning = wish.status == "planning"
+    val syncState = when (wish.syncStatus) {
+        "pending_create", "pending_update", "pending_delete" -> ItemSyncState.Pending
+        "failed" -> ItemSyncState.Failed
+        else -> ItemSyncState.Synced
+    }
     val creatorColor = if (wish.creator == "P") Color(0xFF34C759) else Color(0xFF4285F4)
     val displayDate = formatDateLabel(wish.date)
-    var expanded by remember(wish.id) { mutableStateOf(false) }
+    var expanded by remember(wish.clientUuid) { mutableStateOf(false) }
 
     val shortText = if (wish.text.length > 15) wish.text.take(15) + "..." else wish.text
 
@@ -78,15 +93,31 @@ fun WishItem(
                     ambientColor = creatorColor.copy(alpha = 0.5f),
                     spotColor = creatorColor.copy(alpha = 0.5f)
                 )
-                .background(creatorColor, CircleShape),
+                .background(creatorColor, CircleShape)
+                .then(
+                if (syncState == ItemSyncState.Failed) {
+                    Modifier.clickable { onRetry(wish.clientUuid) }
+                } else {
+                    Modifier
+                }
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "${index + 1}",
-                color = Color.White,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
+            if (syncState == ItemSyncState.Failed) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Retry wish sync",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else {
+                Text(
+                    text = "${index + 1}",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Column(
@@ -130,26 +161,30 @@ fun WishItem(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .clickable { onDelete(wish.id) },
+                        .clickable { onDelete(wish.clientUuid) },
                     contentAlignment = Alignment.Center
                 ) {
                     TrashIcon(size = 20.dp, color = Color.White.copy(alpha = 0.7f))
                 }
 
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(Color(0xFF4CAF50), CircleShape)
-                        .clip(CircleShape)
-                        .clickable { onDust(wish.id) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "✓✓",
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (syncState == ItemSyncState.Synced) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFF4CAF50), CircleShape)
+                            .clip(CircleShape)
+                            .clickable { onDust(wish.clientUuid) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "✓✓",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    WishSyncBadge(syncState)
                 }
             }
         } else {
@@ -182,7 +217,7 @@ fun WishItem(
                         .padding(vertical = 2.dp)
                 )
 
-                Row(
+                if (syncState == ItemSyncState.Synced) Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -205,7 +240,7 @@ fun WishItem(
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
-                            ) { onOpenEmoji(wish.id) },
+                            ) { onOpenEmoji(wish.clientUuid) },
                         contentAlignment = Alignment.Center
                     ) {
                         if (emojisList.isNotEmpty()) {
@@ -252,6 +287,54 @@ fun WishItem(
                     }
                 }
             }
+
+            if (syncState != ItemSyncState.Synced) {
+                UnsyncedWishActions(
+                    syncState = syncState,
+                    wishId = wish.clientUuid,
+                    onDelete = onDelete
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun UnsyncedWishActions(
+    syncState: ItemSyncState,
+    wishId: String,
+    onDelete: (String) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .clickable { onDelete(wishId) },
+            contentAlignment = Alignment.Center
+        ) {
+            TrashIcon(size = 20.dp, color = Color.White.copy(alpha = 0.7f))
+        }
+        WishSyncBadge(syncState)
+    }
+}
+
+@Composable
+private fun WishSyncBadge(syncState: ItemSyncState) {
+    val isPending = syncState == ItemSyncState.Pending
+    Text(
+        text = if (isPending) "[pending]" else "[failed]",
+        color = if (isPending) Color.White.copy(alpha = 0.55f) else Color(0xFFFFD700),
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .background(
+                color = if (isPending) Color.White.copy(alpha = 0.08f) else Color(0xFFFFD700).copy(alpha = 0.12f),
+                shape = RoundedCornerShape(6.dp)
+            )
+            .padding(horizontal = 6.dp, vertical = 4.dp)
+    )
 }

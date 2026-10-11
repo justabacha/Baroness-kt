@@ -12,6 +12,39 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class StorageManager(private val context: Context) {
 
+    suspend fun saveAuthSession(accessToken: String, refreshToken: String?, expiresAt: Long?) {
+        context.dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("auth_token")] = accessToken
+            if (refreshToken.isNullOrBlank()) {
+                preferences.remove(stringPreferencesKey("refresh_token"))
+            } else {
+                preferences[stringPreferencesKey("refresh_token")] = refreshToken
+            }
+            if (expiresAt == null) {
+                preferences.remove(longPreferencesKey("token_expires_at"))
+            } else {
+                preferences[longPreferencesKey("token_expires_at")] = expiresAt
+            }
+        }
+    }
+
+    suspend fun clearSessionData() {
+        val keys = setOf(
+            "auth_token",
+            "refresh_token",
+            "token_expires_at",
+            "currentPersonaId",
+            "userProfile",
+            "vibe_persona",
+            "fcm_token"
+        )
+        context.dataStore.edit { preferences ->
+            preferences.asMap().keys
+                .filter { it.name in keys }
+                .forEach { key -> preferences.remove(key) }
+        }
+    }
+
     // String
     suspend fun saveString(key: String, value: String) {
         val prefKey = stringPreferencesKey(key)

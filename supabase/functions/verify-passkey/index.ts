@@ -1,36 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-async function signJwt(payload: object, secret: string): Promise<string> {
-  const header = { alg: "HS256", typ: "JWT" };
-  const encodeBase64Url = (buf: Uint8Array) =>
-    btoa(String.fromCharCode(...buf))
-      .replace(/=/g, "")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_");
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
-  const enc = new TextEncoder();
-  const headerStr = encodeBase64Url(enc.encode(JSON.stringify(header)));
-  const payloadStr = encodeBase64Url(enc.encode(JSON.stringify(payload)));
-  const data = enc.encode(`${headerStr}.${payloadStr}`);
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-
-  const signature = await crypto.subtle.sign("HMAC", key, data);
-  const signatureStr = encodeBase64Url(new Uint8Array(signature));
-
-  return `${headerStr}.${payloadStr}.${signatureStr}`;
-}
+const personaAccounts: Record<string, { email: string; passwordEnv: string }> = {
+  phesty: {
+    email: "phesty@baroness.invalid",
+    passwordEnv: "AUTH_PASSWORD_PHESTY",
+  },
+  baroness: {
+    email: "baroness@baroness.invalid",
+    passwordEnv: "AUTH_PASSWORD_BARONESS",
+  },
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*" } });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -38,22 +28,34 @@ serve(async (req) => {
     const rawPersona = body.persona || body.personaId || "";
     const passkey = body.passkey || body.passKey || body.inputPass || "";
 
-    if (!rawPersona || !passkey) {
+    if (typeof rawPersona !== "string" || typeof passkey !== "string" || !rawPersona || !passkey) {
       return new Response(
         JSON.stringify({ error: "Missing persona or passkey" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const personaBase = rawPersona.replace("_official", "").toLowerCase();
     const currentPersonaId = `${personaBase}_official`;
+    const authAccount = personaAccounts[personaBase];
+    if (!authAccount) {
+      return new Response(
+        JSON.stringify({ error: "Invalid persona or passkey" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("verify-passkey server configuration is incomplete");
+      return new Response(
+        JSON.stringify({ error: "Authentication service configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    // 1. Validate passkey against access_keys (service role bypasses RLS)
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data: keyRecord, error: keyError } = await supabase
       .from("access_keys")
       .select("secret_key")
@@ -63,41 +65,68 @@ serve(async (req) => {
     if (keyError || !keyRecord) {
       return new Response(
         JSON.stringify({ error: "Invalid persona or passkey" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (keyRecord.secret_key !== passkey) {
       return new Response(
         JSON.stringify({ error: "Invalid pass key, blud!" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 2. Fetch profile
+    const password = Deno.env.get(authAccount.passwordEnv);
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    if (!password || !anonKey) {
+      console.error("verify-passkey Auth credentials are not configured");
+      return new Response(
+        JSON.stringify({ error: "Authentication service configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        apikey: anonKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: authAccount.email, password }),
+    });
+
+    if (!authResponse.ok) {
+      console.error("verify-passkey Auth password grant failed", { status: authResponse.status });
+      return new Response(
+        JSON.stringify({ error: "Could not create authentication session" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const session = await authResponse.json();
+    if (
+      typeof session.access_token !== "string" ||
+      typeof session.refresh_token !== "string" ||
+      typeof session.expires_in !== "number"
+    ) {
+      console.error("verify-passkey Auth password grant returned an incomplete session");
+      return new Response(
+        JSON.stringify({ error: "Could not create authentication session" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("display_name, avatar_url, persona")
       .eq("id", currentPersonaId)
       .maybeSingle();
 
-    // 3. Mint JWT token containing persona claim
-    const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET") || Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const now = Math.floor(Date.now() / 1000);
-    const token = await signJwt(
-      {
-        role: "authenticated",
-        persona: currentPersonaId,
-        sub: currentPersonaId,
-        iat: now,
-        exp: now + 60 * 60 * 24 * 365, // 1 year
-      },
-      jwtSecret
-    );
-
     return new Response(
       JSON.stringify({
-        token,
+        token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_in: session.expires_in,
         currentPersonaId,
         userProfile: {
           displayName: profile?.display_name || "",
@@ -106,13 +135,13 @@ serve(async (req) => {
           personaId: currentPersonaId,
         },
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("verify-passkey error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Authentication request failed" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
