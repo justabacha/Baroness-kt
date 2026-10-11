@@ -311,7 +311,7 @@ class WishlistRepository private constructor(context: Context) {
                     text = dto.text,
                     wishDate = dto.wishDate,
                     creatorId = dto.creatorId,
-                    createdAt = dto.createdAt?.let(::parseIsoToLong) ?: local.createdAt,
+                    createdAt = local.createdAt,
                     updatedAt = dto.updatedAt?.let(::parseIsoToLong) ?: local.updatedAt,
                     status = if (hasPendingUpdate) local.status else dto.status,
                     syncStatus = when {

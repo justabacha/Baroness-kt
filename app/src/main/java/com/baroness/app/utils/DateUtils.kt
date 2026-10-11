@@ -1,19 +1,49 @@
 package com.baroness.app.utils
 
 import java.text.SimpleDateFormat
+import java.text.ParsePosition
 import java.util.*
+import java.util.logging.Logger
 
+private val timestampLogger = Logger.getLogger("DateUtils")
 private val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
     timeZone = TimeZone.getTimeZone("UTC")
 }
+private val timestampPattern = Regex(
+    "^(\\d{4}-\\d{2}-\\d{2})[ T](\\d{2}:\\d{2}:\\d{2})(?:\\.(\\d{1,9}))?(Z|[+-]\\d{2}(?::?\\d{2})?)$"
+)
 
 fun parseIsoToLong(isoString: String?): Long {
-    if (isoString.isNullOrEmpty()) return System.currentTimeMillis()
-    return try {
-        isoFormat.parse(isoString)?.time ?: System.currentTimeMillis()
-    } catch (_: Exception) {
-        System.currentTimeMillis()
+    if (isoString.isNullOrBlank()) return timestampFallback(isoString)
+
+    val match = timestampPattern.matchEntire(isoString) ?: return timestampFallback(isoString)
+    val date = match.groupValues[1]
+    val time = match.groupValues[2]
+    val fraction = match.groupValues[3]
+    val offset = match.groupValues[4]
+    val millis = fraction.padEnd(3, '0').take(3)
+    val normalizedOffset = when {
+        offset == "Z" -> "+0000"
+        offset.length == 3 -> "${offset}00"
+        else -> offset.replace(":", "")
     }
+    val normalized = "$date" + "T" + "$time" + "." + "$millis" + normalizedOffset
+    val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.US).apply {
+        isLenient = false
+        timeZone = TimeZone.getTimeZone("UTC")
+    }
+    val position = ParsePosition(0)
+    val parsed = formatter.parse(normalized, position)
+    return if (parsed != null && position.index == normalized.length) {
+        parsed.time
+    } else {
+        timestampFallback(isoString)
+    }
+}
+
+private fun timestampFallback(isoString: String?): Long {
+    timestampLogger.warning("Unable to parse timestamp: $isoString")
+    return System.currentTimeMillis()
 }
 
 fun formatLongToIso(timestamp: Long): String {
