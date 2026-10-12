@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.baroness.app.BuildConfig
 import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.components.DynamicBackground
 import com.baroness.app.data.AvatarRepository
@@ -166,6 +167,9 @@ fun SettingsCenterScreen(
                                 "storage" -> navController.navigate("settings/storage") {
                                     launchSingleTop = true
                                 }
+                                "about" -> navController.navigate("settings/about") {
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     )
@@ -238,7 +242,7 @@ private fun ProfileHeaderCard(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Private Universe Settings • Version 2.5",
+                    text = "Private Universe Settings • Version ${BuildConfig.VERSION_NAME}",
                     color = Color.White.copy(alpha = 0.7f),
                     fontSize = 12.sp,
                     letterSpacing = 0.5.sp

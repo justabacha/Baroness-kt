@@ -89,3 +89,24 @@ fun formatChatTimestamp(timestamp: Long): String {
         SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date(timestamp))
     }
 }
+
+fun formatRelativeTimestamp(millis: Long): String {
+    val now = Calendar.getInstance()
+    val then = Calendar.getInstance().apply { timeInMillis = millis }
+    val today = now.clone() as Calendar
+    val yesterday = now.clone() as Calendar
+    yesterday.add(Calendar.DAY_OF_YEAR, -1)
+
+    fun sameDay(a: Calendar, b: Calendar): Boolean =
+        a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
+            a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.US)
+    val dateFormat = SimpleDateFormat("EEEE, d MMM", Locale.US)
+
+    return when {
+        sameDay(then, today) -> "Today ${timeFormat.format(then.time)}"
+        sameDay(then, yesterday) -> "Yesterday ${timeFormat.format(then.time)}"
+        else -> dateFormat.format(then.time)
+    }
+}

@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        PhestyDropManager.initialize(applicationContext)
         
         requestNotificationPermission()
 
@@ -313,6 +314,12 @@ fun AppNavigation(
         }
         composable("settings/storage") {
             StorageSettingsPage(
+                navController = navController,
+                settingsViewModel = settingsViewModel
+            )
+        }
+        composable("settings/about") {
+            AboutBaronessPage(
                 navController = navController,
                 settingsViewModel = settingsViewModel
             )
