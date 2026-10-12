@@ -333,12 +333,16 @@ item {
 ### 3. Fix Applied
 
 **`SettingsCenterScreen.kt`:**
-1. Updated `ProfileHeaderCard` to accept a non-null `UserProfile` parameter (`userProfile: UserProfile`).
-2. Wrapped `ProfileHeaderCard` in `if (userProfile != null)` inside `LazyColumn` so the profile header card is only composed once valid user profile data is available from DataStore.
-3. Used string `.ifBlank { ... }` fallbacks for inner fields if empty strings are returned on a non-null `UserProfile` instance.
+1. Seeded `userProfile` state synchronously on first composition using `remember { runBlocking(Dispatchers.IO) { ... } }` to read `userProfile` JSON from DataStore.
+2. Updated `ProfileHeaderCard` to accept a non-null `UserProfile` parameter (`userProfile: UserProfile`).
+3. Wrapped `ProfileHeaderCard` in `if (userProfile != null)` inside `LazyColumn`.
+4. Used string `.ifBlank { ... }` fallbacks for inner fields if empty strings are returned on a non-null `UserProfile` instance.
 
 **Before:**
 ```kotlin
+// Line 80
+var userProfile by remember { mutableStateOf<UserProfile?>(null) }
+
 // In LazyColumn:
 item {
     ProfileHeaderCard(
@@ -362,6 +366,27 @@ private fun ProfileHeaderCard(
 
 **After:**
 ```kotlin
+// Seed state synchronously before first composition frame
+val initialProfile = remember {
+    try {
+        runBlocking(Dispatchers.IO) {
+            val profileJson = storage.getString("userProfile")
+            val profile = profileJson?.let {
+                try { json.decodeFromString<UserProfile>(it) } catch (_: Exception) { null }
+            }
+            if (profile != null && profile.avatar != null) {
+                val localPath = avatarRepository.getCachedAvatar(profile.avatar)
+                profile.copy(avatar = localPath ?: profile.avatar)
+            } else {
+                profile
+            }
+        }
+    } catch (_: Exception) {
+        null
+    }
+}
+var userProfile by remember { mutableStateOf(initialProfile) }
+
 // In LazyColumn:
 if (userProfile != null) {
     item {

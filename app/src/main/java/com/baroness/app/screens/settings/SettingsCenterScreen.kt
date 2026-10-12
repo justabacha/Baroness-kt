@@ -44,6 +44,8 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.blurEffect
 import dev.chrisbanes.haze.hazeEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 
 data class SettingsCategoryItem(
@@ -77,7 +79,26 @@ fun SettingsCenterScreen(
     val storage = remember { StorageManager(context) }
     val avatarRepository = remember { AvatarRepository(context) }
     val json = remember { Json { ignoreUnknownKeys = true } }
-    var userProfile by remember { mutableStateOf<UserProfile?>(null) }
+
+    val initialProfile = remember {
+        try {
+            runBlocking(Dispatchers.IO) {
+                val profileJson = storage.getString("userProfile")
+                val profile = profileJson?.let {
+                    try { json.decodeFromString<UserProfile>(it) } catch (_: Exception) { null }
+                }
+                if (profile != null && profile.avatar != null) {
+                    val localPath = avatarRepository.getCachedAvatar(profile.avatar)
+                    profile.copy(avatar = localPath ?: profile.avatar)
+                } else {
+                    profile
+                }
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+    var userProfile by remember { mutableStateOf(initialProfile) }
 
     val currentEntry by navController.currentBackStackEntryAsState()
     LaunchedEffect(currentEntry) {
