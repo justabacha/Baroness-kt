@@ -311,5 +311,11 @@ fun AppNavigation(
         composable("settings/privacy") {
             PrivacySettingsPage(navController)
         }
+        composable("settings/storage") {
+            StorageSettingsPage(
+                navController = navController,
+                settingsViewModel = settingsViewModel
+            )
+        }
     }
 }

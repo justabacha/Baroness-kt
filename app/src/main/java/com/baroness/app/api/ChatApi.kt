@@ -207,4 +207,17 @@ object ChatApi {
             false
         }
     }
+
+    suspend fun fetchBackupLog(personaId: String): BackupLogDto? {
+        return try {
+            supabase.postgrest["backup_log"]
+                .select {
+                    filter { eq("persona_id", personaId) }
+                }
+                .decodeSingleOrNull<BackupLogDto>()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch backup log: ${e.message}")
+            null
+        }
+    }
 }
