@@ -1,21 +1,16 @@
 package com.baroness.app.screens
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -24,14 +19,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.baroness.app.components.ChatEntry
 import com.baroness.app.components.InAppMiniPlayer
-import com.baroness.app.ui.theme.ChatTypography
-import com.baroness.app.components.GlobalDrawer
 import com.baroness.app.components.TopWarningBanner
 import com.baroness.app.models.PersonaType
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.viewmodels.ChatListViewModel
 import com.baroness.app.viewmodels.SettingsViewModel
-import com.baroness.app.viewmodels.SettingsViewModelFactory
 
 @Composable
 fun ChatListScreen(
@@ -43,7 +35,6 @@ fun ChatListScreen(
 ) {
     val conversations by viewModel.conversations.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
-    var isDrawerVisible by remember { mutableStateOf(false) }
 
     val chatTypography = rememberChatTypography(settingsViewModel)
 
@@ -56,10 +47,6 @@ fun ChatListScreen(
             kotlinx.coroutines.delay(2500)
             settingsViewModel.dismissWarning()
         }
-    }
-
-    BackHandler(enabled = isDrawerVisible) {
-        isDrawerVisible = false
     }
 
     if (isInitialLoading && conversations.isEmpty()) {
@@ -80,28 +67,21 @@ fun ChatListScreen(
                 .statusBarsPadding()
         ) {
             // Header
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
-                Column {
-                    Text(
-                        text = "Inbox",
-                        style = chatTypography.header,
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Connect with your favorites",
-                        style = chatTypography.subtitle,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                }
-                IconButton(onClick = { isDrawerVisible = true }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
-                }
+                Text(
+                    text = "Inbox",
+                    style = chatTypography.header,
+                    color = Color.White
+                )
+                Text(
+                    text = "Connect with your favorites",
+                    style = chatTypography.subtitle,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
             }
 
             // Conversation List
@@ -125,12 +105,6 @@ fun ChatListScreen(
                 }
             }
         }
-
-        GlobalDrawer(
-            isVisible = isDrawerVisible,
-            onDismiss = { isDrawerVisible = false },
-            viewModel = settingsViewModel
-        )
 
         TopWarningBanner(
             visible = isWarningVisible,
