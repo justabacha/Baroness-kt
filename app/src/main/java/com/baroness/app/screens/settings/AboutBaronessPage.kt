@@ -2,26 +2,32 @@ package com.baroness.app.screens.settings
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -46,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -53,14 +60,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.baroness.app.BuildConfig
 import com.baroness.app.R
 import com.baroness.app.phestydrop.data.PhestyDropInfo
+import com.baroness.app.phestydrop.download.DownloadStatus
+import com.baroness.app.phestydrop.download.PhestyDropDownloader
 import com.baroness.app.phestydrop.manager.PhestyDropManager
 import com.baroness.app.phestydrop.ui.PhestyDropSheet
 import com.baroness.app.ui.theme.AppFonts
-import com.baroness.app.ui.theme.LocalBaronessTheme
 import com.baroness.app.ui.theme.rememberChatTypography
 import com.baroness.app.utils.StorageManager
 import com.baroness.app.utils.formatRelativeTimestamp
@@ -100,6 +109,7 @@ fun AboutBaronessPage(
     val storageManager = remember { StorageManager(context) }
     val typography = rememberChatTypography(settingsViewModel)
     val accentColor = MaterialTheme.colorScheme.primary
+    val downloadStatus by PhestyDropDownloader.status.collectAsStateWithLifecycle()
 
     var autoUpdateEnabled by remember { mutableStateOf(true) }
     var checkState by remember { mutableStateOf(CheckButtonState.Idle) }
@@ -236,73 +246,99 @@ fun AboutBaronessPage(
                         }
                     )
                 }
-                Button(
-                    onClick = {
-                        scope.launch {
-                            checkState = CheckButtonState.Checking
-                            try {
-                                val drop = try {
-                                    withContext(Dispatchers.IO) {
-                                        PhestyDropManager.checkForDrop()
+
+                val downloading = downloadStatus as? DownloadStatus.Downloading
+                if (downloading != null) {
+                    DownloadProgressButton(
+                        progress = downloading.progress,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    Button(
+                        onClick = {
+                            when (val state = downloadStatus) {
+                                is DownloadStatus.Ready -> {
+                                    val uri = PhestyDropDownloader.getDownloadUriForCurrent(context)
+                                        ?: state.uri
+                                    PhestyDropManager.installDrop(context, uri)
+                                }
+                                is DownloadStatus.Downloading -> Unit
+                                else -> scope.launch {
+                                    checkState = CheckButtonState.Checking
+                                    try {
+                                        val drop = try {
+                                            withContext(Dispatchers.IO) {
+                                                PhestyDropManager.checkForDrop()
+                                            }
+                                        } finally {
+                                            lastCheckedAt = storageManager.getLong(LAST_CHECKED_KEY)
+                                        }
+                                        if (drop != null) {
+                                            activeDropInfo = drop
+                                            checkState = CheckButtonState.Idle
+                                        } else {
+                                            checkState = CheckButtonState.UpToDate
+                                            delay(1_000)
+                                            checkState = CheckButtonState.Idle
+                                        }
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Failed to check for PhestyDrop", e)
+                                        checkState = CheckButtonState.Error
+                                        delay(1_500)
+                                        checkState = CheckButtonState.Idle
                                     }
-                                } finally {
-                                    lastCheckedAt = storageManager.getLong(LAST_CHECKED_KEY)
                                 }
-                                if (drop != null) {
-                                    activeDropInfo = drop
-                                    checkState = CheckButtonState.Idle
-                                } else {
-                                    checkState = CheckButtonState.UpToDate
-                                    delay(1_000)
-                                    checkState = CheckButtonState.Idle
-                                }
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to check for PhestyDrop", e)
-                                checkState = CheckButtonState.Error
-                                delay(1_500)
-                                checkState = CheckButtonState.Idle
                             }
+                        },
+                        enabled = when (downloadStatus) {
+                            is DownloadStatus.Ready -> true
+                            else -> checkState == CheckButtonState.Idle
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accentColor.copy(alpha = 0.8f)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        val ready = downloadStatus is DownloadStatus.Ready
+                        if (!ready && checkState == CheckButtonState.Checking) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = LocalContentColor.current,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            val icon = when {
+                                ready -> Icons.Default.Check
+                                downloadStatus is DownloadStatus.Error -> Icons.Default.ErrorOutline
+                                checkState == CheckButtonState.UpToDate -> Icons.Default.Check
+                                checkState == CheckButtonState.Error -> Icons.Default.ErrorOutline
+                                else -> Icons.Default.Refresh
+                            }
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = LocalContentColor.current,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
                         }
-                    },
-                    enabled = checkState == CheckButtonState.Idle,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = accentColor.copy(alpha = 0.8f)
-                    ),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    if (checkState == CheckButtonState.Checking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
+                        Text(
+                            text = when {
+                                ready -> "Install PhestyDrop Now"
+                                downloadStatus is DownloadStatus.Error -> "Download failed"
+                                else -> when (checkState) {
+                                    CheckButtonState.Idle -> "Check for PhestyDrop"
+                                    CheckButtonState.Checking -> "Checking…"
+                                    CheckButtonState.UpToDate -> "Up to date"
+                                    CheckButtonState.Error -> "Check failed"
+                                }
+                            },
+                            style = typography.meta,
                             color = LocalContentColor.current,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        val icon = when (checkState) {
-                            CheckButtonState.Idle -> Icons.Default.Refresh
-                            CheckButtonState.UpToDate -> Icons.Default.Check
-                            CheckButtonState.Error -> Icons.Default.ErrorOutline
-                            CheckButtonState.Checking -> Icons.Default.Refresh
-                        }
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = LocalContentColor.current,
-                            modifier = Modifier.size(16.dp)
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(
-                        text = when (checkState) {
-                            CheckButtonState.Idle -> "Check for PhestyDrop"
-                            CheckButtonState.Checking -> "Checking…"
-                            CheckButtonState.UpToDate -> "Up to date"
-                            CheckButtonState.Error -> "Check failed"
-                        },
-                        style = typography.meta,
-                        color = LocalContentColor.current,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
             }
 
@@ -363,6 +399,58 @@ private fun AboutCard(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content
+        )
+    }
+}
+
+@Composable
+private fun DownloadProgressButton(
+    progress: Float,
+    modifier: Modifier = Modifier
+) {
+    val targetProgress = if (progress >= 0f) progress.coerceIn(0f, 1f) else 0f
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = tween(durationMillis = 200),
+        label = "AboutDownloadProgress"
+    )
+
+    val text = if (progress >= 0f) {
+        "Downloading ${(progress * 100).toInt()}%"
+    } else {
+        "Downloading…"
+    }
+
+    val textColor = if (animatedProgress > 0.6f) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        val maxW = maxWidth
+        if (animatedProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(maxW * animatedProgress)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
+        Text(
+            text = text,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = textColor,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 12.dp)
         )
     }
 }

@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.baroness.app.components.notification.InAppNotification
 import com.baroness.app.phestydrop.data.PhestyDropInfo
+import com.baroness.app.phestydrop.download.PhestyDropDownloader
 import com.baroness.app.phestydrop.manager.PhestyDropManager
 import com.baroness.app.phestydrop.ui.PhestyDropSheet
 import com.baroness.app.repository.WishlistRepository
@@ -56,12 +57,15 @@ import kotlinx.coroutines.withContext
 private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 101
 
 class MainActivity : ComponentActivity() {
+    private val pendingNavigationRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         PhestyDropManager.initialize(applicationContext)
-        
+        PhestyDropDownloader.initialize(applicationContext)
+        pendingNavigationRoute.value = intent.getStringExtra("route")
+
         requestNotificationPermission()
 
         setContent {
@@ -87,7 +91,12 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        AppEntryPoint(navController, settingsViewModel)
+                        AppEntryPoint(
+                            navController = navController,
+                            settingsViewModel = settingsViewModel,
+                            pendingRoute = pendingNavigationRoute.value,
+                            onRouteHandled = { pendingNavigationRoute.value = null }
+                        )
 
                         val inAppBannersEnabled by settingsViewModel.inAppBannersEnabled.collectAsStateWithLifecycle()
 
@@ -107,13 +116,14 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                LaunchedEffect(intent) {
-                    intent?.getStringExtra("route")?.let { route ->
-                        navController.navigate(route)
-                    }
-                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingNavigationRoute.value = intent.getStringExtra("route")
     }
 
     private fun requestNotificationPermission() {
@@ -160,7 +170,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppEntryPoint(
     navController: androidx.navigation.NavHostController,
-    settingsViewModel: SettingsViewModel
+    settingsViewModel: SettingsViewModel,
+    pendingRoute: String?,
+    onRouteHandled: () -> Unit
 ) {
     var startDestination by remember { mutableStateOf<String?>(null) }
     var pendingPhestyDrop by remember { mutableStateOf<PhestyDropInfo?>(null) }
@@ -195,6 +207,15 @@ fun AppEntryPoint(
             navController = navController,
             settingsViewModel = settingsViewModel
         )
+
+        LaunchedEffect(startDestination, pendingRoute) {
+            if (pendingRoute != null) {
+                navController.navigate(pendingRoute) {
+                    launchSingleTop = true
+                }
+                onRouteHandled()
+            }
+        }
 
         // Display PhestyDrop Sheet if update detected
         pendingPhestyDrop?.let { dropInfo ->

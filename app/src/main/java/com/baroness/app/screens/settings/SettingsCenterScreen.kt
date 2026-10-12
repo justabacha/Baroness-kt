@@ -144,11 +144,13 @@ fun SettingsCenterScreen(
                 contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp)
             ) {
                 // Header Profile Card
-                item {
-                    ProfileHeaderCard(
-                        userProfile = userProfile,
-                        hazeState = hazeState
-                    )
+                if (userProfile != null) {
+                    item {
+                        ProfileHeaderCard(
+                            userProfile = userProfile!!,
+                            hazeState = hazeState
+                        )
+                    }
                 }
 
                 // Discovery Hub Categories
@@ -181,7 +183,7 @@ fun SettingsCenterScreen(
 
 @Composable
 private fun ProfileHeaderCard(
-    userProfile: UserProfile?,
+    userProfile: UserProfile,
     hazeState: HazeState
 ) {
     Box(
@@ -202,7 +204,7 @@ private fun ProfileHeaderCard(
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(modifier = Modifier.size(54.dp)) {
-                if (userProfile?.avatar == null) {
+                if (userProfile.avatar == null) {
                     Surface(
                         modifier = Modifier.matchParentSize(),
                         shape = CircleShape,
@@ -210,7 +212,7 @@ private fun ProfileHeaderCard(
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = (userProfile?.displayName?.take(1) ?: "P").uppercase(),
+                                text = userProfile.displayName.take(1).ifBlank { "U" }.uppercase(),
                                 color = Color.White,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
@@ -219,9 +221,9 @@ private fun ProfileHeaderCard(
                     }
                 }
                 ExpandableAvatar(
-                    imageModel = userProfile?.avatar,
+                    imageModel = userProfile.avatar,
                     contentDescription = "Avatar",
-                    displayName = userProfile?.displayName ?: "You",
+                    displayName = userProfile.displayName.ifBlank { "You" },
                     cardText = "This is your profile picture",
                     modifier = Modifier.matchParentSize(),
                     size = 54.dp,
@@ -234,7 +236,7 @@ private fun ProfileHeaderCard(
 
             Column {
                 Text(
-                    text = userProfile?.displayName ?: "Phesty",
+                    text = userProfile.displayName.ifBlank { "User" },
                     color = Color.White,
                     fontFamily = AppFonts.PlayfairDisplay,
                     fontWeight = FontWeight.Bold,

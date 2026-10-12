@@ -295,3 +295,113 @@ All incomplete or unwritten items in the Settings Center:
    - The "About Baroness" card exists on `SettingsCenterScreen` (`title = "About Baroness"`, `description = "App Story, Concept Credits, Version Info"`), but clicking it has no handler and no destination screen (`"settings/about"`) exists. *(Note: `DrawerAbout.kt` exists as a drawer panel, but is not linked as a Settings Center destination screen).*
 3. **Drawer Storage Panel (`PLACEHOLDER`)**:
    - `components/DrawerStorage.kt` renders `"Coming soon..."`.
+
+---
+
+## Profile Header Card Flicker Fix
+
+### 1. Exact Source of Each Displayed Value in `ProfileHeaderCard` (Before)
+
+In `SettingsCenterScreen.kt` (lines 205–240 before fix):
+- **Display Name**: `userProfile?.displayName ?: "Phesty"` (line 237)
+- **Avatar Image**: `userProfile?.avatar` passed to `ExpandableAvatar` (line 222)
+- **Avatar Initial Fallback**: `(userProfile?.displayName?.take(1) ?: "P").uppercase()` (line 213)
+- **Avatar Display Name Fallback**: `userProfile?.displayName ?: "You"` (line 224)
+- **Version**: `BuildConfig.VERSION_NAME` (line 242)
+
+### 2. Identified Cause
+
+**Cause C / D:** `userProfile` was initialized as `var userProfile by remember { mutableStateOf<UserProfile?>(null) }` on line 80.
+On initial composition (and initial route entry), `userProfile` starts as `null`.
+`ProfileHeaderCard` was called unconditionally on line 142 (`ProfileHeaderCard(userProfile = userProfile, hazeState = hazeState)`).
+Because `userProfile` was `null` during initial frame(s) while `LaunchedEffect(currentEntry)` asynchronously read `userProfile` from DataStore via `storage.getString("userProfile")`, `ProfileHeaderCard` evaluated null-coalescing fallbacks (`"Phesty"`, `"P"`, `"You"`), rendering placeholder figures on the first frame before updating to the real user profile when `userProfile` state was populated.
+
+Offending code (before):
+```kotlin
+// Line 80
+var userProfile by remember { mutableStateOf<UserProfile?>(null) }
+
+// Line 142
+item {
+    ProfileHeaderCard(
+        userProfile = userProfile,
+        hazeState = hazeState
+    )
+}
+```
+
+### 3. Fix Applied
+
+**`SettingsCenterScreen.kt`:**
+1. Updated `ProfileHeaderCard` to accept a non-null `UserProfile` parameter (`userProfile: UserProfile`).
+2. Wrapped `ProfileHeaderCard` in `if (userProfile != null)` inside `LazyColumn` so the profile header card is only composed once valid user profile data is available from DataStore.
+3. Used string `.ifBlank { ... }` fallbacks for inner fields if empty strings are returned on a non-null `UserProfile` instance.
+
+**Before:**
+```kotlin
+// In LazyColumn:
+item {
+    ProfileHeaderCard(
+        userProfile = userProfile,
+        hazeState = hazeState
+    )
+}
+
+// Composable signature:
+@Composable
+private fun ProfileHeaderCard(
+    userProfile: UserProfile?,
+    hazeState: HazeState
+) {
+    ...
+    Text(text = (userProfile?.displayName?.take(1) ?: "P").uppercase(), ...)
+    ExpandableAvatar(displayName = userProfile?.displayName ?: "You", ...)
+    Text(text = userProfile?.displayName ?: "Phesty", ...)
+}
+```
+
+**After:**
+```kotlin
+// In LazyColumn:
+if (userProfile != null) {
+    item {
+        ProfileHeaderCard(
+            userProfile = userProfile!!,
+            hazeState = hazeState
+        )
+    }
+}
+
+// Composable signature:
+@Composable
+private fun ProfileHeaderCard(
+    userProfile: UserProfile,
+    hazeState: HazeState
+) {
+    ...
+    Text(text = userProfile.displayName.take(1).ifBlank { "U" }.uppercase(), ...)
+    ExpandableAvatar(displayName = userProfile.displayName.ifBlank { "You" }, ...)
+    Text(text = userProfile.displayName.ifBlank { "User" }, ...)
+}
+```
+
+### 4. Modified Files Confirmation
+
+Only the following file was modified:
+- `app/src/main/java/com/baroness/app/screens/settings/SettingsCenterScreen.kt`
+
+No other screens, ViewModels, or components were modified.
+
+### 5. Build Result
+
+- `:app:assembleDebug` — **BUILD SUCCESSFUL**.
+
+### 6. Manual Verification Checklist
+
+- [ ] Cold-start the app and open Settings Center. The ProfileHeaderCard shows correct data on first frame — no hardcoded placeholder for a moment.
+- [ ] From Settings Center, navigate to Notifications, then back. Same — no flicker.
+- [ ] Navigate to About Baroness, then back. Same — no flicker.
+- [ ] Navigate to Profile Settings, then back. Same — no flicker.
+- [ ] Rotate the device (if rotation is supported). Same — no flicker.
+- [ ] Kill the app and reopen. Same — no flicker.
+
