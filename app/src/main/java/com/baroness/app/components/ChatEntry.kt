@@ -48,19 +48,12 @@ fun ChatEntry(
                 ExpandableAvatar(
                     imageModel = conversation.avatarUrl,
                     contentDescription = conversation.displayName,
+                    displayName = conversation.displayName,
+                    cardText = "This is ${conversation.displayName}'s profile picture",
                     modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
                     size = 48.dp,
                     borderWidth = 1.5.dp,
-                    borderColor = Colors.accent,
-                    overlayContent = {
-                        PhestyText(
-                            text = conversation.displayName,
-                            style = chatTypography.title,
-                            color = Color.White,
-                            fontFamily = chatTypography.title.fontFamily,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    borderColor = Colors.accent
                 )
             } else {
                 Box(

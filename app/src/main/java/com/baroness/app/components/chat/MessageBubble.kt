@@ -496,20 +496,16 @@ private fun AvatarIsland(
     } else {
         "https://img.icons8.com/fluency/48/user-male-circle.png"
     }
+    val displayName = participant?.displayName ?: if (isFriday) "Friday" else "Participant"
     ExpandableAvatar(
         imageModel = imageModel,
         contentDescription = participant?.displayName ?: "Avatar",
+        displayName = displayName,
+        cardText = "This is $displayName's profile picture",
         modifier = modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
         size = 36.dp,
         borderWidth = borderWidth,
-        borderColor = borderColor,
-        overlayContent = {
-            Text(
-                text = participant?.displayName ?: if (isFriday) "Friday" else "Participant",
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        borderColor = borderColor
     )
 }
 

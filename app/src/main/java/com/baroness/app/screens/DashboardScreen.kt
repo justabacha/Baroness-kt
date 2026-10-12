@@ -179,19 +179,11 @@ fun DashboardScreen(
                                 ExpandableAvatar(
                                     imageModel = userProfile?.avatar,
                                     contentDescription = "Avatar",
+                                    displayName = userProfile?.displayName ?: "You",
+                                    cardText = "This is your profile picture",
                                     size = avatarSize,
                                     borderWidth = 1.5.dp,
-                                    borderColor = Colors.purpleAccent,
-                                    overlayContent = {
-                                        Text(
-                                            text = userProfile?.displayName ?: "User",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        userProfile?.persona?.takeIf { it.isNotBlank() }?.let { persona ->
-                                            Text(text = persona, color = Color.White.copy(alpha = 0.75f))
-                                        }
-                                    }
+                                    borderColor = Colors.purpleAccent
                                 )
                                 Spacer(modifier = Modifier.width(clamp(10f, screenWidth * 0.03f, 15f).dp))
                                 Column {

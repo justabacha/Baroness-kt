@@ -756,6 +756,11 @@ fun ChatTopBar(
     )
 
     val isFridayChat = participant?.id == "friday" || participant?.displayName?.contains("Friday", ignoreCase = true) == true
+    val avatarDisplayName = if (participant?.id == "friday") {
+        "Friday"
+    } else {
+        participant?.displayName ?: "Participant"
+    }
 
     TopAppBar(
         modifier = modifier,
@@ -847,23 +852,15 @@ fun ChatTopBar(
                         imageModel = participant?.avatarUrl
                             ?: if (participant?.id == "friday") "https://img.icons8.com/fluency/48/artificial-intelligence.png" else null,
                         contentDescription = participant?.displayName ?: "Avatar",
+                        displayName = avatarDisplayName,
+                        cardText = "This is $avatarDisplayName's profile picture",
                         modifier = Modifier
                             .size(38.dp)
                             .border(1.5.dp, Color.Black.copy(alpha = 0.75f), CircleShape)
                             .padding(0.5.dp),
                         size = 38.dp,
                         borderWidth = 1.dp,
-                        borderColor = Color.White.copy(alpha = 0.9f),
-                        overlayContent = {
-                            Text(
-                                text = if (participant?.id == "friday") "Friday" else participant?.displayName ?: "Participant",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                            participant?.id?.takeIf { it != "friday" }?.let { personaId ->
-                                Text(text = personaId, color = Color.White.copy(alpha = 0.75f))
-                            }
-                        }
+                        borderColor = Color.White.copy(alpha = 0.9f)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {

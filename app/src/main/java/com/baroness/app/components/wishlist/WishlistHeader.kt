@@ -40,28 +40,26 @@ fun WishlistHeader(
             ExpandableAvatar(
                 imageModel = avatarP ?: "https://img.icons8.com/color/96/test-account.png",
                 contentDescription = "Phesty",
+                displayName = "Phesty",
+                cardText = "This is Phesty's profile picture",
                 modifier = Modifier.background(Color(0xFF2A2A2A), CircleShape),
                 size = 44.dp,
                 borderWidth = 2.dp,
-                borderColor = Color(0xFF34C759),
-                overlayContent = {
-                    Text(text = "Phesty", color = Color.White, fontWeight = FontWeight.Bold)
-                }
+                borderColor = Color(0xFF34C759)
             )
 
             ExpandableAvatar(
                 imageModel = avatarB ?: "https://img.icons8.com/color/96/test-account.png",
                 contentDescription = "Baroness",
+                displayName = "Baroness",
+                cardText = "This is Baroness's profile picture",
                 modifier = Modifier
                     .offset(x = (-10).dp)
                     .zIndex(1f)
                     .background(Color(0xFF2A2A2A), CircleShape),
                 size = 44.dp,
                 borderWidth = 2.dp,
-                borderColor = Color(0xFF4285F4),
-                overlayContent = {
-                    Text(text = "Baroness", color = Color.White, fontWeight = FontWeight.Bold)
-                }
+                borderColor = Color(0xFF4285F4)
             )
         }
 

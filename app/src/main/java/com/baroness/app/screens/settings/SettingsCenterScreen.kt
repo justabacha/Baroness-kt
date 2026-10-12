@@ -214,22 +214,12 @@ private fun ProfileHeaderCard(
                 ExpandableAvatar(
                     imageModel = userProfile?.avatar,
                     contentDescription = "Avatar",
+                    displayName = userProfile?.displayName ?: "You",
+                    cardText = "This is your profile picture",
                     modifier = Modifier.matchParentSize(),
                     size = 54.dp,
                     borderWidth = 1.5.dp,
-                    borderColor = Color.White.copy(alpha = 0.3f),
-                    overlayContent = {
-                        Text(
-                            text = userProfile?.displayName ?: "Phesty",
-                            color = Color.White,
-                            fontFamily = AppFonts.PlayfairDisplay,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
-                        userProfile?.persona?.takeIf { it.isNotBlank() }?.let { persona ->
-                            Text(text = persona, color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
-                        }
-                    }
+                    borderColor = Color.White.copy(alpha = 0.3f)
                 )
             }
 
