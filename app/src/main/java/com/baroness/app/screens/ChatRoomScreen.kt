@@ -47,6 +47,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -65,6 +66,7 @@ import com.baroness.app.components.WallpaperOption
 import com.baroness.app.components.WallpaperSource
 import com.baroness.app.components.chat.*
 import com.baroness.app.components.chat.actions.ChatCommunicationActions
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.components.prebundledWallpapers
 import com.baroness.app.data.EmojiMap
 import com.baroness.app.models.ChatRoomUiState
@@ -841,29 +843,28 @@ fun ChatTopBar(
                     }
                 } else {
                     // Avatar with crisp dual-border tracing for separation on any wallpaper
-                    Box(
+                    ExpandableAvatar(
+                        imageModel = participant?.avatarUrl
+                            ?: if (participant?.id == "friday") "https://img.icons8.com/fluency/48/artificial-intelligence.png" else null,
+                        contentDescription = participant?.displayName ?: "Avatar",
                         modifier = Modifier
                             .size(38.dp)
                             .border(1.5.dp, Color.Black.copy(alpha = 0.75f), CircleShape)
-                            .padding(0.5.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, Color.White.copy(alpha = 0.9f), CircleShape)
-                    ) {
-                        if (participant?.avatarUrl != null) {
-                            AsyncImage(
-                                model = participant.avatarUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                            .padding(0.5.dp),
+                        size = 38.dp,
+                        borderWidth = 1.dp,
+                        borderColor = Color.White.copy(alpha = 0.9f),
+                        overlayContent = {
+                            Text(
+                                text = if (participant?.id == "friday") "Friday" else participant?.displayName ?: "Participant",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
                             )
-                        } else if (participant?.id == "friday") {
-                            AsyncImage(
-                                model = "https://img.icons8.com/fluency/48/artificial-intelligence.png",
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            participant?.id?.takeIf { it != "friday" }?.let { personaId ->
+                                Text(text = personaId, color = Color.White.copy(alpha = 0.75f))
+                            }
                         }
-                    }
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

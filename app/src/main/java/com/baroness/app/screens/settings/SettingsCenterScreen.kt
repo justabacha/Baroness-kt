@@ -1,6 +1,5 @@
 package com.baroness.app.screens.settings
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -27,14 +26,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.rememberAsyncImagePainter
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.components.DynamicBackground
 import com.baroness.app.data.AvatarRepository
 import com.baroness.app.models.UserProfile
@@ -196,32 +194,43 @@ private fun ProfileHeaderCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            if (userProfile?.avatar != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(userProfile.avatar),
-                    contentDescription = "Avatar",
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .border(1.5.dp, Color.White.copy(alpha = 0.3f), CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(54.dp),
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.15f),
-                    border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White.copy(alpha = 0.3f))
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = (userProfile?.displayName?.take(1) ?: "P").uppercase(),
-                            color = Color.White,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+            Box(modifier = Modifier.size(54.dp)) {
+                if (userProfile?.avatar == null) {
+                    Surface(
+                        modifier = Modifier.matchParentSize(),
+                        shape = CircleShape,
+                        color = Color.White.copy(alpha = 0.15f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = (userProfile?.displayName?.take(1) ?: "P").uppercase(),
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
+                ExpandableAvatar(
+                    imageModel = userProfile?.avatar,
+                    contentDescription = "Avatar",
+                    modifier = Modifier.matchParentSize(),
+                    size = 54.dp,
+                    borderWidth = 1.5.dp,
+                    borderColor = Color.White.copy(alpha = 0.3f),
+                    overlayContent = {
+                        Text(
+                            text = userProfile?.displayName ?: "Phesty",
+                            color = Color.White,
+                            fontFamily = AppFonts.PlayfairDisplay,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        )
+                        userProfile?.persona?.takeIf { it.isNotBlank() }?.let { persona ->
+                            Text(text = persona, color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
+                        }
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))

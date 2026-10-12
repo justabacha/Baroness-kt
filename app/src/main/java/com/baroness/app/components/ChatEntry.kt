@@ -17,7 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.models.Conversation
 import com.baroness.app.ui.theme.ChatTypography
 import com.baroness.app.ui.theme.Colors
@@ -44,22 +44,33 @@ fun ChatEntry(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Avatar with accent border and fallback
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f))
-                    .border(1.5.dp, Colors.accent, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!conversation.avatarUrl.isNullOrEmpty()) {
-                    AsyncImage(
-                        model = conversation.avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
+            if (!conversation.avatarUrl.isNullOrEmpty()) {
+                ExpandableAvatar(
+                    imageModel = conversation.avatarUrl,
+                    contentDescription = conversation.displayName,
+                    modifier = Modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
+                    size = 48.dp,
+                    borderWidth = 1.5.dp,
+                    borderColor = Colors.accent,
+                    overlayContent = {
+                        PhestyText(
+                            text = conversation.displayName,
+                            style = chatTypography.title,
+                            color = Color.White,
+                            fontFamily = chatTypography.title.fontFamily,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.1f))
+                        .border(1.5.dp, Colors.accent, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
                     val initial = conversation.displayName.take(1).uppercase()
                     PhestyText(
                         text = initial,

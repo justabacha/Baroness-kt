@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.components.PhestyText
 import com.baroness.app.models.Message
 import com.baroness.app.models.Participant
@@ -491,29 +491,26 @@ private fun AvatarIsland(
     val borderColor = if (isFriday) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.2f)
     val borderWidth = if (isFriday) 1.5.dp else 1.dp
 
-    Box(
-        modifier = modifier
-            .size(36.dp)
-            .border(borderWidth, borderColor, CircleShape)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.1f))
-    ) {
-        if (participant?.avatarUrl != null) {
-            AsyncImage(
-                model = participant.avatarUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            val fallbackUrl = if (isFriday) "https://img.icons8.com/fluency/48/artificial-intelligence.png" else "https://img.icons8.com/fluency/48/user-male-circle.png"
-            AsyncImage(
-                model = fallbackUrl,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize()
+    val imageModel = participant?.avatarUrl ?: if (isFriday) {
+        "https://img.icons8.com/fluency/48/artificial-intelligence.png"
+    } else {
+        "https://img.icons8.com/fluency/48/user-male-circle.png"
+    }
+    ExpandableAvatar(
+        imageModel = imageModel,
+        contentDescription = participant?.displayName ?: "Avatar",
+        modifier = modifier.background(Color.White.copy(alpha = 0.1f), CircleShape),
+        size = 36.dp,
+        borderWidth = borderWidth,
+        borderColor = borderColor,
+        overlayContent = {
+            Text(
+                text = participant?.displayName ?: if (isFriday) "Friday" else "Participant",
+                color = Color.White,
+                fontWeight = FontWeight.Bold
             )
         }
-    }
+    )
 }
 
 @Composable

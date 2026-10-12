@@ -3,7 +3,6 @@ package com.baroness.app.screens
 import android.app.Application
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,8 +17,8 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -44,7 +43,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.components.QuoteCard
 import com.baroness.app.components.FloatingMenu
 import com.baroness.app.components.DynamicBackground
@@ -177,14 +176,22 @@ fun DashboardScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Image(
-                                    painter = rememberAsyncImagePainter(userProfile?.avatar),
+                                ExpandableAvatar(
+                                    imageModel = userProfile?.avatar,
                                     contentDescription = "Avatar",
-                                    modifier = Modifier
-                                        .size(avatarSize)
-                                        .clip(CircleShape)
-                                        .border(1.5.dp, Colors.purpleAccent, CircleShape),
-                                    contentScale = ContentScale.Crop
+                                    size = avatarSize,
+                                    borderWidth = 1.5.dp,
+                                    borderColor = Colors.purpleAccent,
+                                    overlayContent = {
+                                        Text(
+                                            text = userProfile?.displayName ?: "User",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        userProfile?.persona?.takeIf { it.isNotBlank() }?.let { persona ->
+                                            Text(text = persona, color = Color.White.copy(alpha = 0.75f))
+                                        }
+                                    }
                                 )
                                 Spacer(modifier = Modifier.width(clamp(10f, screenWidth * 0.03f, 15f).dp))
                                 Column {

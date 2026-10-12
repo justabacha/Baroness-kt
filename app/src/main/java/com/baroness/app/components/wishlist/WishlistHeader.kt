@@ -11,14 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import coil.compose.AsyncImage
+import com.baroness.app.components.common.ExpandableAvatar
 import com.baroness.app.models.WishStats
 
 @Composable
@@ -39,39 +37,32 @@ fun WishlistHeader(
             modifier = Modifier.wrapContentWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .border(2.dp, Color(0xFF34C759), CircleShape)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2A2A2A)),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = avatarP ?: "https://img.icons8.com/color/96/test-account.png",
-                    contentDescription = "Phesty",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            ExpandableAvatar(
+                imageModel = avatarP ?: "https://img.icons8.com/color/96/test-account.png",
+                contentDescription = "Phesty",
+                modifier = Modifier.background(Color(0xFF2A2A2A), CircleShape),
+                size = 44.dp,
+                borderWidth = 2.dp,
+                borderColor = Color(0xFF34C759),
+                overlayContent = {
+                    Text(text = "Phesty", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            )
 
-            Box(
+            ExpandableAvatar(
+                imageModel = avatarB ?: "https://img.icons8.com/color/96/test-account.png",
+                contentDescription = "Baroness",
                 modifier = Modifier
-                    .size(44.dp)
                     .offset(x = (-10).dp)
                     .zIndex(1f)
-                    .border(2.dp, Color(0xFF4285F4), CircleShape)
-                    .clip(CircleShape)
-                    .background(Color(0xFF2A2A2A)),
-                contentAlignment = Alignment.Center
-            ) {
-                AsyncImage(
-                    model = avatarB ?: "https://img.icons8.com/color/96/test-account.png",
-                    contentDescription = "Baroness",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
+                    .background(Color(0xFF2A2A2A), CircleShape),
+                size = 44.dp,
+                borderWidth = 2.dp,
+                borderColor = Color(0xFF4285F4),
+                overlayContent = {
+                    Text(text = "Baroness", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            )
         }
 
         // Stats capsule

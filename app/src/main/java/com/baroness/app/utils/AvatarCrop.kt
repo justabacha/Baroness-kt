@@ -22,7 +22,7 @@ object AvatarCrop {
 
         return UCrop.of(sourceUri, destinationUri)
             .withAspectRatio(1f, 1f)
-            .withMaxResultSize(1024, 1024)
+            .withMaxResultSize(2048, 2048)
             .withOptions(options)
             .getIntent(context)
     }
