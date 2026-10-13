@@ -15,6 +15,9 @@ interface ReactionDao {
     @Query("SELECT * FROM reactions")
     fun getAllReactions(): Flow<List<ReactionEntity>>
 
+    @Query("SELECT * FROM reactions")
+    fun getAllReactionsSync(): List<ReactionEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReaction(reaction: ReactionEntity)
 

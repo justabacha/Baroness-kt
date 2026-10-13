@@ -27,6 +27,45 @@ class QuoteRepository(context: Context) {
     private val cacheDateKey = "quote_cache_date"
     private val quoteDataKey = "quote_data"
 
+    companion object {
+        @Volatile
+        private var INSTANCE: QuoteRepository? = null
+
+        fun getInstance(context: Context): QuoteRepository {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: QuoteRepository(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+    }
+
+    @Volatile
+    private var cachedQuoteSnapshot: VibeQuote? = null
+
+    fun getCachedQuoteSnapshot(): VibeQuote? = cachedQuoteSnapshot
+
+    fun warmLocalCache() {
+        try {
+            val today = dateFormat.format(Date())
+            val cachedDate = StorageManager.getStringSync(cacheDateKey)
+            if (cachedDate == today) {
+                val cachedJson = StorageManager.getStringSync(quoteDataKey)
+                cachedJson?.let {
+                    val cachedQuote = json.decodeFromString<VibeQuote>(it)
+                    val currentVibe = VibeManager.getVibeOfTheDay()
+                    if (cachedQuote.part1 == currentVibe.part1 && cachedQuote.part2 == currentVibe.part2) {
+                        val image1Exists = cachedQuote.photo1.let { path -> File(path).exists() }
+                        val image2Exists = cachedQuote.photo2.let { path -> File(path).exists() }
+                        if (image1Exists && image2Exists) {
+                            cachedQuoteSnapshot = cachedQuote
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            println("QuoteRepository warmLocalCache error: ${e.message}")
+        }
+    }
+
     init {
         println("QuoteRepository imagesDir: ${imagesDir.absolutePath}")
         println("QuoteRepository imagesDir exists: ${imagesDir.exists()}")

@@ -34,14 +34,14 @@ class WishlistViewModel(context: Context) : ViewModel() {
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = repository.getWishesSnapshot()
         )
 
     val stats: StateFlow<WishStats> = repository.getStats()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = WishStats(0, 0)
+            initialValue = repository.getStatsSnapshot()
         )
 
     private val _isRefreshing = MutableStateFlow(false)

@@ -4,13 +4,52 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "baroness_prefs")
 
 class StorageManager(private val context: Context) {
+
+    companion object {
+        @Volatile
+        private var cachedUserProfile: String? = null
+        private val cachedStrings = ConcurrentHashMap<String, String>()
+        @Volatile
+        private var isMirrorInitialized = false
+        private val companionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        fun initSyncMirror(context: Context) {
+            if (isMirrorInitialized) return
+            synchronized(this) {
+                if (isMirrorInitialized) return
+                isMirrorInitialized = true
+            }
+            val appContext = context.applicationContext
+            companionScope.launch {
+                appContext.dataStore.data.collect { prefs ->
+                    val map = mutableMapOf<String, String>()
+                    prefs.asMap().forEach { (key, value) ->
+                        if (value is String) {
+                            map[key.name] = value
+                        }
+                    }
+                    cachedStrings.clear()
+                    cachedStrings.putAll(map)
+                    cachedUserProfile = map["userProfile"]
+                }
+            }
+        }
+
+        fun getUserProfileSync(): String? = cachedUserProfile ?: cachedStrings["userProfile"]
+        fun getStringSync(key: String): String? = cachedStrings[key]
+    }
 
     suspend fun saveAuthSession(accessToken: String, refreshToken: String?, expiresAt: Long?) {
         context.dataStore.edit { preferences ->

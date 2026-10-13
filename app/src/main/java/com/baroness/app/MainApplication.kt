@@ -37,6 +37,9 @@ class MainApplication : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         
+        // Initialize StorageManager Sync Mirror
+        StorageManager.initSyncMirror(this)
+
         // Initialize Session Token Cache
         SessionTokenCache.init(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(

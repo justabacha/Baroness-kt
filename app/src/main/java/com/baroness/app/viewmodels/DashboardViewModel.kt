@@ -42,19 +42,28 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         private const val KEY_LAST_ANNOUNCEMENT_TIME = "last_announcement_time"
     }
 
-    private val _userProfile = MutableStateFlow<UserProfile?>(null)
+    private val initialProfileJson = StorageManager.getUserProfileSync()
+    private val initialProfile = initialProfileJson?.let {
+        try { json.decodeFromString<UserProfile>(it) } catch (_: Exception) { null }
+    }
+
+    private val _userProfile = MutableStateFlow<UserProfile?>(initialProfile)
     val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
 
-    private val _greeting = MutableStateFlow("")
+    private val _greeting = MutableStateFlow(
+        initialProfile?.persona?.let { VibeManager.getDynamicGreeting(it) } ?: ""
+    )
     val greeting: StateFlow<String> = _greeting.asStateFlow()
 
-    private val _currentTime = MutableStateFlow("")
+    private val _currentTime = MutableStateFlow(VibeManager.getCurrentTimeString())
     val currentTime: StateFlow<String> = _currentTime.asStateFlow()
 
-    private val _todayDate = MutableStateFlow("")
+    private val _todayDate = MutableStateFlow(VibeManager.getFormattedDate())
     val todayDate: StateFlow<String> = _todayDate.asStateFlow()
 
-    private val _vibe = MutableStateFlow<VibeQuote?>(null)
+    private val initialVibe = QuoteRepository.getInstance(getApplication()).getCachedQuoteSnapshot()
+
+    private val _vibe = MutableStateFlow<VibeQuote?>(initialVibe)
     val vibe: StateFlow<VibeQuote?> = _vibe.asStateFlow()
 
     private val _weather = MutableStateFlow<VibeManager.WeatherData?>(null)
@@ -63,7 +72,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-    private val _isInitialLoading = MutableStateFlow(true)
+    private val _isInitialLoading = MutableStateFlow(initialProfile == null)
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
 
     init {

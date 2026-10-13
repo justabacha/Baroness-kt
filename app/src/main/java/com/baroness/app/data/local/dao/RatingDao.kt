@@ -15,6 +15,9 @@ interface RatingDao {
     @Query("SELECT * FROM ratings")
     fun getAllRatings(): Flow<List<RatingEntity>>
 
+    @Query("SELECT * FROM ratings")
+    fun getAllRatingsSync(): List<RatingEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRating(rating: RatingEntity)
 

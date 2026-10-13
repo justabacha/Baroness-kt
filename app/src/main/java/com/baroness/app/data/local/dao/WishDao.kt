@@ -12,6 +12,9 @@ interface WishDao {
     @Query("SELECT * FROM wishes WHERE syncStatus NOT IN ('pending_delete', 'failed_delete') ORDER BY createdAt ASC, clientUuid ASC")
     fun getAllWishes(): Flow<List<WishEntity>>
 
+    @Query("SELECT * FROM wishes WHERE syncStatus NOT IN ('pending_delete', 'failed_delete') ORDER BY createdAt ASC, clientUuid ASC")
+    fun getAllWishesSync(): List<WishEntity>
+
     @Query("SELECT * FROM wishes WHERE clientUuid = :uuid")
     suspend fun getWishByUuid(uuid: String): WishEntity?
 

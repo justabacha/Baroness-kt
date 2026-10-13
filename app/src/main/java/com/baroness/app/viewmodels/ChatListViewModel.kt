@@ -9,6 +9,7 @@ import com.baroness.app.data.local.database.AppDatabase
 import com.baroness.app.data.local.database.MessageEntity
 import com.baroness.app.models.Conversation
 import com.baroness.app.models.PersonaType
+import com.baroness.app.startup.ChatListPrewarm
 import com.baroness.app.utils.StorageManager
 import com.baroness.app.utils.formatChatTimestamp
 import io.github.jan.supabase.postgrest.postgrest
@@ -36,10 +37,12 @@ class ChatListViewModel(context: Context) : ViewModel() {
     private val messageDao = db.messageDao()
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
+    private val initialSnapshot = ChatListPrewarm.getConversationsSnapshot()
+
+    private val _conversations = MutableStateFlow<List<Conversation>>(initialSnapshot)
     val conversations: StateFlow<List<Conversation>> = _conversations.asStateFlow()
 
-    private val _isInitialLoading = MutableStateFlow(true)
+    private val _isInitialLoading = MutableStateFlow(initialSnapshot.isEmpty())
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
 
     private var currentPersonaId: String? = null
@@ -56,12 +59,13 @@ class ChatListViewModel(context: Context) : ViewModel() {
             val humanConversationId = if (otherId == "baroness_official") "baroness" else "phesty"
 
             // 1. Load profile from cache
-            val cachedJson = storageManager.getString("cached_other_profile_$otherId")
+            val cachedJson = StorageManager.getStringSync("cached_other_profile_$otherId")
+                ?: storageManager.getString("cached_other_profile_$otherId")
             otherProfile.value = cachedJson?.let {
                 try { json.decodeFromString<ChatProfileDto>(it) } catch (e: Exception) { null }
             }
             
-            if (otherProfile.value != null) {
+            if (otherProfile.value != null || initialSnapshot.isNotEmpty()) {
                 _isInitialLoading.value = false
             }
 
@@ -76,6 +80,7 @@ class ChatListViewModel(context: Context) : ViewModel() {
             ) { humanMsg, fridayMsg, profile ->
                 buildConversationList(otherId, profile, humanMsg, fridayMsg)
             }.collect { newList ->
+                ChatListPrewarm.setConversationsSnapshot(newList)
                 _conversations.value = newList
             }
         }

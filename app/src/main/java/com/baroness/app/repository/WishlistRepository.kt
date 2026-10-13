@@ -104,6 +104,11 @@ class WishlistRepository private constructor(context: Context) {
     private val _profiles = MutableStateFlow<Map<String, ProfileDto>>(emptyMap())
     val profiles: StateFlow<Map<String, ProfileDto>> = _profiles.asStateFlow()
 
+    @Volatile
+    private var wishesSnapshot: List<Wish> = emptyList()
+    @Volatile
+    private var statsSnapshot: WishStats = WishStats(0, 0)
+
     init {
         scope.launch {
             loadCachedProfiles()
@@ -633,7 +638,7 @@ class WishlistRepository private constructor(context: Context) {
             reactionDao.getAllReactions(),
             ratingDao.getAllRatings()
         ) { wishes, reactions, ratings ->
-            wishes.map { entity ->
+            val mappedList = wishes.map { entity ->
                 val wishReactions = reactions
                     .filter { it.wishClientUuid == entity.clientUuid }
                     .associate { reaction ->
@@ -659,17 +664,66 @@ class WishlistRepository private constructor(context: Context) {
                     syncStatus = entity.syncStatus
                 )
             }
+            wishesSnapshot = mappedList
+            mappedList
+        }
+    }
+
+    fun getWishesSnapshot(): List<Wish> = wishesSnapshot
+
+    suspend fun warmSnapshotFromDatabase() {
+        withContext(Dispatchers.IO) {
+            val wishes = wishDao.getAllWishesSync()
+            val reactions = reactionDao.getAllReactionsSync()
+            val ratings = ratingDao.getAllRatingsSync()
+
+            val mappedList = wishes.map { entity ->
+                val wishReactions = reactions
+                    .filter { it.wishClientUuid == entity.clientUuid }
+                    .associate { reaction ->
+                        val key = if (reaction.personaId == "phesty_official") "P" else "B"
+                        key to reaction.emoji
+                    }
+                val wishRatings = ratings
+                    .filter { it.wishClientUuid == entity.clientUuid }
+                    .associate { rating ->
+                        val key = if (rating.personaId == "phesty_official") "P" else "B"
+                        key to rating.rating
+                    }
+                Wish(
+                    clientUuid = entity.clientUuid,
+                    serverId = entity.serverId,
+                    text = entity.text,
+                    date = entity.wishDate,
+                    status = entity.status,
+                    creator = if (entity.creatorId == "phesty_official") "P" else "B",
+                    reactions = wishReactions,
+                    ratings = wishRatings,
+                    createdAt = entity.createdAt,
+                    syncStatus = entity.syncStatus
+                )
+            }
+            wishesSnapshot = mappedList
+            statsSnapshot = WishStats(
+                total = mappedList.size,
+                dusted = mappedList.count { it.status == "dusted" }
+            )
+            Log.d(TAG, "Pre-warmed wishlist snapshot: ${mappedList.size} wishes")
         }
     }
 
     fun getStats(): Flow<WishStats> {
         return wishDao.getAllWishes().map { list ->
-            WishStats(
+            val stats = WishStats(
                 total = list.size,
                 dusted = list.count { it.status == "dusted" }
             )
+            statsSnapshot = stats
+            stats
         }
     }
+
+    fun getStatsSnapshot(): WishStats = statsSnapshot
 
     suspend fun insertWish(wish: Wish) {
         Log.d(TAG, "Inserting wish: uuid=${wish.clientUuid}, text=${wish.text.take(20)}, creator=${wish.creator}")

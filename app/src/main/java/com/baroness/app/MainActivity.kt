@@ -54,12 +54,36 @@ import com.baroness.app.viewmodels.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import com.baroness.app.startup.ColdStartPrewarm
+
 private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 101
 
 class MainActivity : ComponentActivity() {
     private val pendingNavigationRoute = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        var isReady by mutableStateOf(false)
+        splashScreen.setKeepOnScreenCondition { !isReady }
+
+        lifecycleScope.launch {
+            val startTime = System.currentTimeMillis()
+            try {
+                withTimeout(500L) {
+                    ColdStartPrewarm.run(applicationContext)
+                }
+            } catch (e: TimeoutCancellationException) {
+                android.util.Log.w("MainActivity", "Cold-start pre-warm exceeded 500ms; rendering with partial cache")
+            }
+            isReady = true
+            android.util.Log.i("MainActivity", "Prewarm completed in ${System.currentTimeMillis() - startTime}ms")
+        }
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         PhestyDropManager.initialize(applicationContext)
