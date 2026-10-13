@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.baroness.app.data.QuoteMarkup
 import com.baroness.app.ui.theme.Colors
 import java.io.File
 import kotlin.math.abs
@@ -130,9 +131,16 @@ fun QuoteCard(
                     .padding(start = 20.dp, top = 20.dp)
             )
 
+            val annotated = remember(text) {
+                QuoteMarkup.parse(
+                    source = text ?: "",
+                    defaultFontFamily = null,
+                    defaultColor = Color.White
+                )
+            }
+
             Text(
-                text = text ?: "",
-                color = Color.White,
+                text = annotated,
                 fontSize = quoteFont,
                 lineHeight = quoteFont * 1.4,
                 fontWeight = FontWeight.Medium,
