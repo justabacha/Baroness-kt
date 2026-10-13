@@ -257,3 +257,32 @@ Confirmed that **zero network calls** were added to any pre-warm path. All pre-w
 - [ ] With Wi-Fi and mobile data off, cold-start. Same behavior — pre-warm uses local cache only.
 - [ ] Cold start with no data at all (fresh install simulation). Dashboard shows a placeholder once, then populates.
 - [ ] Logcat: search for "Prewarm completed in". Verify the duration is under 500ms.
+
+---
+
+## 11. Duplication Verification
+
+1. **Wishlist mapping**: Initially **duplicated**. Both `getAllWishes()` (live Flow) and `warmSnapshotFromDatabase()` (pre-warm) constructed `Wish` objects inline from `WishEntity`, `ReactionEntity`, and `RatingEntity`. 
+   - *Fix applied*: Extracted mapping into a single private helper function `mapToWishes(wishes, reactions, ratings): List<Wish>` in `WishlistRepository.kt` and called it from both `getAllWishes()` and `warmSnapshotFromDatabase()`.
+2. **ChatList query**: **Divergent by design**. `ChatListPrewarm.warmFromDatabase()` uses synchronous blocking DAO queries (`messageDao.getLastMessageForConversationSync(...)`), whereas `ChatListViewModel` uses reactive Room Flow observers (`messageDao.getLastMessageForConversation(...)`) to listen for live message updates. They query the same underlying SQLite table/data but through synchronous vs reactive pathways.
+3. **Any change applied**: Extracted `mapToWishes(...)` in `WishlistRepository.kt`.
+4. **Build result**: `:app:assembleDebug` — **BUILD SUCCESSFUL**.
+
+---
+
+## 12. ChatList Pre-Warm Result Equivalence
+
+| Step | ChatListPrewarm | ChatListViewModel | Same? |
+| :--- | :--- | :--- | :--- |
+| **Query source(s)** | `messageDao.getLastMessageForConversationSync(...)` | `messageDao.getLastMessageForConversation(...)` | **Yes** (Same DAO query method family) |
+| **Filter conditions** | `conversationId = :conversationId AND isDeleted = 0 ORDER BY timestamp DESC LIMIT 1` | Same Room query | **Yes** |
+| **Sort order** | Hardcoded list: 0 = Human Peer (`otherId`), 1 = AI (`"friday"`) | `buildConversationList` hardcoded list: 0 = Human Peer (`otherId`), 1 = AI (`"friday"`) | **Yes** |
+| **Profile pairing** | `StorageManager.getStringSync("cached_other_profile_$otherId")` decoded via `ChatProfileDto` | `StorageManager.getStringSync("cached_other_profile_$otherId")` decoded via `ChatProfileDto` | **Yes** |
+| **Post-query transformations** | `formatChatTimestamp(it.timestamp)` with fallback default strings | `formatChatTimestamp(it.timestamp)` with fallback default strings | **Yes** |
+| **Final list construction** | `listOf(Conversation(...), Conversation(...))` | `listOf(Conversation(...), Conversation(...))` via `buildConversationList` | **Yes** |
+
+1. **Identical Results**: Yes. Both paths produce identical conversation objects, in the same order, with identical profile pairing, timestamp formatting, and fallback message strings.
+2. **Differences Found**: None. The pre-warm snapshot and live ViewModel building logic are 100% functionally equivalent.
+3. **Fix Applied**: None required (results are fully equivalent).
+
+

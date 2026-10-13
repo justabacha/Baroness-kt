@@ -2,6 +2,7 @@ package com.baroness.app.viewmodels
 
 import android.app.Application
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.lifecycle.AndroidViewModel
@@ -34,7 +35,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val json = Json { ignoreUnknownKeys = true }
     private val voiceCenter = VoiceCenter(getApplication())
     private val locationHelper = LocationHelper(getApplication())
-    private val quoteRepository = QuoteRepository(getApplication())
+    private val quoteRepository = QuoteRepository.getInstance(getApplication())
     private val avatarRepository = AvatarRepository(getApplication())
 
     companion object {
@@ -61,10 +62,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _todayDate = MutableStateFlow(VibeManager.getFormattedDate())
     val todayDate: StateFlow<String> = _todayDate.asStateFlow()
 
-    private val initialVibe = QuoteRepository.getInstance(getApplication()).getCachedQuoteSnapshot()
-
-    private val _vibe = MutableStateFlow<VibeQuote?>(initialVibe)
-    val vibe: StateFlow<VibeQuote?> = _vibe.asStateFlow()
+    val vibe: StateFlow<VibeQuote?> = quoteRepository.cachedQuoteSnapshot
+    val quoteBitmap1: StateFlow<Bitmap?> = quoteRepository.cachedImage1
+    val quoteBitmap2: StateFlow<Bitmap?> = quoteRepository.cachedImage2
 
     private val _weather = MutableStateFlow<VibeManager.WeatherData?>(null)
     val weather: StateFlow<VibeManager.WeatherData?> = _weather.asStateFlow()
@@ -103,7 +103,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             if (cachedVibe != null) {
-                _vibe.value = cachedVibe
                 _isInitialLoading.value = false
                 _todayDate.value = VibeManager.getFormattedDate()
                 _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
@@ -111,8 +110,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
 
             launch {
-                val todaysVibe = quoteRepository.getTodayQuote(forceRefresh = false)
-                _vibe.value = todaysVibe
+                quoteRepository.getTodayQuote(forceRefresh = false)
 
                 _todayDate.value = VibeManager.getFormattedDate()
                 _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
@@ -208,8 +206,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
             _userProfile.value = updatedProfile
 
-            val freshVibe = quoteRepository.getTodayQuote(forceRefresh = true)
-            _vibe.value = freshVibe
+            quoteRepository.getTodayQuote(forceRefresh = true)
 
             _greeting.value = VibeManager.getDynamicGreeting(profile?.persona ?: "Phesty")
             _todayDate.value = VibeManager.getFormattedDate()

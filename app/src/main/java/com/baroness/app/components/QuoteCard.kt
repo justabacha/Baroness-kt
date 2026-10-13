@@ -1,5 +1,6 @@
 package com.baroness.app.components
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
@@ -38,7 +40,8 @@ fun QuoteCard(
     cardWidth: Dp,
     cardHeight: Dp,
     tiltDeg: Float = 0f,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bitmap: Bitmap? = null
 ) {
     val context = LocalContext.current
 
@@ -74,10 +77,16 @@ fun QuoteCard(
                 )
                 .clip(RoundedCornerShape(15.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.95f), RoundedCornerShape(15.dp))
-                .background(Color.Black)
+                .background(Color(0xFF1E1E1E))
         ) {
-            // Handle null/empty imageUrl
-            if (!imageUrl.isNullOrBlank()) {
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else if (!imageUrl.isNullOrBlank()) {
                 val imageSource = if (imageUrl.startsWith("/") || imageUrl.contains("/data/")) {
                     File(imageUrl)
                 } else {
@@ -100,7 +109,7 @@ fun QuoteCard(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.DarkGray)
+                        .background(Color(0xFF1E1E1E))
                 )
             }
 

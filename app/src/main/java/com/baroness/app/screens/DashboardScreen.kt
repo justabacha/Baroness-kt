@@ -107,6 +107,8 @@ fun DashboardScreen(
     val currentTime      by viewModel.currentTime.collectAsState()
     val todayDate        by viewModel.todayDate.collectAsState()
     val vibe             by viewModel.vibe.collectAsState()
+    val quoteBitmap1     by viewModel.quoteBitmap1.collectAsState()
+    val quoteBitmap2     by viewModel.quoteBitmap2.collectAsState()
     val weather          by viewModel.weather.collectAsState()
     val isInitialLoading by viewModel.isInitialLoading.collectAsState()
     val isRefreshing     by viewModel.isRefreshing.collectAsState()
@@ -305,6 +307,7 @@ fun DashboardScreen(
                                         cardWidth = cardWidth.dp,
                                         cardHeight = cardHeight.dp,
                                         tiltDeg = -10f,
+                                        bitmap = quoteBitmap1,
                                         modifier = Modifier
                                     )
                                 }
@@ -329,6 +332,7 @@ fun DashboardScreen(
                                         cardWidth = cardWidth.dp,
                                         cardHeight = cardHeight.dp,
                                         tiltDeg = 10f,
+                                        bitmap = quoteBitmap2,
                                         modifier = Modifier
                                     )
                                 }

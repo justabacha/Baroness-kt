@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.Baroness" parent="android:Theme.Material.Light.NoActionBar">
         <!-- Transparent status and nav bars for edge-to-edge -->
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -12,8 +12,11 @@
     </style>
 
     <style name="Theme.Baroness.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#0B0B0E</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/icon</item>
+        <item name="windowSplashScreenBackground">#070707</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <!-- Branding image only renders on Android 12 (API 31)+. On older versions
+             the icon displays but this branding strip does not appear. -->
+        <item name="android:windowSplashScreenBrandingImage" tools:targetApi="31">@drawable/splash_branding</item>
         <item name="postSplashScreenTheme">@style/Theme.Baroness</item>
     </style>
 </resources>

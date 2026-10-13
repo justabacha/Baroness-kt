@@ -632,38 +632,46 @@ class WishlistRepository private constructor(context: Context) {
         }
     }
 
+    private fun mapToWishes(
+        wishes: List<WishEntity>,
+        reactions: List<ReactionEntity>,
+        ratings: List<RatingEntity>
+    ): List<Wish> {
+        return wishes.map { entity ->
+            val wishReactions = reactions
+                .filter { it.wishClientUuid == entity.clientUuid }
+                .associate { reaction ->
+                    val key = if (reaction.personaId == "phesty_official") "P" else "B"
+                    key to reaction.emoji
+                }
+            val wishRatings = ratings
+                .filter { it.wishClientUuid == entity.clientUuid }
+                .associate { rating ->
+                    val key = if (rating.personaId == "phesty_official") "P" else "B"
+                    key to rating.rating
+                }
+            Wish(
+                clientUuid = entity.clientUuid,
+                serverId = entity.serverId,
+                text = entity.text,
+                date = entity.wishDate,
+                status = entity.status,
+                creator = if (entity.creatorId == "phesty_official") "P" else "B",
+                reactions = wishReactions,
+                ratings = wishRatings,
+                createdAt = entity.createdAt,
+                syncStatus = entity.syncStatus
+            )
+        }
+    }
+
     fun getAllWishes(): Flow<List<Wish>> {
         return combine(
             wishDao.getAllWishes(),
             reactionDao.getAllReactions(),
             ratingDao.getAllRatings()
         ) { wishes, reactions, ratings ->
-            val mappedList = wishes.map { entity ->
-                val wishReactions = reactions
-                    .filter { it.wishClientUuid == entity.clientUuid }
-                    .associate { reaction ->
-                        val key = if (reaction.personaId == "phesty_official") "P" else "B"
-                        key to reaction.emoji
-                    }
-                val wishRatings = ratings
-                    .filter { it.wishClientUuid == entity.clientUuid }
-                    .associate { rating ->
-                        val key = if (rating.personaId == "phesty_official") "P" else "B"
-                        key to rating.rating
-                    }
-                Wish(
-                    clientUuid = entity.clientUuid,
-                    serverId = entity.serverId,
-                    text = entity.text,
-                    date = entity.wishDate,
-                    status = entity.status,
-                    creator = if (entity.creatorId == "phesty_official") "P" else "B",
-                    reactions = wishReactions,
-                    ratings = wishRatings,
-                    createdAt = entity.createdAt,
-                    syncStatus = entity.syncStatus
-                )
-            }
+            val mappedList = mapToWishes(wishes, reactions, ratings)
             wishesSnapshot = mappedList
             mappedList
         }
@@ -677,32 +685,7 @@ class WishlistRepository private constructor(context: Context) {
             val reactions = reactionDao.getAllReactionsSync()
             val ratings = ratingDao.getAllRatingsSync()
 
-            val mappedList = wishes.map { entity ->
-                val wishReactions = reactions
-                    .filter { it.wishClientUuid == entity.clientUuid }
-                    .associate { reaction ->
-                        val key = if (reaction.personaId == "phesty_official") "P" else "B"
-                        key to reaction.emoji
-                    }
-                val wishRatings = ratings
-                    .filter { it.wishClientUuid == entity.clientUuid }
-                    .associate { rating ->
-                        val key = if (rating.personaId == "phesty_official") "P" else "B"
-                        key to rating.rating
-                    }
-                Wish(
-                    clientUuid = entity.clientUuid,
-                    serverId = entity.serverId,
-                    text = entity.text,
-                    date = entity.wishDate,
-                    status = entity.status,
-                    creator = if (entity.creatorId == "phesty_official") "P" else "B",
-                    reactions = wishReactions,
-                    ratings = wishRatings,
-                    createdAt = entity.createdAt,
-                    syncStatus = entity.syncStatus
-                )
-            }
+            val mappedList = mapToWishes(wishes, reactions, ratings)
             wishesSnapshot = mappedList
             statsSnapshot = WishStats(
                 total = mappedList.size,

@@ -1,10 +1,16 @@
 package com.baroness.app.data
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Log
 import com.baroness.app.models.VibeQuote
 import com.baroness.app.utils.StorageManager
 import com.baroness.app.utils.VibeManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
@@ -28,6 +34,8 @@ class QuoteRepository(context: Context) {
     private val quoteDataKey = "quote_data"
 
     companion object {
+        private const val TAG = "QuoteRepository"
+
         @Volatile
         private var INSTANCE: QuoteRepository? = null
 
@@ -38,10 +46,18 @@ class QuoteRepository(context: Context) {
         }
     }
 
-    @Volatile
-    private var cachedQuoteSnapshot: VibeQuote? = null
+    private val _cachedQuoteSnapshot = MutableStateFlow<VibeQuote?>(null)
+    val cachedQuoteSnapshot: StateFlow<VibeQuote?> = _cachedQuoteSnapshot.asStateFlow()
 
-    fun getCachedQuoteSnapshot(): VibeQuote? = cachedQuoteSnapshot
+    private val _cachedImage1 = MutableStateFlow<Bitmap?>(null)
+    val cachedImage1: StateFlow<Bitmap?> = _cachedImage1.asStateFlow()
+
+    private val _cachedImage2 = MutableStateFlow<Bitmap?>(null)
+    val cachedImage2: StateFlow<Bitmap?> = _cachedImage2.asStateFlow()
+
+    fun getCachedQuoteSnapshot(): VibeQuote? = _cachedQuoteSnapshot.value
+    fun getCachedImage1(): Bitmap? = _cachedImage1.value
+    fun getCachedImage2(): Bitmap? = _cachedImage2.value
 
     fun warmLocalCache() {
         try {
@@ -53,16 +69,54 @@ class QuoteRepository(context: Context) {
                     val cachedQuote = json.decodeFromString<VibeQuote>(it)
                     val currentVibe = VibeManager.getVibeOfTheDay()
                     if (cachedQuote.part1 == currentVibe.part1 && cachedQuote.part2 == currentVibe.part2) {
-                        val image1Exists = cachedQuote.photo1.let { path -> File(path).exists() }
-                        val image2Exists = cachedQuote.photo2.let { path -> File(path).exists() }
-                        if (image1Exists && image2Exists) {
-                            cachedQuoteSnapshot = cachedQuote
+                        val file1 = File(cachedQuote.photo1)
+                        val file2 = File(cachedQuote.photo2)
+                        val b1 = decodeImageFile(file1)
+                        val b2 = decodeImageFile(file2)
+                        if (b1 != null && b2 != null) {
+                            _cachedImage1.value = b1
+                            _cachedImage2.value = b2
+                            _cachedQuoteSnapshot.value = cachedQuote
+                            Log.d(TAG, "Pre-decoded quote images: photo1=${b1.width}x${b1.height}, photo2=${b2.width}x${b2.height}")
+                            return
                         }
                     }
                 }
             }
+            _cachedImage1.value = null
+            _cachedImage2.value = null
+            _cachedQuoteSnapshot.value = null
         } catch (e: Exception) {
-            println("QuoteRepository warmLocalCache error: ${e.message}")
+            _cachedImage1.value = null
+            _cachedImage2.value = null
+            _cachedQuoteSnapshot.value = null
+            Log.e(TAG, "warmLocalCache error: ${e.message}", e)
+        }
+    }
+
+    private fun decodeImageFile(file: File, targetWidthPx: Int = 800, targetHeightPx: Int = 1000): Bitmap? {
+        return try {
+            if (!file.exists() || file.length() == 0L) return null
+            val boundsOptions = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(file.absolutePath, boundsOptions)
+            val width = boundsOptions.outWidth
+            val height = boundsOptions.outHeight
+            if (width <= 0 || height <= 0) return null
+
+            var sampleSize = 1
+            while (width / (sampleSize * 2) >= targetWidthPx && height / (sampleSize * 2) >= targetHeightPx) {
+                sampleSize *= 2
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+            }
+            BitmapFactory.decodeFile(file.absolutePath, decodeOptions)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to decode quote image file: ${file.name}", e)
+            null
         }
     }
 
@@ -90,10 +144,13 @@ class QuoteRepository(context: Context) {
                     // Check if the vibe content itself has changed (Issue #3)
                     if (cachedQuote.part1 == currentVibe.part1 && cachedQuote.part2 == currentVibe.part2) {
                         println("QuoteRepository cache matches current vibe content")
-                        val image1Exists = cachedQuote.photo1.let { path -> File(path).exists() }
-                        val image2Exists = cachedQuote.photo2.let { path -> File(path).exists() }
+                        val file1 = File(cachedQuote.photo1)
+                        val file2 = File(cachedQuote.photo2)
 
-                        if (image1Exists && image2Exists) {
+                        if (file1.exists() && file2.exists()) {
+                            if (_cachedImage1.value == null) _cachedImage1.value = decodeImageFile(file1)
+                            if (_cachedImage2.value == null) _cachedImage2.value = decodeImageFile(file2)
+                            _cachedQuoteSnapshot.value = cachedQuote
                             return cachedQuote
                         }
                     } else {
@@ -114,10 +171,13 @@ class QuoteRepository(context: Context) {
             cachedJson?.let {
                 try {
                     val quote = json.decodeFromString<VibeQuote>(it)
-                    val image1Exists = quote.photo1.let { path -> File(path).exists() }
-                    val image2Exists = quote.photo2.let { path -> File(path).exists() }
+                    val file1 = File(quote.photo1)
+                    val file2 = File(quote.photo2)
 
-                    if (image1Exists || image2Exists) {
+                    if (file1.exists() || file2.exists()) {
+                        if (file1.exists() && _cachedImage1.value == null) _cachedImage1.value = decodeImageFile(file1)
+                        if (file2.exists() && _cachedImage2.value == null) _cachedImage2.value = decodeImageFile(file2)
+                        _cachedQuoteSnapshot.value = quote
                         return quote
                     }
                     quote
@@ -166,7 +226,13 @@ class QuoteRepository(context: Context) {
         storage.saveString(cacheDateKey, today)
         storage.saveString(quoteDataKey, json.encodeToString(cachedQuote))
 
-       cleanOldQuotes(uniqueId)
+        val f1 = File(finalImage1)
+        val f2 = File(finalImage2)
+        if (f1.exists()) _cachedImage1.value = decodeImageFile(f1)
+        if (f2.exists()) _cachedImage2.value = decodeImageFile(f2)
+        _cachedQuoteSnapshot.value = cachedQuote
+
+        cleanOldQuotes(uniqueId)
 
         return cachedQuote
     }
