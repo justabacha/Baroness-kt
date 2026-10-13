@@ -1,12 +1,18 @@
 package com.baroness.app.data
 
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import com.baroness.app.ui.theme.AppFonts
+
+data class QuoteParagraph(
+    val text: AnnotatedString,
+    val textAlign: TextAlign?,
+    val indentDp: Int?
+)
 
 object QuoteMarkup {
 
@@ -24,138 +30,154 @@ object QuoteMarkup {
         "shadows" to AppFonts.ShadowsIntoLight
     )
 
-    private val COLOR_REGISTRY: Map<String, Color> = mapOf(
-        "white" to Color.White,
-        "pink" to Color(0xFFFF88CC),
-        "warm" to Color(0xFFFFB74D),
-        "gold" to Color(0xFFFFD54F),
-        "ice" to Color(0xFF9EE7FF),
-        "sky" to Color(0xFF80BFFF),
-        "lavender" to Color(0xFFC8A8FF),
-        "rose" to Color(0xFFFF9E9E),
-        "mint" to Color(0xFF9EE7B0)
-    )
-
-    private fun parseColor(colorStr: String): Color? {
-        val trimmed = colorStr.trim().lowercase()
-        COLOR_REGISTRY[trimmed]?.let { return it }
-        if (trimmed.startsWith("#")) {
-            return try {
-                val hex = trimmed.removePrefix("#")
-                val colorLong = when (hex.length) {
-                    6 -> "FF$hex".toLong(16)
-                    8 -> hex.toLong(16)
-                    else -> return null
-                }
-                Color(colorLong)
-            } catch (_: Exception) {
-                null
-            }
-        }
-        return null
-    }
-
     private fun parseFont(fontStr: String): FontFamily? {
         return FONT_REGISTRY[fontStr.trim().lowercase()]
     }
 
+    private fun resolveAlignment(token: String): TextAlign? {
+        return when (token.trim().lowercase()) {
+            "left" -> TextAlign.Left
+            "right" -> TextAlign.Right
+            "center" -> TextAlign.Center
+            else -> null
+        }
+    }
+
+    private fun resolveIndentDp(token: String): Int? {
+        val trimmed = token.trim().lowercase()
+        if (!trimmed.startsWith("indent:")) return null
+        val numStr = trimmed.removePrefix("indent:").trim()
+        val n = numStr.toIntOrNull() ?: return null
+        return n.coerceIn(0, 400)
+    }
+
+    private fun isValidFontIdentifier(s: String): Boolean {
+        val trimmed = s.trim()
+        if (trimmed.isEmpty()) return true
+        return trimmed.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' }
+    }
+
     /**
-     * Parses a quote string containing optional inline markup into an AnnotatedString.
-     * - Unmarked text renders with defaultStyle.
-     * - Unknown font or color names fall back to the corresponding default (not an error).
+     * Parses a quote string containing optional inline markup into a list of QuoteParagraph objects (one per non-empty line).
+     * - Source is split on '\n'. Entirely empty lines are skipped.
+     * - Position attributes (align or indent) are extracted per paragraph from the FIRST position tag encountered.
+     * - Font styling stays inside AnnotatedString as SpanStyle. No ParagraphStyle is injected into AnnotatedString.
+     * - Unknown font or position names fall back gracefully (legacy color tokens like 'pink' are ignored).
      * - Unclosed tags auto-close at end of string.
      * - A literal '<' that is not followed by a valid opening pattern is rendered as-is.
      */
     fun parse(
         source: String,
-        defaultFontFamily: FontFamily?,
-        defaultColor: Color
-    ): AnnotatedString {
-        return buildAnnotatedString {
-            var i = 0
-            val len = source.length
+        defaultFontFamily: FontFamily?
+    ): List<QuoteParagraph> {
+        val rawLines = source.split('\n')
+        val paragraphs = mutableListOf<QuoteParagraph>()
 
-            while (i < len) {
-                val ltIdx = source.indexOf('<', i)
-                if (ltIdx == -1) {
-                    append(source.substring(i))
-                    break
-                }
+        for (line in rawLines) {
+            if (line.isEmpty()) continue
 
-                if (ltIdx > i) {
-                    append(source.substring(i, ltIdx))
-                }
+            var firstAlign: TextAlign? = null
+            var firstIndent: Int? = null
 
-                // Check for closing tag </> or similar
-                if (source.startsWith("</", ltIdx)) {
-                    val gtIdx = source.indexOf('>', ltIdx)
-                    if (gtIdx != -1) {
-                        append(source.substring(ltIdx, gtIdx + 1))
-                        i = gtIdx + 1
-                        continue
-                    } else {
-                        append(source.substring(ltIdx))
+            val annotatedText = buildAnnotatedString {
+                var i = 0
+                val len = line.length
+
+                while (i < len) {
+                    val ltIdx = line.indexOf('<', i)
+                    if (ltIdx == -1) {
+                        append(line.substring(i))
                         break
                     }
-                }
 
-                val gtIdx = source.indexOf('>', ltIdx)
-                if (gtIdx == -1) {
-                    append(source.substring(ltIdx))
-                    break
-                }
+                    if (ltIdx > i) {
+                        append(line.substring(i, ltIdx))
+                    }
 
-                val tagContent = source.substring(ltIdx + 1, gtIdx)
-                val tagParts = tagContent.split('|')
-                val isValidTag = when (tagParts.size) {
-                    1 -> isValidIdentifier(tagParts[0])
-                    2 -> (tagParts[0].isEmpty() || isValidIdentifier(tagParts[0])) && isValidIdentifier(tagParts[1])
-                    else -> false
-                }
+                    // Check for closing tag </> or similar
+                    if (line.startsWith("</", ltIdx)) {
+                        val gtIdx = line.indexOf('>', ltIdx)
+                        if (gtIdx != -1) {
+                            append(line.substring(ltIdx, gtIdx + 1))
+                            i = gtIdx + 1
+                            continue
+                        } else {
+                            append(line.substring(ltIdx))
+                            break
+                        }
+                    }
 
-                if (!isValidTag) {
-                    append(source.substring(ltIdx, gtIdx + 1))
-                    i = gtIdx + 1
-                    continue
-                }
+                    val gtIdx = line.indexOf('>', ltIdx)
+                    if (gtIdx == -1) {
+                        append(line.substring(ltIdx))
+                        break
+                    }
 
-                val fontName = if (tagParts.isNotEmpty()) tagParts[0] else ""
-                val colorName = if (tagParts.size == 2) tagParts[1] else ""
+                    val tagContent = line.substring(ltIdx + 1, gtIdx)
+                    val tagParts = tagContent.split('|')
+                    val isValidTag = when (tagParts.size) {
+                        1 -> isValidFontIdentifier(tagParts[0])
+                        2 -> isValidFontIdentifier(tagParts[0])
+                        else -> false
+                    }
 
-                val resolvedFont = if (fontName.isNotEmpty()) parseFont(fontName) else null
-                val resolvedColor = if (colorName.isNotEmpty()) parseColor(colorName) else null
+                    if (!isValidTag) {
+                        append(line.substring(ltIdx, gtIdx + 1))
+                        i = gtIdx + 1
+                        continue
+                    }
 
-                val spanStyle = SpanStyle(
-                    fontFamily = resolvedFont ?: defaultFontFamily,
-                    color = resolvedColor ?: defaultColor
-                )
+                    val fontName = if (tagParts.isNotEmpty()) tagParts[0] else ""
+                    val posToken = if (tagParts.size == 2) tagParts[1] else ""
 
-                val closeTagIdx = source.indexOf("</", gtIdx + 1)
-                val innerTextEnd = if (closeTagIdx != -1) closeTagIdx else len
+                    val resolvedFont = if (fontName.isNotEmpty()) parseFont(fontName) else null
 
-                val innerText = source.substring(gtIdx + 1, innerTextEnd)
+                    // Extract the FIRST position marker encountered in this paragraph. Subsequent position markers in the same paragraph are ignored.
+                    if (posToken.isNotEmpty() && firstAlign == null && firstIndent == null) {
+                        val align = resolveAlignment(posToken)
+                        val indent = if (align == null) resolveIndentDp(posToken) else null
+                        if (align != null) {
+                            firstAlign = align
+                        } else if (indent != null) {
+                            firstIndent = indent
+                        }
+                    }
 
-                withStyle(spanStyle) {
-                    append(innerText)
-                }
+                    val spanStyle = if (resolvedFont != null || defaultFontFamily != null) {
+                        SpanStyle(fontFamily = resolvedFont ?: defaultFontFamily)
+                    } else null
 
-                i = if (closeTagIdx != -1) {
-                    val closeGt = source.indexOf('>', closeTagIdx)
-                    if (closeGt != -1) closeGt + 1 else closeTagIdx + 2
-                } else {
-                    len
+                    val closeTagIdx = line.indexOf("</", gtIdx + 1)
+                    val innerTextEnd = if (closeTagIdx != -1) closeTagIdx else len
+
+                    val innerText = line.substring(gtIdx + 1, innerTextEnd)
+
+                    if (spanStyle != null) {
+                        withStyle(spanStyle) {
+                            append(innerText)
+                        }
+                    } else {
+                        append(innerText)
+                    }
+
+                    i = if (closeTagIdx != -1) {
+                        val closeGt = line.indexOf('>', closeTagIdx)
+                        if (closeGt != -1) closeGt + 1 else closeTagIdx + 2
+                    } else {
+                        len
+                    }
                 }
             }
-        }
-    }
 
-    private fun isValidIdentifier(s: String): Boolean {
-        val trimmed = s.trim()
-        if (trimmed.isEmpty()) return false
-        if (trimmed.startsWith("#")) {
-            val hex = trimmed.removePrefix("#")
-            return hex.length in listOf(6, 8) && hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+            paragraphs.add(
+                QuoteParagraph(
+                    text = annotatedText,
+                    textAlign = firstAlign,
+                    indentDp = firstIndent
+                )
+            )
         }
-        return trimmed.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' }
+
+        return paragraphs
     }
 }

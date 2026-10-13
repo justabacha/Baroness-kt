@@ -17,17 +17,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.LocalTextStyle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.baroness.app.data.QuoteMarkup
 import com.baroness.app.ui.theme.Colors
+import com.baroness.app.ui.theme.LocalBaronessTypography
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.min
@@ -131,25 +135,44 @@ fun QuoteCard(
                     .padding(start = 20.dp, top = 20.dp)
             )
 
-            val annotated = remember(text) {
+            val baseStyle = LocalTextStyle.current
+            val activeFontFamily = LocalBaronessTypography.current.title.fontFamily
+
+            val paragraphs = remember(text) {
                 QuoteMarkup.parse(
                     source = text ?: "",
-                    defaultFontFamily = null,
-                    defaultColor = Color.White
+                    defaultFontFamily = null
                 )
             }
 
-            Text(
-                text = annotated,
-                fontSize = quoteFont,
-                lineHeight = quoteFont * 1.4,
-                fontWeight = FontWeight.Medium,
-                fontStyle = FontStyle.Italic,
-                textAlign = TextAlign.Center,
+            Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .padding(horizontal = 20.dp)
-            )
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                paragraphs.forEach { paragraph ->
+                    val paragraphStyle = paragraph.indentDp?.let {
+                        TextStyle(textIndent = TextIndent(firstLine = it.sp))
+                    } ?: TextStyle.Default
+
+                    Text(
+                        text = paragraph.text,
+                        color = Color.White,
+                        fontSize = quoteFont,
+                        lineHeight = quoteFont * 1.35f,
+                        fontWeight = FontWeight.Medium,
+                        fontStyle = FontStyle.Italic,
+                        textAlign = paragraph.textAlign ?: TextAlign.Center,
+                        style = baseStyle.merge(paragraphStyle).copy(
+                            fontFamily = activeFontFamily
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
             Text(
                 text = author,

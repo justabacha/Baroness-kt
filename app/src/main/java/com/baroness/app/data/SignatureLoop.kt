@@ -6,16 +6,22 @@ object SignatureLoops {
     private const val BASE_URL = "https://baroness-test.vercel.app"
 
     val quotes = listOf(
+        /*===========================================
+        <font|position>
+              left|right|center and indent:20|40|80
+        ===========================================*/
 
+        // ─── Test quote (kept active) ───
         VibeQuote(
-            part1 = "NO \"<Kaushan|white>NOT TODAY</> \"",
-            part2 = "<gamaamli|white>REMEMBER</>\n<yuyu|white>Everyday is a Hustle</>",
+            part1 = "NO \"<Kaushan|center>NOT TODAY</> \"",
+            part2 = "<gamaamli|left>REMEMBER</>\n<yuyu|indent:1>Everyday is a Hustle</>",
             photo1 = "$BASE_URL/bucket/Image-81.jpg",
             photo2 = "$BASE_URL/bucket/Image-82.jpg"
-        )
-        // ─── Existing Actives (01–19) ───
+        ),
+
+        // ─── Actives 01–19 ───
         // 01
-       /*VibeQuote(
+        /*VibeQuote(
             part1 = "I don't know what I did to deserve a best friend like you",
             part2 = "but I'm so grateful to have you in my life",
             photo1 = "$BASE_URL/bucket/Image-81.jpg",
@@ -24,7 +30,7 @@ object SignatureLoops {
         // 02
         VibeQuote(
             part1 = "..but you're my best friend & I can't lose you :(",
-            part2 = "Thank You for being my unpaid therapist🙂‍↕️",
+            part2 = "Thank You for being my unpaid therapist🙂↕️",
             photo1 = "$BASE_URL/bucket/Image-27.jpg",
             photo2 = "$BASE_URL/bucket/Image-28.jpg"
         ),
@@ -56,9 +62,9 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-39.jpg",
             photo2 = "$BASE_URL/bucket/Image-40.jpg"
         ),
-        // 07 — markup: "My Wish" in Kaushan Script, pink
+        // 07 — font span: "My Wish" in Kaushan Script
         VibeQuote(
-            part1 = "11:11 \n You are <kaushan|pink>My Wish</> :)",
+            part1 = "11:11 \n You are <kaushan>My Wish</> :)",
             part2 = "☆☆..counting my lucky stars",
             photo1 = "$BASE_URL/bucket/Image-43.jpg",
             photo2 = "$BASE_URL/bucket/Image-44.jpg"
@@ -84,9 +90,9 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-57.jpg",
             photo2 = "$BASE_URL/bucket/Image-58.jpg"
         ),
-        // 11 — markup: "wish" in Kaushan Script, pink
+        // 11 — font span: "wish" in Kaushan Script
         VibeQuote(
-            part1 = "I still <kaushan|pink>wish</> for you at 11:11 🥹",
+            part1 = "I still <kaushan>wish</> for you at 11:11 🥹",
             part2 = "she was simple like quantum physics",
             photo1 = "$BASE_URL/bucket/Image-59.jpg",
             photo2 = "$BASE_URL/bucket/Image-60.jpg"
@@ -148,7 +154,7 @@ object SignatureLoops {
             photo2 = "$BASE_URL/bucket/Image-96.jpg"
         ),
 
-        // ─── New Actives (20–43) ───
+        // ─── Actives 20–43 ───
 
         // 20
         VibeQuote(
@@ -234,16 +240,16 @@ object SignatureLoops {
             photo1 = "$BASE_URL/bucket/Image-7.JPG",
             photo2 = "$BASE_URL/bucket/Image-8.JPG"
         ),
-        // 32 — image pair replaced (was Image-10/10 duplicate)
+        // 32
         VibeQuote(
             part1 = "we're just friends trying like hell not to be lovers",
             part2 = "we play dump but we know exactly what we're doing",
             photo1 = "$BASE_URL/bucket/Image-77.jpg",
             photo2 = "$BASE_URL/bucket/Image-78.jpg"
         ),
-        // 33 — markup: "Love" in Playfair, rose
+        // 33 — font span: "Love" in Playfair Display
         VibeQuote(
-            part1 = "Heart says, \"<playfair|rose>Love</>\"",
+            part1 = "Heart says, \"<playfair>Love</>\"",
             part2 = "Mind says, \"Friends\"",
             photo1 = "$BASE_URL/bucket/Image-15.jpg",
             photo2 = "$BASE_URL/bucket/Image-16.jpg"
