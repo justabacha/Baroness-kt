@@ -49,13 +49,14 @@ fun FontSettingsPage(
 
     // Determine current selected family and weight
     val selectedFamily = remember(previewFontId) {
-        val familyId = if (previewFontId.contains("_")) previewFontId.substringBefore("_") else previewFontId
-        fontFamilies.find { it.id == familyId } ?: fontFamilies.find { it.id == "playfairdisplay" } ?: fontFamilies.first()
+        fontFamilies.find { previewFontId == it.id || previewFontId.startsWith("${it.id}_") }
+            ?: fontFamilies.find { it.id == "playfairdisplay" }
+            ?: fontFamilies.first()
     }
 
     val selectedWeight = remember(previewFontId, selectedFamily) {
-        if (previewFontId.contains("_")) {
-            val weightId = previewFontId.substringAfter("_")
+        if (previewFontId.startsWith("${selectedFamily.id}_")) {
+            val weightId = previewFontId.removePrefix("${selectedFamily.id}_")
             selectedFamily.weights.find { it.id == weightId }
         } else {
             selectedFamily.weights.firstOrNull()

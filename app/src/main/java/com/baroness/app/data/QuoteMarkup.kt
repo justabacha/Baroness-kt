@@ -17,6 +17,7 @@ data class QuoteParagraph(
 object QuoteMarkup {
 
     private val FONT_REGISTRY: Map<String, FontFamily> = mapOf(
+        // 11 Original Fonts
         "yuyu" to AppFonts.Yuyu,
         "lifesavers" to AppFonts.Lifesavers,
         "robotomono" to AppFonts.RobotoMono,
@@ -27,7 +28,33 @@ object QuoteMarkup {
         "playfair" to AppFonts.PlayfairDisplay,
         "kaushan" to AppFonts.KaushanScript,
         "marker" to AppFonts.PermanentMarker,
-        "shadows" to AppFonts.ShadowsIntoLight
+        "shadows" to AppFonts.ShadowsIntoLight,
+
+        // New Fonts
+        "xmas_bundle" to AppFonts.ChristmasBundle,
+        "xmas_dariona" to AppFonts.ChristmasDariona,
+        "cookie" to AppFonts.CookieMonster,
+        "crayon" to AppFonts.CrayonHand,
+        "evil" to AppFonts.EvilScratch,
+        "filx" to AppFonts.FilxGirl,
+        "god" to AppFonts.GodOfWar,
+        "squids" to AppFonts.GameOfSquids,
+        "graveyard" to AppFonts.GraveyardCrimes,
+        "birthday" to AppFonts.HappyBirthday,
+        "harukaze" to AppFonts.Harukaze,
+        "hello_xmas" to AppFonts.HelloChristmas,
+        "hoshiko" to AppFonts.HoshikoSatsuki,
+        "jealousy" to AppFonts.Jealousy,
+        "klomang" to AppFonts.KlomangBrush,
+        "skate" to AppFonts.PowerSkate,
+        "rain" to AppFonts.RacingInTheRain,
+        "sakelar" to AppFonts.Sakelar,
+        "shareit" to AppFonts.Shareit,
+        "asia" to AppFonts.SpellOfAsia,
+        "spookery" to AppFonts.Spookery,
+        "sprucken" to AppFonts.Sprucken,
+        "rules" to AppFonts.TheRulesOfTheGame,
+        "trash" to AppFonts.TrashSecret
     )
 
     private fun parseFont(fontStr: String): FontFamily? {
@@ -54,7 +81,7 @@ object QuoteMarkup {
     private fun isValidFontIdentifier(s: String): Boolean {
         val trimmed = s.trim()
         if (trimmed.isEmpty()) return true
-        return trimmed.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' }
+        return trimmed.all { it in 'a'..'z' || it in 'A'..'Z' || it in '0'..'9' || it == '_' }
     }
 
     /**

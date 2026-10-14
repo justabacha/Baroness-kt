@@ -14,7 +14,7 @@ object SignatureLoops {
         // ─── Test quote (kept active) ───
         VibeQuote(
             part1 = "NO \"<Kaushan|center>NOT TODAY</> \"",
-            part2 = "<gamaamli|left>REMEMBER</>\n<yuyu|indent:1>Everyday is a Hustle</>",
+            part2 = "<gamaamli|left>REMEMBER</>\n<yuyu|indent:80>Everyday is a Hustle</>",
             photo1 = "$BASE_URL/bucket/Image-81.jpg",
             photo2 = "$BASE_URL/bucket/Image-82.jpg"
         ),

@@ -1,12 +1,10 @@
 package com.baroness.app.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import com.baroness.app.R
 
 // Font Family Definitions
@@ -83,6 +81,32 @@ val ShadowsIntoLightFont = FontFamily(
     Font(R.font.shadowsintolight_regular, FontWeight.Normal)
 )
 
+// New Fonts
+val ChristmasBundleFont = FontFamily(Font(R.font.christmas_bundle, FontWeight.Normal))
+val ChristmasDarionaFont = FontFamily(Font(R.font.christmas_dariona, FontWeight.Normal))
+val CookieMonsterFont = FontFamily(Font(R.font.cookie_monster, FontWeight.Normal))
+val CrayonHandFont = FontFamily(Font(R.font.crayon_hand, FontWeight.Normal))
+val EvilScratchFont = FontFamily(Font(R.font.evil_scratch, FontWeight.Normal))
+val FilxGirlFont = FontFamily(Font(R.font.filx_girl, FontWeight.Normal))
+val GodOfWarFont = FontFamily(Font(R.font.god_of_war, FontWeight.Normal))
+val GameOfSquidsFont = FontFamily(Font(R.font.game_of_squids, FontWeight.Normal))
+val GraveyardCrimesFont = FontFamily(Font(R.font.graveyard_crimes, FontWeight.Normal))
+val HappyBirthdayFont = FontFamily(Font(R.font.happy_birthday, FontWeight.Normal))
+val HarukazeFont = FontFamily(Font(R.font.harukaze, FontWeight.Normal))
+val HelloChristmasFont = FontFamily(Font(R.font.hello_christmas, FontWeight.Normal))
+val HoshikoSatsukiFont = FontFamily(Font(R.font.hoshiko_satsuki, FontWeight.Normal))
+val JealousyFont = FontFamily(Font(R.font.jealousy, FontWeight.Normal))
+val KlomangBrushFont = FontFamily(Font(R.font.klomang_brush, FontWeight.Normal))
+val PowerSkateFont = FontFamily(Font(R.font.power_skate, FontWeight.Normal))
+val RacingInTheRainFont = FontFamily(Font(R.font.racing_in_the_rain, FontWeight.Normal))
+val SakelarFont = FontFamily(Font(R.font.sakelar, FontWeight.Normal))
+val ShareitFont = FontFamily(Font(R.font.shareit, FontWeight.Normal))
+val SpellOfAsiaFont = FontFamily(Font(R.font.spell_of_asia, FontWeight.Normal))
+val SpookeryFont = FontFamily(Font(R.font.spookery, FontWeight.Normal))
+val SpruckenFont = FontFamily(Font(R.font.sprucken, FontWeight.Normal))
+val TheRulesOfTheGameFont = FontFamily(Font(R.font.the_rules_of_the_game, FontWeight.Normal))
+val TrashSecretFont = FontFamily(Font(R.font.trash_secret, FontWeight.Normal))
+
 /**
  * Centralized registry for all custom fonts in the project.
  */
@@ -99,6 +123,32 @@ object AppFonts {
     val PermanentMarker = PermanentMarkerFont
     val ShadowsIntoLight = ShadowsIntoLightFont
 
+    // New Fonts
+    val ChristmasBundle = ChristmasBundleFont
+    val ChristmasDariona = ChristmasDarionaFont
+    val CookieMonster = CookieMonsterFont
+    val CrayonHand = CrayonHandFont
+    val EvilScratch = EvilScratchFont
+    val FilxGirl = FilxGirlFont
+    val GodOfWar = GodOfWarFont
+    val GameOfSquids = GameOfSquidsFont
+    val GraveyardCrimes = GraveyardCrimesFont
+    val HappyBirthday = HappyBirthdayFont
+    val Harukaze = HarukazeFont
+    val HelloChristmas = HelloChristmasFont
+    val HoshikoSatsuki = HoshikoSatsukiFont
+    val Jealousy = JealousyFont
+    val KlomangBrush = KlomangBrushFont
+    val PowerSkate = PowerSkateFont
+    val RacingInTheRain = RacingInTheRainFont
+    val Sakelar = SakelarFont
+    val Shareit = ShareitFont
+    val SpellOfAsia = SpellOfAsiaFont
+    val Spookery = SpookeryFont
+    val Sprucken = SpruckenFont
+    val TheRulesOfTheGame = TheRulesOfTheGameFont
+    val TrashSecret = TrashSecretFont
+
     /**
      * Retrieves a FontFamily by its name (case-insensitive).
      */
@@ -114,6 +164,30 @@ object AppFonts {
         "kaushanscript" -> KaushanScript
         "permanentmarker" -> PermanentMarker
         "shadowsintolight" -> ShadowsIntoLight
+        "christmasbundle", "christmas_bundle", "xmas_bundle" -> ChristmasBundle
+        "christmasdariona", "christmas_dariona", "xmas_dariona" -> ChristmasDariona
+        "cookiemonster", "cookie_monster", "cookie" -> CookieMonster
+        "crayonhand", "crayon_hand", "crayon" -> CrayonHand
+        "evilscratch", "evil_scratch", "evil" -> EvilScratch
+        "filxgirl", "filx_girl", "filx" -> FilxGirl
+        "godofwar", "god_of_war", "god" -> GodOfWar
+        "gameofsquids", "game_of_squids", "squids" -> GameOfSquids
+        "graveyardcrimes", "graveyard_crimes", "graveyard" -> GraveyardCrimes
+        "happybirthday", "happy_birthday", "birthday" -> HappyBirthday
+        "harukaze" -> Harukaze
+        "hellochristmas", "hello_christmas", "hello_xmas" -> HelloChristmas
+        "hoshikosatsuki", "hoshiko_satsuki", "hoshiko" -> HoshikoSatsuki
+        "jealousy" -> Jealousy
+        "klomangbrush", "klomang_brush", "klomang" -> KlomangBrush
+        "powerskate", "power_skate", "skate" -> PowerSkate
+        "racingintherain", "racing_in_the_rain", "rain" -> RacingInTheRain
+        "sakelar" -> Sakelar
+        "shareit" -> Shareit
+        "spellofasia", "spell_of_asia", "asia" -> SpellOfAsia
+        "spookery" -> Spookery
+        "sprucken" -> Sprucken
+        "therulesofthegame", "the_rules_of_the_game", "rules" -> TheRulesOfTheGame
+        "trashsecret", "trash_secret", "trash" -> TrashSecret
         else -> null
     }
 

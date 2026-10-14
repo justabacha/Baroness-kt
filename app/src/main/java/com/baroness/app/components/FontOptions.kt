@@ -19,7 +19,6 @@ data class FontWeightOption(
 )
 
 val fontFamilies = listOf(
-    FontFamilyOption("yuyu", "Yuyu", AppFonts.Yuyu, "Y", emptyList()),
     FontFamilyOption("lifesavers", "Lifesavers", AppFonts.Lifesavers, "L", listOf(
         FontWeightOption("lifesavers_regular", "Regular", FontWeight.Normal),
         FontWeightOption("lifesavers_bold", "Bold", FontWeight.Bold),
@@ -34,14 +33,6 @@ val fontFamilies = listOf(
         FontWeightOption("robotomono_bold", "Bold", FontWeight.Bold)
     )),
     FontFamilyOption("gamaamli", "Gamaamli", AppFonts.Gamaamli, "G", emptyList()),
-    FontFamilyOption("matemasie", "Matemasie", AppFonts.Matemasie, "M", emptyList()),
-    FontFamilyOption("dancingscript", "Dancing Script", AppFonts.DancingScript, "D", listOf(
-        FontWeightOption("dancingscript_regular", "Regular", FontWeight.Normal),
-        FontWeightOption("dancingscript_medium", "Medium", FontWeight.Medium),
-        FontWeightOption("dancingscript_semibold", "SemiBold", FontWeight.SemiBold),
-        FontWeightOption("dancingscript_bold", "Bold", FontWeight.Bold)
-    )),
-    FontFamilyOption("marckscript", "Marck Script", AppFonts.MarckScript, "M", emptyList()),
     FontFamilyOption("playfairdisplay", "Playfair Display", AppFonts.PlayfairDisplay, "P", listOf(
         FontWeightOption("playfairdisplay_regular", "Regular", FontWeight.Normal),
         FontWeightOption("playfairdisplay_italic", "Italic", FontWeight.Normal),
@@ -52,6 +43,12 @@ val fontFamilies = listOf(
         FontWeightOption("playfairdisplay_blackitalic", "Black Italic", FontWeight.Black)
     )),
     FontFamilyOption("kaushanscript", "Kaushan Script", AppFonts.KaushanScript, "K", emptyList()),
-    FontFamilyOption("permanentmarker", "Permanent Marker", AppFonts.PermanentMarker, "P", emptyList()),
-    FontFamilyOption("shadowsintolight", "Shadows Into Light", AppFonts.ShadowsIntoLight, "S", emptyList())
+    FontFamilyOption("gameofsquids", "Game of Squids", AppFonts.GameOfSquids, "G", emptyList()),
+    FontFamilyOption("shareit", "Shareit", AppFonts.Shareit, "S", emptyList()),
+    FontFamilyOption("hellochristmas", "Hello Christmas", AppFonts.HelloChristmas, "H", emptyList()),
+    FontFamilyOption("hoshikosatsuki", "Hoshiko Satsuki", AppFonts.HoshikoSatsuki, "H", emptyList()),
+    FontFamilyOption("sakelar", "Sakelar", AppFonts.Sakelar, "S", emptyList()),
+    FontFamilyOption("spellofasia", "Spell of Asia", AppFonts.SpellOfAsia, "S", emptyList()),
+    FontFamilyOption("cookiemonster", "Cookie Monster", AppFonts.CookieMonster, "C", emptyList()),
+    FontFamilyOption("filxgirl", "Filx Girl", AppFonts.FilxGirl, "F", emptyList())
 )
