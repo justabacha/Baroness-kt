@@ -6,6 +6,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,18 +21,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextIndent
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.LocalTextStyle
 import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
+import com.baroness.app.data.EmojiSegment
+import com.baroness.app.data.EmojiSegments
 import com.baroness.app.data.QuoteMarkup
 import com.baroness.app.ui.theme.Colors
 import com.baroness.app.ui.theme.LocalBaronessTypography
@@ -137,6 +149,8 @@ fun QuoteCard(
 
             val baseStyle = LocalTextStyle.current
             val activeFontFamily = LocalBaronessTypography.current.title.fontFamily
+            val baseFontSize = quoteFont
+            val density = LocalDensity.current
 
             val paragraphs = remember(text) {
                 QuoteMarkup.parse(
@@ -154,23 +168,87 @@ fun QuoteCard(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 paragraphs.forEach { paragraph ->
-                    val paragraphStyle = paragraph.indentDp?.let {
-                        TextStyle(textIndent = TextIndent(firstLine = it.sp))
-                    } ?: TextStyle.Default
+                    if (paragraph.isLine) {
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .fillMaxWidth(0.2f)
+                                .padding(vertical = 2.dp),
+                            thickness = 1.dp,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                    } else {
+                        val paragraphStyle = paragraph.indentDp?.let {
+                            TextStyle(textIndent = TextIndent(firstLine = it.sp))
+                        } ?: TextStyle.Default
 
-                    Text(
-                        text = paragraph.text,
-                        color = Color.White,
-                        fontSize = quoteFont,
-                        lineHeight = quoteFont * 1.35f,
-                        fontWeight = FontWeight.Medium,
-                        fontStyle = FontStyle.Italic,
-                        textAlign = paragraph.textAlign ?: TextAlign.Center,
-                        style = baseStyle.merge(paragraphStyle).copy(
-                            fontFamily = activeFontFamily
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        val inlineContentMap = remember(paragraph.spans, baseFontSize) {
+                            mutableMapOf<String, InlineTextContent>()
+                        }
+
+                        val annotated = remember(paragraph.spans, baseFontSize) {
+                            buildAnnotatedString {
+                                paragraph.spans.forEach { span ->
+                                    if (span.text.isEmpty()) return@forEach
+                                    val segments = EmojiSegments.split(span.text)
+                                    segments.forEach { segment ->
+                                        when (segment) {
+                                            is EmojiSegment.Plain -> {
+                                                if (span.fontFamily == null && span.sizeScale == 1.0f) {
+                                                    append(segment.text)
+                                                } else {
+                                                    withStyle(
+                                                        SpanStyle(
+                                                            fontFamily = span.fontFamily ?: activeFontFamily,
+                                                            fontSize = baseFontSize * span.sizeScale
+                                                        )
+                                                    ) {
+                                                        append(segment.text)
+                                                    }
+                                                }
+                                            }
+                                            is EmojiSegment.Emoji -> {
+                                                val emojiSizeSp = baseFontSize.value * span.sizeScale * 1.1f
+                                                val key = "emoji_${segment.resId}_${emojiSizeSp.toInt()}"
+                                                appendInlineContent(id = key, alternateText = segment.rawChars)
+
+                                                if (!inlineContentMap.containsKey(key)) {
+                                                    val sizeDp = with(density) { emojiSizeSp.sp.toDp() }
+                                                    inlineContentMap[key] = InlineTextContent(
+                                                        placeholder = Placeholder(
+                                                            width = emojiSizeSp.sp,
+                                                            height = emojiSizeSp.sp,
+                                                            placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter
+                                                        )
+                                                    ) {
+                                                        Image(
+                                                            painter = painterResource(id = segment.resId),
+                                                            contentDescription = segment.rawChars,
+                                                            modifier = Modifier.size(sizeDp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = annotated,
+                            color = Color.White,
+                            fontSize = baseFontSize,
+                            lineHeight = baseFontSize * 1.35f,
+                            fontWeight = FontWeight.Medium,
+                            fontStyle = FontStyle.Italic,
+                            textAlign = paragraph.textAlign ?: TextAlign.Center,
+                            style = baseStyle.merge(paragraphStyle).copy(
+                                fontFamily = activeFontFamily
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                            inlineContent = inlineContentMap
+                        )
+                    }
                 }
             }
 

@@ -44,6 +44,7 @@ import com.baroness.app.screens.WishlistScreen
 import com.baroness.app.screens.PhotosScreen
 import com.baroness.app.screens.ChatListScreen
 import com.baroness.app.screens.ChatRoomScreen
+import com.baroness.app.screens.debug.FontPreviewScreen
 import com.baroness.app.screens.settings.*
 import com.baroness.app.ui.theme.BaronessAppTheme
 import com.baroness.app.utils.SessionManager
@@ -368,6 +369,9 @@ fun AppNavigation(
                 navController = navController,
                 settingsViewModel = settingsViewModel
             )
+        }
+        composable("debug/fonts") {
+            FontPreviewScreen(navController = navController)
         }
     }
 }

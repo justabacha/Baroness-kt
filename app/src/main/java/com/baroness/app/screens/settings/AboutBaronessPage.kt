@@ -82,7 +82,7 @@ import java.util.Calendar
 
 private const val TAG = "AboutBaronessPage"
 private const val LAST_CHECKED_KEY = "phestydrop_last_checked"
-
+private const val FONT_PREVIEW_ENABLED = true  //Temporary flag to enable font preview.
 private enum class CheckButtonState {
     Idle,
     Checking,
@@ -363,6 +363,13 @@ fun AboutBaronessPage(
                     textAlign = TextAlign.Center,
                     letterSpacing = 0.3.sp
                 )
+            }
+
+            // TEMPORARY: remove after quote authoring is complete.
+            if (FONT_PREVIEW_ENABLED) {
+                androidx.compose.material3.TextButton(onClick = { navController.navigate("debug/fonts") }) {
+                    Text("Font Preview (temp)", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp)
+                }
             }
 
             val currentYear = remember { Calendar.getInstance().get(Calendar.YEAR) }

@@ -13,143 +13,143 @@ object SignatureLoops {
 
         // ─── Test quote (kept active) ───
         VibeQuote(
-            part1 = "NO \"<Kaushan|center>NOT TODAY</> \"",
-            part2 = "<gamaamli|left>REMEMBER</>\n<yuyu|indent:80>Everyday is a Hustle</>",
-            photo1 = "$BASE_URL/bucket/Image-81.jpg",
-            photo2 = "$BASE_URL/bucket/Image-82.jpg"
+            part1 = "<lifesavers>you are special to me</>",
+            part2 = "<lifesavers>let whoever think whatever</>",
+            photo1 = "$BASE_URL/bucket/Image-79.jpg",
+            photo2 = "$BASE_URL/bucket/Image-80.jpg"
         ),
 
         // ─── Actives 01–19 ───
         // 01
         /*VibeQuote(
-            part1 = "I don't know what I did to deserve a best friend like you",
-            part2 = "but I'm so grateful to have you in my life",
+            part1 = "<sprucken|left>I don't know what I did to deserve a best friend like you</>",
+            part2 = "<sprucken|left>I'm so grateful to have you in my life</>",
             photo1 = "$BASE_URL/bucket/Image-81.jpg",
             photo2 = "$BASE_URL/bucket/Image-82.jpg"
         ),
         // 02
         VibeQuote(
-            part1 = "..but you're my best friend & I can't lose you :(",
-            part2 = "Thank You for being my unpaid therapist🙂↕️",
+            part1 = "<crayon>..but you're my best friend & I can't lose you :(</>",
+            part2 = "<crayon|left>Thank You for being my unpaid therapist</>🙂",
             photo1 = "$BASE_URL/bucket/Image-27.jpg",
             photo2 = "$BASE_URL/bucket/Image-28.jpg"
         ),
         // 03
         VibeQuote(
-            part1 = "Cheers to our FRIEND-CHIP!🥂",
-            part2 = "u'm.?? !t's forever kind thing :)",
+            part1 = "<lifesavers|right>Cheers to our FRIEND-CHIP!</>🥂",
+            part2 = "<shadows|left>u'm.?? !t's forever kind thing :)</>",
             photo1 = "$BASE_URL/bucket/Image-31.jpg",
             photo2 = "$BASE_URL/bucket/Image-32.jpg"
         ),
         // 04
         VibeQuote(
-            part1 = "Every Tall friend need a short best friend🥴",
-            part2 = "you SHORT!!, I'm literally older than you😂",
+            part1 = "<yuyu>Every Tall friend need a short best friend</>🥴",
+            part2 = "<yuyu>you SHORT!!, I'm literally older than you</>😂",
             photo1 = "$BASE_URL/bucket/Image-33.jpg",
             photo2 = "$BASE_URL/bucket/Image-34.jpg"
         ),
         // 05
         VibeQuote(
-            part1 = "..and till the END you're stuck with me",
-            part2 = "I'll always be there to irritate you",
+            part1 = "<rules>..and till the END you're stuck with me</>",
+            part2 = "<rules>I'll always be there to irritate you</>",
             photo1 = "$BASE_URL/bucket/Image-35.jpg",
             photo2 = "$BASE_URL/bucket/Image-36.jpg"
         ),
         // 06
         VibeQuote(
-            part1 = "Thank You For Existing",
-            part2 = "My Favourite Human ❤️",
+            part1 = "<xmas_bundle>Thank You For Existing</>",
+            part2 = "<matemasie>My Favourite Human</> ❤️",
             photo1 = "$BASE_URL/bucket/Image-39.jpg",
             photo2 = "$BASE_URL/bucket/Image-40.jpg"
         ),
         // 07 — font span: "My Wish" in Kaushan Script
         VibeQuote(
-            part1 = "11:11 \n You are <kaushan>My Wish</> :)",
-            part2 = "☆☆..counting my lucky stars",
+            part1 = "<god>11:11</>\n<kaushan>You are My Wish</> :)",
+            part2 = "<xmas_bundle|left>☆☆</> <lifesavers|left>..counting my lucky stars</>",
             photo1 = "$BASE_URL/bucket/Image-43.jpg",
             photo2 = "$BASE_URL/bucket/Image-44.jpg"
         ),
         // 08
         VibeQuote(
-            part1 = "sometimes u just need to do bad things with good friends",
-            part2 = "The best memories comes from the bad ideas done with best friends",
+            part1 = "<jealousy>sometimes u just need to do bad things with good friends</>",
+            part2 = "<jealousy>The best memories comes from the bad ideas done with best friends</>",
             photo1 = "$BASE_URL/bucket/Image-49.jpg",
             photo2 = "$BASE_URL/bucket/Image-50.jpg"
         ),
         // 09
         VibeQuote(
-            part1 = "you are special to me",
-            part2 = "let whoever think whatever",
-            photo1 = "$BASE_URL/bucket/Image-55.jpg",
-            photo2 = "$BASE_URL/bucket/Image-56.jpg"
+            part1 = "<lifesavers>you are special to me</>",
+            part2 = "<lifesavers>let whoever think whatever</>",
+            photo1 = "$BASE_URL/bucket/Image-79.jpg",
+            photo2 = "$BASE_URL/bucket/Image-80.jpg"
         ),
         // 10
         VibeQuote(
-            part1 = "you are crazy I like that..😂",
-            part2 = "REMEMBER: you've survived every (I CANT DO THIS) so far",
+            part1 = "<lifesavers>you are crazy I like that..</>😂",
+            part2 = "<god|left>REMEMBER:</>\n<lifesavers|left>you've survived every</><gamaamli>I CANT DO THIS</><lifesavers>so far</>",
             photo1 = "$BASE_URL/bucket/Image-57.jpg",
             photo2 = "$BASE_URL/bucket/Image-58.jpg"
         ),
         // 11 — font span: "wish" in Kaushan Script
-        VibeQuote(
-            part1 = "I still <kaushan>wish</> for you at 11:11 🥹",
-            part2 = "she was simple like quantum physics",
-            photo1 = "$BASE_URL/bucket/Image-59.jpg",
-            photo2 = "$BASE_URL/bucket/Image-60.jpg"
+       VibeQuote(
+            part1 = "<god>Me</>\n<god>+ U</>\n{line}\n<god> ♥</>",
+            part2 = "<god>Me</>\n<god>- U</>\n{line}\n<crayon> 🤕</>",
+            photo1 = "$BASE_URL/bucket/Image-47.jpg",
+            photo2 = "$BASE_URL/bucket/Image-48.jpg"
         ),
         // 12
         VibeQuote(
-            part1 = "you are the trouble am in",
-            part2 = "trouble never looked so goddamn fine",
+            part1 = "<sakelar>you are the trouble am in</>",
+            part2 = "<sakelar|right>trouble never looked so goddamn fine</>",
             photo1 = "$BASE_URL/bucket/Image-67.jpg",
             photo2 = "$BASE_URL/bucket/Image-68.jpg"
         ),
         // 13
         VibeQuote(
-            part1 = "there is fire between us",
-            part2 = "a beautiful thing is never perfect",
+            part1 = "<klomang>there is fire between us</>",
+            part2 = "<sprucken|left>a beautiful thing is never</>\n<klomang|right>perfect</>",
             photo1 = "$BASE_URL/bucket/Image-73.jpg",
             photo2 = "$BASE_URL/bucket/Image-74.jpg"
         ),
         // 14
-        VibeQuote(
-            part1 = "avec toi, je suis moi",
-            part2 = "tout pour toi..",
+       VibeQuote(
+            part1 = "<yuyu>avec toi, je suis moi</>",
+            part2 = "<yuyu>tout pour toi..</>",
             photo1 = "$BASE_URL/bucket/Image-83.jpg",
             photo2 = "$BASE_URL/bucket/Image-84.jpg"
         ),
         // 15
         VibeQuote(
-            part1 = "...but u can call me love",
-            part2 = "I call you shawty",
+            part1 = "<sprucken>...but u can call me love</>",
+            part2 = "<sprucken>I call you shawty</>",
             photo1 = "$BASE_URL/bucket/Image-85.jpg",
             photo2 = "$BASE_URL/bucket/Image-86.jpg"
         ),
         // 16
-        VibeQuote(
-            part1 = "you are my euphoria",
-            part2 = "more than a wife u are my best friend",
+       VibeQuote(
+            part1 = "<filx>you are my euphoria</>",
+            part2 = "<marck|left>more than a</>\n<cookie|center>girlfriend</>\n<marck|right>u are my best friend</>",
             photo1 = "$BASE_URL/bucket/Image-87.jpg",
             photo2 = "$BASE_URL/bucket/Image-88.jpg"
         ),
         // 17
-        VibeQuote(
-            part1 = "That's him:\nMy Moonbeam",
-            part2 = "That's her:\nLady of the Moon",
+          VibeQuote(
+            part1 = "<spookery|left>That's him:</>\n<shareit|right>My Moonbeam</>",
+            part2 = "<spookery|left>That's her:</>\n<filx|right>Lady of the Moon</>",
             photo1 = "$BASE_URL/bucket/Image-91.jpg",
             photo2 = "$BASE_URL/bucket/Image-92.jpg"
         ),
         // 18
         VibeQuote(
-            part1 = "To Infinity and Beyond",
-            part2 = "...to ∞ & →",
+            part1 = "<kaushan>love you</>\n<jealousy|center>🫲...THIIIIIS...🫱</>\n<kaushan>MUCH</>",
+            part2 = "<crayon>i'm not okay can u love me extra today 🥺</>",
             photo1 = "$BASE_URL/bucket/Image-93.jpg",
             photo2 = "$BASE_URL/bucket/Image-94.jpg"
         ),
         // 19
         VibeQuote(
-            part1 = "pure & raw",
-            part2 = "boom ShaKaLaka",
+            part1 = "<asia>pure & raw</>",
+            part2 = "<yuyu>boom ShaKaLaka</>",
             photo1 = "$BASE_URL/bucket/Image-95.jpg",
             photo2 = "$BASE_URL/bucket/Image-96.jpg"
         ),
@@ -158,169 +158,176 @@ object SignatureLoops {
 
         // 20
         VibeQuote(
-            part1 = "mh youstupid :)",
-            part2 = "I'm so Youholic",
-            photo1 = "$BASE_URL/bucket/Image-75.jpg",
-            photo2 = "$BASE_URL/bucket/Image-76.jpg"
+            part1 = "<crayon>mh you</> <asia>stupid</> <playfair>:)</>",
+            part2 = "<shadows>I'm so Youholic</>",
+            photo1 = "$BASE_URL/bucket/Image-13.jpg",
+            photo2 = "$BASE_URL/bucket/Image-14.jpg"
         ),
         // 21
         VibeQuote(
-            part1 = "its BF",
-            part2 = "No its FB",
+            part1 = "<playfair>its</> <evil>BF</>",
+            part2 = "<playfair|left>No its</> <spookery>FB</>",
             photo1 = "$BASE_URL/bucket/Image-1.jpg",
             photo2 = "$BASE_URL/bucket/Image-2.JPG"
         ),
         // 22
         VibeQuote(
-            part1 = "I need my own planet y'all irritates me",
-            part2 = "bonjour motherfvcker",
+            part1 = "<sprucken>I need my own planet y'all irritates me</>",
+            part2 = "<crayon|left>bonjour motherfvcker</>",
             photo1 = "$BASE_URL/bucket/Image-3.jpg",
             photo2 = "$BASE_URL/bucket/Image-4.JPG"
         ),
         // 23
         VibeQuote(
-            part1 = "main character energy",
-            part2 = "Bas vibe match honi chahiye",
+            part1 = "<filx>main character energy</>",
+            part2 = "<marck>Bas vibe match honi chahiye</>",
             photo1 = "$BASE_URL/bucket/Image-53.jpg",
             photo2 = "$BASE_URL/bucket/Image-54.jpg"
         ),
         // 24
         VibeQuote(
-            part1 = "..but is she me ?",
-            part2 = "no face just vibes",
+            part1 = "<sprucken|right>..but is she me ?</>",
+            part2 = "<sprucken>no face just vibes</>",
             photo1 = "$BASE_URL/bucket/Image-11.JPG",
             photo2 = "$BASE_URL/bucket/Image-12.JPG"
         ),
         // 25
-        VibeQuote(
-            part1 = "trying to remember who you where",
-            part2 = "You know me .?",
-            photo1 = "$BASE_URL/bucket/Image-13.jpg",
-            photo2 = "$BASE_URL/bucket/Image-14.jpg"
+      VibeQuote(
+            part1 = "<crayon>trying to remember who you where</> <playfair>?!</>",
+            part2 = "<harukaze|left>You know me .?</>",
+            photo1 = "$BASE_URL/bucket/Image-75.jpg",
+            photo2 = "$BASE_URL/bucket/Image-76.jpg"
         ),
         // 26
-        VibeQuote(
-            part1 = "WHo's this DIVA???",
-            part2 = "This is me",
-            photo1 = "$BASE_URL/bucket/Image-19.jpg",
-            photo2 = "$BASE_URL/bucket/Image-20.jpg"
+       VibeQuote(
+            part1 = "<robotomono|left>Who's this</> <gamaamli>DIVA.???</>",
+            part2 = "<skate>This is me.!!!</>",
+            photo1 = "$BASE_URL/bucket/Image-15.jpg",
+            photo2 = "$BASE_URL/bucket/Image-16.jpg"
         ),
         // 27
         VibeQuote(
-            part1 = "I hate diabetes",
-            part2 = "I'll be ur sugar daddy",
+            part1 = "<crayon>I hate diabetes😂😂</>",
+            part2 = "<yuyu>I'll be ur sugar daddy😭!</>",
             photo1 = "$BASE_URL/bucket/Image-29.jpg",
             photo2 = "$BASE_URL/bucket/Image-30.jpg"
         ),
         // 28
-        VibeQuote(
-            part1 = "we're more than friends",
-            part2 = "..but less than a couple",
+         VibeQuote(
+            part1 = "<playfair|left>more than friends...</>",
+            part2 = "<sprucken|right>... less than a couple</>",
             photo1 = "$BASE_URL/bucket/Image-37.jpg",
             photo2 = "$BASE_URL/bucket/Image-38.jpg"
         ),
         // 29
         VibeQuote(
-            part1 = "yess continue..",
-            part2 = "Do you understand..??",
-            photo1 = "$BASE_URL/bucket/Image-47.jpg",
-            photo2 = "$BASE_URL/bucket/Image-48.jpg"
+            part1 = "<crayon|left>yess continue</> <playfair>...!</>",
+            part2 = "<shareit>Do you understand..??</>",
+            photo1 = "$BASE_URL/bucket/Image-59.jpg",
+            photo2 = "$BASE_URL/bucket/Image-60.jpg"
         ),
         // 30
-        VibeQuote(
-            part1 = "More than friends",
-            part2 = "Less than lovers",
+       VibeQuote(
+            part1 = "<matemasie>miss me yet..?!</>",
+            part2 = "<sprucken|left>you dont cross my mind u live in it..</>",
             photo1 = "$BASE_URL/bucket/Image-5.JPG",
             photo2 = "$BASE_URL/bucket/Image-6.jpg"
         ),
         // 31
         VibeQuote(
-            part1 = "Fvck butterflies",
-            part2 = "I feel the whole zoo when i'm with you",
+            part1 = "<shadows>Fvck butterflies</>",
+            part2 = "<crayon|left>I feel the whole</> <matemasie>zoo</> <crayon>when i'm with you</>",
             photo1 = "$BASE_URL/bucket/Image-7.JPG",
             photo2 = "$BASE_URL/bucket/Image-8.JPG"
         ),
         // 32
         VibeQuote(
-            part1 = "we're just friends trying like hell not to be lovers",
-            part2 = "we play dump but we know exactly what we're doing",
+            part1 = "<crayon|left>we're just friends trying like hell not to be</> <asia>lovers</>",
+            part2 = "<sprucken|left>we play dump but we know exactly what we're doing</>",
             photo1 = "$BASE_URL/bucket/Image-77.jpg",
             photo2 = "$BASE_URL/bucket/Image-78.jpg"
         ),
         // 33 — font span: "Love" in Playfair Display
-        VibeQuote(
-            part1 = "Heart says, \"<playfair>Love</>\"",
-            part2 = "Mind says, \"Friends\"",
-            photo1 = "$BASE_URL/bucket/Image-15.jpg",
-            photo2 = "$BASE_URL/bucket/Image-16.jpg"
+       VibeQuote(
+            part1 = "<filx|right>Heart says,</> <playfair>\"Love\"</>",
+            part2 = "<sakelar|left>Mind says,</> <playfair>\"Friends\"</>",
+            photo1 = "$BASE_URL/bucket/Image-19.jpg",
+            photo2 = "$BASE_URL/bucket/Image-20.jpg"
         ),
         // 34
         VibeQuote(
-            part1 = "it takes me days to recover after a dream with u in it",
-            part2 = "By the way i'm wearing the smile u gave me.",
+            part1 = "<filx>By the way i'm wearing the</> <lifesavers>smile</> <filx>u gave me.</>",
+            part2 = "<dancing>it takes me days to recover after a dream with u in it</>",
             photo1 = "$BASE_URL/bucket/Image-17.jpg",
             photo2 = "$BASE_URL/bucket/Image-18.jpg"
         ),
         // 35
-        VibeQuote(
-            part1 = "You'll always be my favorite \"WHAT IF\"",
-            part2 = "\"just friends\" became our favorite lie",
-            photo1 = "$BASE_URL/bucket/Image-23.jpg",
-            photo2 = "$BASE_URL/bucket/Image-24.jpg"
-        ),
-        // 36
-        VibeQuote(
-            part1 = "I didn't fall for u, you fvcking tripped me",
-            part2 = "I wonder what I look like in your eyes.?",
+         VibeQuote(
+            part1 = "<sprucken|left>You'll always be my favorite</>\n<evil|right>\"WHAT IF\"</>",
+            part2 = "<trash|left>\"just friends\"</>\n\n<sprucken|right>became our favorite lie</>",
             photo1 = "$BASE_URL/bucket/Image-41.jpg",
             photo2 = "$BASE_URL/bucket/Image-42.jpg"
         ),
+        // 36
+       VibeQuote(
+            part1 = "<marker>I didn't fall for u, you fvcking tripped me</>",
+            part2 = "<jealousy>I wonder what I look like in your eyes.?</>",
+            photo1 = "$BASE_URL/bucket/Image-89.jpg",
+            photo2 = "$BASE_URL/bucket/Image-90.jpg"
+        ),
         // 37
-        VibeQuote(
-            part1 = "I'd be his if he asked, but he never will",
-            part2 = "Dating or not.. you're still mine",
+         VibeQuote(
+            part1 = "<crayon>I'd be his if he asked, but he never will</>",
+            part2 = "<lifesavers|left>Dating or not.. you're still</> <matemasie>mine</>",
             photo1 = "$BASE_URL/bucket/Image-45.jpg",
             photo2 = "$BASE_URL/bucket/Image-46.jpg"
         ),
         // 38
         VibeQuote(
-            part1 = "you confuse me",
-            part2 = "you and I will always be unfinished business",
+            part1 = "<harukaze>you confuse me 🥴</>",
+            part2 = "<asia|left>you and I will always be unfinished business</>",
             photo1 = "$BASE_URL/bucket/Image-51.jpg",
             photo2 = "$BASE_URL/bucket/Image-52.jpg"
         ),
         // 39
-        VibeQuote(
-            part1 = "Secrete #7: I want you. so be brave and want me back.",
-            part2 = "Secrete #6: I stare at you when you're not looking.",
+       VibeQuote(
+            part1 = "<trash|left>Secrete</> <evil>#7:</>\n<sakelar|left>I want you so be brave an' want me back</>",
+            part2 = "<trash|left>Secrete</> <evil>#6:</>\n<sakelar|left>I stare at you when you're not looking.</>",
             photo1 = "$BASE_URL/bucket/Image-61.jpg",
             photo2 = "$BASE_URL/bucket/Image-62.jpg"
         ),
         // 40
         VibeQuote(
-            part1 = "I cant unlove you",
-            part2 = "real feelings dont just go away",
-            photo1 = "$BASE_URL/bucket/Image-63.jpg",
-            photo2 = "$BASE_URL/bucket/Image-64.jpg"
-        ),
-        // 41
-        VibeQuote(
-            part1 = "I wish he loved me like I love him",
-            part2 = "plot twist: he loves you back",
+            part1 = "<crayon>I cant unlove you</>",
+            part2 = "<crayon>real feelings dont just go away</>",
             photo1 = "$BASE_URL/bucket/Image-65.jpg",
             photo2 = "$BASE_URL/bucket/Image-66.jpg"
         ),
+        // 41
+         VibeQuote(
+            part1 = "<sprucken|right>I wish he loved me like I love him</>",
+            part2 = "<crayon|left>plot twist:</> <sprucken>he loves you more</>",
+            photo1 = "$BASE_URL/bucket/Image-63.jpg",
+            photo2 = "$BASE_URL/bucket/Image-64.jpg"
+        ),
         // 42
         VibeQuote(
-            part1 = "c'mon, we'd look cute together",
-            part2 = "You and I are one big \"its complicated\"",
+            part1 = "<kaushan|left>You and I are one big</> <lifesavers>\"its complicated\"</>",
+            part2 = "<lifesavers>c'mon, we'd look cute together</>",
             photo1 = "$BASE_URL/bucket/Image-69.jpg",
             photo2 = "$BASE_URL/bucket/Image-70.jpg"
         ),
-        // 43
+        //43
+          VibeQuote(
+            part1 = "<hello_xmas>some kisses are given with the eyes</>",
+            part2 = "<lifesavers>Damn your eyes !?!</>",
+            photo1 = "$BASE_URL/bucket/Image-56.jpg",
+            photo2 = "$BASE_URL/bucket/Image-55.jpg"
+        ),
+        // 44
         VibeQuote(
-            part1 = "More than a friendship less than a relationship",
-            part2 = "Flirtationship;",
+            part1 = "<marck>More than a friendship less than a relationship</>",
+            part2 = "<klomang>Flirtationship;</>",
             photo1 = "$BASE_URL/bucket/Image-71.jpg",
             photo2 = "$BASE_URL/bucket/Image-72.jpg"
         )*/

@@ -32,7 +32,6 @@ val fontFamilies = listOf(
         FontWeightOption("robotomono_semibold", "SemiBold", FontWeight.SemiBold),
         FontWeightOption("robotomono_bold", "Bold", FontWeight.Bold)
     )),
-    FontFamilyOption("gamaamli", "Gamaamli", AppFonts.Gamaamli, "G", emptyList()),
     FontFamilyOption("playfairdisplay", "Playfair Display", AppFonts.PlayfairDisplay, "P", listOf(
         FontWeightOption("playfairdisplay_regular", "Regular", FontWeight.Normal),
         FontWeightOption("playfairdisplay_italic", "Italic", FontWeight.Normal),
@@ -47,8 +46,6 @@ val fontFamilies = listOf(
     FontFamilyOption("shareit", "Shareit", AppFonts.Shareit, "S", emptyList()),
     FontFamilyOption("hellochristmas", "Hello Christmas", AppFonts.HelloChristmas, "H", emptyList()),
     FontFamilyOption("hoshikosatsuki", "Hoshiko Satsuki", AppFonts.HoshikoSatsuki, "H", emptyList()),
-    FontFamilyOption("sakelar", "Sakelar", AppFonts.Sakelar, "S", emptyList()),
     FontFamilyOption("spellofasia", "Spell of Asia", AppFonts.SpellOfAsia, "S", emptyList()),
-    FontFamilyOption("cookiemonster", "Cookie Monster", AppFonts.CookieMonster, "C", emptyList()),
-    FontFamilyOption("filxgirl", "Filx Girl", AppFonts.FilxGirl, "F", emptyList())
+    FontFamilyOption("cookiemonster", "Cookie Monster", AppFonts.CookieMonster, "C", emptyList())
 )

@@ -17,7 +17,7 @@ val emojiCategories = listOf(
     ),
     EmojiCategory(
         name = "Hearts",
-        emojis = listOf("❤️‍🔥", "❤️‍🩹", "💛", "💜", "💝", "🤍")
+        emojis = listOf("❤️", "❤️‍🔥", "❤️‍🩹", "💛", "💜", "💝", "🤍")
     ),
     EmojiCategory(
         name = "Food & Drinks",
